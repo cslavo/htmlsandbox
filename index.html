@@ -109,6 +109,20 @@
             margin-top: 40px;
             opacity: 0.8;
         }
+        .refresh-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            margin-top: 10px;
+            transition: background 0.3s ease;
+        }
+        .refresh-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
         .file-list {
             list-style: none;
         }
@@ -163,6 +177,7 @@
 
         <footer>
             <p>Publikované priamo z GitHub repozitára</p>
+            <button class="refresh-btn" onclick="clearCache()">🔄 Obnoviť zoznam</button>
         </footer>
     </div>
 
@@ -175,8 +190,47 @@
         const contentEl = document.getElementById('content');
         const breadcrumbEl = document.getElementById('breadcrumb');
 
-        // Cache pre načítané adresáre
-        const cache = new Map();
+        // Cache konfigurácia - 24 hodín v localStorage
+        const CACHE_DURATION = 24 * 60 * 60 * 1000;
+        const CACHE_KEY = 'htmlUtilities_cache';
+
+        // Načítaj cache z localStorage
+        function loadCache() {
+            try {
+                const cached = localStorage.getItem(CACHE_KEY);
+                if (cached) {
+                    const data = JSON.parse(cached);
+                    if (data.timestamp && (Date.now() - data.timestamp) < CACHE_DURATION) {
+                        return new Map(Object.entries(data.entries));
+                    }
+                }
+            } catch (e) {
+                console.warn('Cache load error:', e);
+            }
+            return new Map();
+        }
+
+        // Ulož cache do localStorage
+        function saveCache(cache) {
+            try {
+                const data = {
+                    timestamp: Date.now(),
+                    entries: Object.fromEntries(cache)
+                };
+                localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+            } catch (e) {
+                console.warn('Cache save error:', e);
+            }
+        }
+
+        // Vymaž cache (tlačidlo pre používateľa)
+        function clearCache() {
+            localStorage.removeItem(CACHE_KEY);
+            cache.clear();
+            showContent('');
+        }
+
+        const cache = loadCache();
 
         // Načítaj obsah pri štarte
         document.addEventListener('DOMContentLoaded', () => {
@@ -197,6 +251,9 @@
                 const response = await fetch(apiUrl);
 
                 if (!response.ok) {
+                    if (response.status === 403) {
+                        throw new Error('GitHub API limit - skúste neskôr alebo obnovte cache');
+                    }
                     throw new Error(`GitHub API error: ${response.status}`);
                 }
 
@@ -221,11 +278,12 @@
 
                 const result = { folders, files };
                 cache.set(fullPath, result);
+                saveCache(cache);
                 return result;
 
             } catch (error) {
                 console.error('Error fetching directory:', error);
-                return { folders: [], files: [] };
+                return { folders: [], files: [], error: error.message };
             }
         }
 
@@ -267,7 +325,11 @@
                     const parentPath = path.includes('/') ? path.substring(0, path.lastIndexOf('/')) : '';
                     html += `<a href="#" onclick="showContent('${parentPath}'); return false;" class="back-btn">← Späť</a>`;
                 }
-                html += '<div class="error">Žiadny obsah nebol nájdený.</div>';
+                if (data.error) {
+                    html += `<div class="error">${data.error}<br><br><button class="refresh-btn" onclick="clearCache()">🔄 Skúsiť znova</button></div>`;
+                } else {
+                    html += '<div class="error">Žiadny obsah nebol nájdený.</div>';
+                }
                 contentEl.innerHTML = html;
                 return;
             }
