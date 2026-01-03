@@ -3,463 +3,327 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HTML Utilities</title>
+    <title>HTML Utilities - Zbierka HTML nástrojov</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            color: #e4e4e4;
-            padding: 20px;
+            padding: 40px 20px;
         }
-
         .container {
             max-width: 900px;
             margin: 0 auto;
         }
-
-        h1 {
+        header {
             text-align: center;
-            margin-bottom: 30px;
-            color: #00d9ff;
-            text-shadow: 0 0 20px rgba(0, 217, 255, 0.3);
+            color: white;
+            margin-bottom: 40px;
+        }
+        header h1 {
             font-size: 2.5rem;
+            margin-bottom: 10px;
         }
-
-        .loading {
-            text-align: center;
-            padding: 50px;
-            color: #888;
-        }
-
-        .loading::after {
-            content: '';
-            animation: dots 1.5s infinite;
-        }
-
-        @keyframes dots {
-            0%, 20% { content: '.'; }
-            40% { content: '..'; }
-            60%, 100% { content: '...'; }
-        }
-
-        .error {
-            text-align: center;
-            padding: 30px;
-            background: rgba(255, 100, 100, 0.1);
-            border: 1px solid rgba(255, 100, 100, 0.3);
-            border-radius: 10px;
-            color: #ff6b6b;
-        }
-
-        .tree {
-            background: rgba(255, 255, 255, 0.03);
-            border-radius: 15px;
-            padding: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .folder, .file {
-            padding: 8px 12px;
-            margin: 2px 0;
-            border-radius: 8px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            transition: all 0.2s ease;
-        }
-
-        .folder {
-            background: rgba(255, 193, 7, 0.1);
-            border: 1px solid rgba(255, 193, 7, 0.2);
-        }
-
-        .folder:hover {
-            background: rgba(255, 193, 7, 0.2);
-            transform: translateX(5px);
-        }
-
-        .folder-icon {
-            font-size: 1.2rem;
-        }
-
-        .folder-name {
-            font-weight: 600;
-            color: #ffc107;
-        }
-
-        .folder-count {
-            margin-left: auto;
-            font-size: 0.8rem;
-            color: #888;
-            background: rgba(0, 0, 0, 0.2);
-            padding: 2px 8px;
-            border-radius: 10px;
-        }
-
-        .file {
-            background: rgba(0, 217, 255, 0.08);
-            border: 1px solid rgba(0, 217, 255, 0.15);
-            text-decoration: none;
-            color: inherit;
-        }
-
-        .file:hover {
-            background: rgba(0, 217, 255, 0.2);
-            transform: translateX(5px);
-            border-color: rgba(0, 217, 255, 0.4);
-        }
-
-        .file-icon {
+        header p {
+            opacity: 0.9;
             font-size: 1.1rem;
         }
-
-        .file-name {
-            color: #00d9ff;
-        }
-
-        .children {
-            margin-left: 25px;
-            padding-left: 15px;
-            border-left: 2px solid rgba(255, 255, 255, 0.1);
-            display: none;
-        }
-
-        .children.open {
-            display: block;
-        }
-
-        .folder.expanded .folder-icon::before {
-            content: '📂';
-        }
-
-        .folder:not(.expanded) .folder-icon::before {
-            content: '📁';
-        }
-
-        .file-icon::before {
-            content: '📄';
-        }
-
         .breadcrumb {
-            margin-bottom: 20px;
-            padding: 10px 15px;
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(255,255,255,0.15);
+            padding: 12px 20px;
             border-radius: 8px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex-wrap: wrap;
+            margin-bottom: 30px;
+            color: white;
         }
-
-        .breadcrumb span {
-            color: #888;
-        }
-
         .breadcrumb a {
-            color: #00d9ff;
+            color: white;
             text-decoration: none;
         }
-
         .breadcrumb a:hover {
             text-decoration: underline;
         }
-
-        .stats {
-            text-align: center;
-            margin-top: 20px;
-            padding: 15px;
-            background: rgba(255, 255, 255, 0.03);
-            border-radius: 10px;
-            color: #888;
-            font-size: 0.9rem;
+        .breadcrumb span {
+            margin: 0 10px;
+            opacity: 0.7;
         }
-
-        .stats strong {
-            color: #00d9ff;
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
         }
-
-        .expand-all-btn {
-            display: block;
-            margin: 0 auto 20px;
-            padding: 10px 25px;
-            background: rgba(0, 217, 255, 0.15);
-            border: 1px solid rgba(0, 217, 255, 0.3);
-            color: #00d9ff;
-            border-radius: 8px;
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
             cursor: pointer;
-            font-size: 0.9rem;
-            transition: all 0.2s;
         }
-
-        .expand-all-btn:hover {
-            background: rgba(0, 217, 255, 0.25);
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .card h2 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .card p {
+            color: #666;
+            font-size: 0.95rem;
+        }
+        .card-icon {
+            font-size: 1.5rem;
+        }
+        .folder-icon::before {
+            content: "📁";
+        }
+        .file-icon::before {
+            content: "📄";
+        }
+        .loading {
+            text-align: center;
+            color: white;
+            padding: 40px;
+            font-size: 1.2rem;
+        }
+        .error {
+            background: rgba(255,100,100,0.2);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        footer {
+            text-align: center;
+            color: white;
+            margin-top: 40px;
+            opacity: 0.8;
+        }
+        .file-list {
+            list-style: none;
+        }
+        .file-list li {
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            transition: transform 0.2s ease;
+        }
+        .file-list li:hover {
+            transform: translateX(5px);
+        }
+        .file-list a {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 20px;
+            color: #333;
+            text-decoration: none;
+        }
+        .file-list a:hover {
+            color: #667eea;
+        }
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            transition: background 0.3s ease;
+        }
+        .back-btn:hover {
+            background: rgba(255,255,255,0.3);
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🛠️ HTML Utilities</h1>
+        <header>
+            <h1>HTML Utilities</h1>
+        </header>
 
-        <div class="breadcrumb">
-            <span>📍</span>
-            <a href="#">htmlUtilities</a>
+        <div id="breadcrumb" class="breadcrumb" style="display: none;"></div>
+
+        <div id="content">
+            <div class="loading">Načítavam...</div>
         </div>
 
-        <button class="expand-all-btn" onclick="toggleAll()">Rozbaliť/Zbaliť všetko</button>
-
-        <div id="tree" class="tree">
-            <div class="loading">Načítavam štruktúru</div>
-        </div>
-
-        <div id="stats" class="stats"></div>
+        <footer>
+            <p>Publikované priamo z GitHub repozitára</p>
+        </footer>
     </div>
 
     <script>
-        // Konfigurácia - detekcia GitHub repozitára
-        const CONFIG = {
-            // Automaticky detekované z URL
-            owner: '',
-            repo: '',
-            branch: 'main',
-            basePath: 'htmlUtilities'
-        };
+        // Konfigurácia GitHub repozitára
+        const GITHUB_OWNER = 'cslavo';
+        const GITHUB_REPO = 'htmlsandbox';
+        const BASE_PATH = 'htmlUtilities';
 
-        // Detekcia GitHub info z aktuálnej URL
-        function detectGitHubInfo() {
-            const hostname = window.location.hostname;
+        const contentEl = document.getElementById('content');
+        const breadcrumbEl = document.getElementById('breadcrumb');
 
-            // GitHub Pages: username.github.io/repo
-            if (hostname.endsWith('.github.io')) {
-                CONFIG.owner = hostname.replace('.github.io', '');
-                CONFIG.repo = window.location.pathname.split('/')[1] || hostname.replace('.github.io', '');
-                return true;
+        // Cache pre načítané adresáre
+        const cache = new Map();
+
+        // Načítaj obsah pri štarte
+        document.addEventListener('DOMContentLoaded', () => {
+            showContent('');
+        });
+
+        // Načíta obsah adresára z GitHub API
+        async function fetchDirectoryContents(path) {
+            const fullPath = path ? `${BASE_PATH}/${path}` : BASE_PATH;
+
+            // Skontroluj cache
+            if (cache.has(fullPath)) {
+                return cache.get(fullPath);
             }
-
-            // Lokálne - pokus o fallback na structure.json
-            return false;
-        }
-
-        // Načítanie štruktúry z GitHub API
-        async function fetchFromGitHub(path = CONFIG.basePath) {
-            const url = `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${path}?ref=${CONFIG.branch}`;
-            const response = await fetch(url);
-
-            if (!response.ok) {
-                throw new Error(`GitHub API error: ${response.status}`);
-            }
-
-            return response.json();
-        }
-
-        // Rekurzívne načítanie celej štruktúry
-        async function loadFullStructure(path = CONFIG.basePath) {
-            const contents = await fetchFromGitHub(path);
-            const items = [];
-
-            for (const item of contents) {
-                if (item.type === 'dir') {
-                    const children = await loadFullStructure(item.path);
-                    // Pridaj priečinok len ak obsahuje HTML súbory alebo podpriečinky
-                    if (children.length > 0) {
-                        items.push({
-                            name: item.name,
-                            type: 'folder',
-                            path: item.path,
-                            children: children
-                        });
-                    }
-                } else if (item.type === 'file' && item.name.toLowerCase().endsWith('.html')) {
-                    items.push({
-                        name: item.name.replace('.html', ''),
-                        type: 'file',
-                        path: item.path,
-                        url: item.html_url ? item.html_url.replace('/blob/', '/raw/') : item.download_url
-                    });
-                }
-            }
-
-            // Zoradiť - priečinky prvé, potom súbory, abecedne
-            items.sort((a, b) => {
-                if (a.type !== b.type) return a.type === 'folder' ? -1 : 1;
-                return a.name.localeCompare(b.name, 'sk');
-            });
-
-            return items;
-        }
-
-        // Načítanie zo structure.json (fallback pre lokálne použitie)
-        async function loadFromStructureJson() {
-            const response = await fetch('structure.json');
-            if (!response.ok) {
-                throw new Error('structure.json not found');
-            }
-            return response.json();
-        }
-
-        // Vytvorenie HTML pre strom
-        function createTreeHTML(items, level = 0) {
-            let html = '';
-
-            for (const item of items) {
-                if (item.type === 'folder') {
-                    const count = countFiles(item.children);
-                    html += `
-                        <div class="folder" onclick="toggleFolder(this, event)">
-                            <span class="folder-icon"></span>
-                            <span class="folder-name">${escapeHtml(item.name)}</span>
-                            <span class="folder-count">${count} súbor${count === 1 ? '' : count < 5 ? 'y' : 'ov'}</span>
-                        </div>
-                        <div class="children">
-                            ${createTreeHTML(item.children, level + 1)}
-                        </div>
-                    `;
-                } else {
-                    const fileUrl = getFileUrl(item);
-                    html += `
-                        <a class="file" href="${fileUrl}" target="_blank">
-                            <span class="file-icon"></span>
-                            <span class="file-name">${escapeHtml(item.name)}</span>
-                        </a>
-                    `;
-                }
-            }
-
-            return html;
-        }
-
-        // Získanie URL pre súbor
-        function getFileUrl(item) {
-            if (item.url) return item.url;
-            // Pre lokálne použitie
-            return item.path;
-        }
-
-        // Počítanie súborov rekurzívne
-        function countFiles(items) {
-            let count = 0;
-            for (const item of items) {
-                if (item.type === 'file') {
-                    count++;
-                } else if (item.children) {
-                    count += countFiles(item.children);
-                }
-            }
-            return count;
-        }
-
-        // Počítanie priečinkov
-        function countFolders(items) {
-            let count = 0;
-            for (const item of items) {
-                if (item.type === 'folder') {
-                    count++;
-                    if (item.children) {
-                        count += countFolders(item.children);
-                    }
-                }
-            }
-            return count;
-        }
-
-        // HTML escape
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        // Toggle priečinka
-        function toggleFolder(element, event) {
-            event.stopPropagation();
-            element.classList.toggle('expanded');
-            const children = element.nextElementSibling;
-            if (children && children.classList.contains('children')) {
-                children.classList.toggle('open');
-            }
-        }
-
-        // Toggle všetko
-        let allExpanded = false;
-        function toggleAll() {
-            allExpanded = !allExpanded;
-            const folders = document.querySelectorAll('.folder');
-            const children = document.querySelectorAll('.children');
-
-            folders.forEach(f => {
-                if (allExpanded) {
-                    f.classList.add('expanded');
-                } else {
-                    f.classList.remove('expanded');
-                }
-            });
-
-            children.forEach(c => {
-                if (allExpanded) {
-                    c.classList.add('open');
-                } else {
-                    c.classList.remove('open');
-                }
-            });
-        }
-
-        // Hlavná funkcia
-        async function init() {
-            const treeContainer = document.getElementById('tree');
-            const statsContainer = document.getElementById('stats');
 
             try {
-                let structure;
+                const apiUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${fullPath}`;
+                const response = await fetch(apiUrl);
 
-                if (detectGitHubInfo()) {
-                    // Použiť GitHub API
-                    structure = await loadFullStructure();
-                } else {
-                    // Fallback na structure.json
-                    try {
-                        structure = await loadFromStructureJson();
-                    } catch (e) {
-                        // Posledný pokus - skúsiť lokálne cesty
-                        throw new Error('Pre lokálne použitie spustite: node generate-structure.js');
-                    }
+                if (!response.ok) {
+                    throw new Error(`GitHub API error: ${response.status}`);
                 }
 
-                if (structure.length === 0) {
-                    treeContainer.innerHTML = '<div class="error">Žiadne HTML súbory neboli nájdené.</div>';
-                    return;
-                }
+                const items = await response.json();
 
-                treeContainer.innerHTML = createTreeHTML(structure);
+                // Filtruj len adresáre a HTML súbory
+                const folders = items
+                    .filter(item => item.type === 'dir')
+                    .map(item => ({
+                        name: item.name,
+                        path: path ? `${path}/${item.name}` : item.name
+                    }))
+                    .sort((a, b) => a.name.localeCompare(b.name, 'sk'));
 
-                const fileCount = countFiles(structure);
-                const folderCount = countFolders(structure);
-                statsContainer.innerHTML = `
-                    <strong>${folderCount}</strong> priečink${folderCount === 1 ? '' : folderCount < 5 ? 'y' : 'ov'} •
-                    <strong>${fileCount}</strong> HTML súbor${fileCount === 1 ? '' : fileCount < 5 ? 'y' : 'ov'}
-                `;
+                const files = items
+                    .filter(item => item.type === 'file' && item.name.endsWith('.html'))
+                    .map(item => ({
+                        name: item.name,
+                        path: path ? `${path}/${item.name}` : item.name
+                    }))
+                    .sort((a, b) => a.name.localeCompare(b.name, 'sk'));
+
+                const result = { folders, files };
+                cache.set(fullPath, result);
+                return result;
 
             } catch (error) {
-                console.error('Error:', error);
-                treeContainer.innerHTML = `
-                    <div class="error">
-                        <p>Nepodarilo sa načítať štruktúru súborov.</p>
-                        <p style="margin-top: 10px; font-size: 0.9em; color: #888;">
-                            ${error.message}
-                        </p>
-                    </div>
-                `;
+                console.error('Error fetching directory:', error);
+                return { folders: [], files: [] };
             }
         }
 
-        // Spustenie
-        init();
+        function updateBreadcrumb(path) {
+            if (!path) {
+                breadcrumbEl.style.display = 'none';
+                return;
+            }
+
+            breadcrumbEl.style.display = 'block';
+            const parts = path.split('/');
+            let html = '<a href="#" onclick="showContent(\'\'); return false;">Domov</a>';
+
+            let buildPath = '';
+            parts.forEach((part, index) => {
+                buildPath += (buildPath ? '/' : '') + part;
+                html += '<span>/</span>';
+                if (index === parts.length - 1) {
+                    html += `<span>${capitalizeFirst(part)}</span>`;
+                } else {
+                    html += `<a href="#" onclick="showContent('${buildPath}'); return false;">${capitalizeFirst(part)}</a>`;
+                }
+            });
+
+            breadcrumbEl.innerHTML = html;
+        }
+
+        async function showContent(path) {
+            updateBreadcrumb(path);
+            contentEl.innerHTML = '<div class="loading">Načítavam...</div>';
+
+            const data = await fetchDirectoryContents(path);
+            const folders = data.folders || [];
+            const files = data.files || [];
+
+            if (folders.length === 0 && files.length === 0) {
+                let html = '';
+                if (path) {
+                    const parentPath = path.includes('/') ? path.substring(0, path.lastIndexOf('/')) : '';
+                    html += `<a href="#" onclick="showContent('${parentPath}'); return false;" class="back-btn">← Späť</a>`;
+                }
+                html += '<div class="error">Žiadny obsah nebol nájdený.</div>';
+                contentEl.innerHTML = html;
+                return;
+            }
+
+            let html = '';
+
+            // Tlačidlo späť
+            if (path) {
+                const parentPath = path.includes('/') ? path.substring(0, path.lastIndexOf('/')) : '';
+                html += `<a href="#" onclick="showContent('${parentPath}'); return false;" class="back-btn">← Späť</a>`;
+            }
+
+            // Zobraziť adresáre ako karty
+            if (folders.length > 0) {
+                html += '<div class="card-grid">';
+                folders.forEach(folder => {
+                    html += `
+                        <div class="card" onclick="showContent('${folder.path}')">
+                            <h2><span class="card-icon folder-icon"></span>${capitalizeFirst(folder.name)}</h2>
+                            <p>Kliknite pre zobrazenie obsahu</p>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+            }
+
+            // Zobraziť HTML súbory ako zoznam
+            if (files.length > 0) {
+                if (folders.length > 0) {
+                    html += '<h3 style="color: white; margin: 30px 0 15px 0;">Súbory</h3>';
+                }
+                html += '<ul class="file-list">';
+                files.forEach(file => {
+                    const displayName = file.name
+                        .replace('.html', '')
+                        .replace(/-/g, ' ');
+
+                    html += `
+                        <li>
+                            <a href="${BASE_PATH}/${file.path}">
+                                <span class="card-icon file-icon"></span>
+                                <span>${displayName}</span>
+                            </a>
+                        </li>
+                    `;
+                });
+                html += '</ul>';
+            }
+
+            contentEl.innerHTML = html;
+        }
+
+        function capitalizeFirst(str) {
+            if (!str) return '';
+            return str.charAt(0).toUpperCase() + str.slice(1);
+        }
     </script>
 </body>
 </html>
