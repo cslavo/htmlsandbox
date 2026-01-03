@@ -1,0 +1,1626 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Extraktor projektových súborov pre AI</title>
+    <style>
+        :root {
+            --primary-color: #4a6da7;
+            --secondary-color: #5a7db7;
+            --accent-color: #3c5a8c;
+            --text-color: #333;
+            --background-color: #f5f5f5;
+            --border-color: #ddd;
+            --hover-color: #f0f0f0;
+            --selected-color: #e6f0ff;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: var(--background-color);
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+
+        header {
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 20px;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+
+        h2 {
+            color: var(--secondary-color);
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+        }
+
+        section {
+            margin-bottom: 30px;
+        }
+
+        .file-selector {
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: var(--accent-color);
+        }
+
+        button:disabled {
+            background-color: var(--border-color);
+            cursor: not-allowed;
+        }
+
+        #selected-dir-path {
+            padding: 8px;
+            background-color: var(--hover-color);
+            border-radius: 4px;
+            flex-grow: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .stats-panel, .extensions-panel {
+            background-color: var(--hover-color);
+            border-radius: 6px;
+            padding: 15px;
+        }
+
+        .stats-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .stat-item {
+            padding: 10px;
+            background-color: white;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-label {
+            font-weight: 600;
+            margin-right: 8px;
+        }
+
+        .extensions-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .extension-item {
+            display: flex;
+            align-items: center;
+            padding: 6px 10px;
+            background-color: white;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .extension-item input[type="checkbox"] {
+            margin-right: 5px;
+        }
+
+        .extension-count {
+            margin-left: 5px;
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .tree-view-container {
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 15px;
+        }
+
+        .tree-view {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .tree-item {
+            padding: 5px 0;
+        }
+
+        .tree-children {
+            margin-left: 20px;
+        }
+
+        .tree-row {
+            display: flex;
+            align-items: center;
+            padding: 5px;
+            border-radius: 4px;
+        }
+
+        .tree-row:hover {
+            background-color: var(--hover-color);
+        }
+
+        .tree-row.selected {
+            background-color: var(--selected-color);
+        }
+
+        .tree-toggle {
+            width: 20px;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .tree-checkbox {
+            margin: 0 5px;
+        }
+
+        .tree-item-name {
+            margin-left: 5px;
+        }
+
+        .tree-directory {
+            font-weight: 600;
+        }
+
+        .tree-file {
+            font-weight: normal;
+        }
+
+        .actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .action-summary {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .file-count-info {
+            color: var(--secondary-color);
+            font-weight: 600;
+        }
+
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+        }
+
+        .status.success {
+            background-color: #e6f7e6;
+            color: #2e7d32;
+        }
+
+        .status.error {
+            background-color: #fdecea;
+            color: #c62828;
+        }
+
+        @media (max-width: 768px) {
+            .input-group {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            #selected-dir-path {
+                margin-top: 10px;
+            }
+            
+            .stats-container {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Extraktor projektových súborov pre AI</h1>
+            <p>Nástroj na vytvorenie textového súboru zo zdrojových kódov projektu pre použitie ako kontext pre AI.</p>
+        </header>
+        
+        <section class="file-selector">
+            <div class="input-group">
+                <button id="choose-dir-btn">Vybrať adresár projektu</button>
+                <button id="refresh-btn" disabled title="Obnoviť strom adresára">🔄 Obnoviť</button>
+                <span id="selected-dir-path">Žiadny adresár nebol vybraný</span>
+            </div>
+            <div id="last-load-time" style="margin-top: 10px; color: #666; font-size: 0.9em;"></div>
+        </section>
+        
+        <section class="stats-panel" id="stats-panel">
+            <h2>Štatistiky projektu</h2>
+            <div class="stats-container">
+                <div class="stat-item">
+                    <span class="stat-label">Počet adresárov:</span>
+                    <span class="stat-value" id="dir-count">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Počet súborov:</span>
+                    <span class="stat-value" id="file-count">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Vybraných súborov:</span>
+                    <span class="stat-value" id="selected-file-count">0</span>
+                </div>
+            </div>
+        </section>
+        
+        <section class="extensions-panel" id="extensions-panel">
+            <h2>Koncovky súborov</h2>
+            <div class="extensions-container" id="extensions-container">
+                <!-- Tu budú dynamicky pridané checkboxy pre koncovky -->
+            </div>
+        </section>
+        
+        <section class="tree-view-container">
+            <h2>Stromová štruktúra projektu</h2>
+            <div class="tree-view" id="tree-view">
+                <!-- Tu bude dynamicky vytvorená stromová štruktúra -->
+            </div>
+        </section>
+        
+        <section class="actions">
+            <div class="action-summary">
+                <button id="generate-btn" disabled>Vygenerovať textový súbor</button>
+                <span class="file-count-info" id="action-file-count">0 súborov vybraných</span>
+            </div>
+            <div class="split-options" style="margin-top: 10px; display: flex; align-items: center; gap: 10px;">
+                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                    <input type="checkbox" id="split-files-checkbox">
+                    <span>Rozdeliť do súborov</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 5px;">
+                    <span>Max:</span>
+                    <input type="number" id="max-file-size-kb" value="1000" min="10" max="100000" style="width: 80px; padding: 4px 8px; border: 1px solid var(--border-color); border-radius: 4px;">
+                    <span>kB</span>
+                </label>
+            </div>
+            <div class="status" id="status"></div>
+        </section>
+    </div>
+</body>
+
+<script>
+//<![CDATA[
+// Konfigurácia aplikácie
+const config = {
+    // Predvolené koncovky súborov, ktoré budú automaticky vybrané
+    defaultExtensions: [
+        // Programovacie jazyky
+        '.js', '.ts', '.jsx', '.tsx', '.html', '.css', '.scss', '.sass', '.less',
+        '.java', '.py', '.rb', '.php', '.c', '.cpp', '.h', '.hpp', '.cs', '.go', 
+        '.rs', '.swift', '.kt', '.scala', '.dart', '.lua', '.pl', '.sh', '.ps1',
+        '.bat', '.cmd', '.vb', '.fs', '.hs', '.clj', '.ex', '.exs', '.erl', '.hrl',
+        // Konfiguračné súbory
+        '.json', '.xml', '.yaml', '.yml', '.toml', '.ini', '.conf', '.config',
+        '.properties', '.env', '.editorconfig', '.gitignore', '.gitattributes',
+        // Dokumentácia a markdown
+        '.md', '.markdown', '.txt', '.rst', '.asciidoc', '.adoc',
+        // Dátové súbory
+        '.csv', '.tsv', '.sql'
+    ],
+    
+    // Maximálna veľkosť súboru na načítanie (v bytoch)
+    maxFileSize: 10 * 1024 * 1024, // 10 MB
+    
+    // Identifikátor pre localStorage
+    storageKey: 'file-extractor-settings',
+    
+    // Identifikátor pre zapamätanie adresára
+    storageKeyDirHandle: 'file-extractor-dir-handle',
+    
+    // Formát oddeľovača pre výstupný súbor
+    outputSeparator: '\n\n// ===== FILE: {{filePath}} =====\n\n'
+};
+
+// Globálne premenné pre aplikáciu
+let rootDirectory = null;
+let directoryStructure = null;
+let fileExtensions = new Map(); // Mapa na uchovanie informácií o koncovkách súborov
+let selectedExtensions = new Set(config.defaultExtensions);
+let expandedNodes = new Set(); // Sledovanie rozbalených adresárov
+let savedDirectoryHandle = null; // Uložený handle adresára
+
+// DOM elementy
+const chooseDirBtn = document.getElementById('choose-dir-btn');
+const refreshBtn = document.getElementById('refresh-btn');
+const selectedDirPath = document.getElementById('selected-dir-path');
+const lastLoadTime = document.getElementById('last-load-time');
+const dirCount = document.getElementById('dir-count');
+const fileCount = document.getElementById('file-count');
+const selectedFileCount = document.getElementById('selected-file-count');
+const actionFileCount = document.getElementById('action-file-count');
+const extensionsContainer = document.getElementById('extensions-container');
+const treeView = document.getElementById('tree-view');
+const generateBtn = document.getElementById('generate-btn');
+const statusEl = document.getElementById('status');
+
+// Inicializácia aplikácie
+document.addEventListener('DOMContentLoaded', init);
+
+// Inicializačná funkcia
+async function init() {
+    // Načítanie uložených nastavení
+    loadSettings();
+    
+    // Načítanie uloženého adresára
+    try {
+        await loadSavedDirectory();
+    } catch (error) {
+        console.error('Chyba pri načítaní adresára:', error);
+    }
+    
+    // Pridanie event listenerov
+    chooseDirBtn.addEventListener('click', handleDirectorySelection);
+    refreshBtn.addEventListener('click', handleRefresh);
+    generateBtn.addEventListener('click', generateOutputFile);
+
+    // Kontrola podpory File API
+    if (!window.showDirectoryPicker) {
+        showError('Váš prehliadač nepodporuje Directory API. Použite prosím Chrome alebo Firefox.');
+        chooseDirBtn.disabled = true;
+    }
+}
+
+// Funkcia na načítanie uložených nastavení
+function loadSettings() {
+    try {
+        const savedSettings = localStorage.getItem(config.storageKey);
+        if (savedSettings) {
+            const settings = JSON.parse(savedSettings);
+            if (settings.selectedExtensions) {
+                selectedExtensions = new Set(settings.selectedExtensions);
+            }
+        }
+    } catch (error) {
+        console.error('Chyba pri načítaní nastavení:', error);
+    }
+}
+
+// Funkcia na uloženie nastavení
+function saveSettings() {
+    try {
+        const settings = {
+            selectedExtensions: Array.from(selectedExtensions)
+        };
+        localStorage.setItem(config.storageKey, JSON.stringify(settings));
+    } catch (error) {
+        console.error('Chyba pri ukladaní nastavení:', error);
+    }
+}
+
+// Funkcia na načítanie uloženého adresára
+async function loadSavedDirectory() {
+    try {
+        // Skúsime najprv načítať z IndexedDB (ak je podporovaná)
+        if (window.indexedDB) {
+            try {
+                const db = await openDatabase();
+                const handle = await getDirHandleFromDB(db);
+                
+                if (handle) {
+                    savedDirectoryHandle = handle;
+                    
+                    // Skontrolujeme, či máme ešte povolenie pristupovať k adresáru
+                    if (handle.requestPermission) {
+                        const permission = await handle.requestPermission({ mode: 'read' });
+                        if (permission === 'granted') {
+                            // Nastavíme uložený adresár ako aktívny
+                            rootDirectory = handle;
+                            
+                            // Aktualizujeme UI
+                            selectedDirPath.textContent = handle.name;
+                            showStatus(`Adresár "${handle.name}" je pripravený na použitie.`, 'success');
+                            
+                            // Spracujeme adresárovú štruktúru
+                            await processSelectedDirectory();
+                            return;
+                        }
+                    }
+                }
+            } catch (error) {
+                console.warn('Nepodarilo sa obnoviť uložený adresár:', error);
+            }
+        }
+        
+        // Fallback - skúsime načítať aspoň názov adresára z localStorage
+        const lastDirInfo = localStorage.getItem(config.storageKeyDirHandle);
+        if (lastDirInfo) {
+            try {
+                const dirInfo = JSON.parse(lastDirInfo);
+                selectedDirPath.textContent = `Naposledy použitý: ${dirInfo.name}`;
+                showStatus('Kliknite na "Vybrať adresár projektu" pre opätovné načítanie naposledy použitého adresára.', 'success');
+            } catch (error) {
+                console.warn('Nepodarilo sa načítať informácie o adresári:', error);
+            }
+        }
+    } catch (error) {
+        console.error('Chyba pri načítaní adresára:', error);
+    }
+}
+
+// Funkcia na otvorenie IndexedDB databázy
+function openDatabase() {
+    return new Promise((resolve, reject) => {
+        if (!window.indexedDB) {
+            reject(new Error('Prehliadač nepodporuje IndexedDB'));
+            return;
+        }
+        
+        const request = indexedDB.open('FileExtractorDB', 1);
+        
+        request.onupgradeneeded = (event) => {
+            const db = event.target.result;
+            if (!db.objectStoreNames.contains('directoryHandles')) {
+                db.createObjectStore('directoryHandles');
+            }
+        };
+        
+        request.onsuccess = (event) => {
+            resolve(event.target.result);
+        };
+        
+        request.onerror = (event) => {
+            console.error('Chyba pri otváraní databázy:', event.target.error);
+            reject(event.target.error);
+        };
+    });
+}
+
+// Funkcia na získanie handle adresára z databázy
+function getDirHandleFromDB(db) {
+    return new Promise((resolve, reject) => {
+        try {
+            const transaction = db.transaction(['directoryHandles'], 'readonly');
+            const store = transaction.objectStore('directoryHandles');
+            const request = store.get('lastUsed');
+            
+            request.onsuccess = (event) => {
+                resolve(event.target.result);
+            };
+            
+            request.onerror = (event) => {
+                console.error('Chyba pri získavaní adresára z databázy:', event.target.error);
+                reject(event.target.error);
+            };
+        } catch (error) {
+            reject(error);
+        }
+    });
+}
+
+// Funkcia na uloženie handle adresára do databázy
+async function saveDirHandleToDB(handle) {
+    try {
+        if (!window.indexedDB) {
+            throw new Error('Prehliadač nepodporuje IndexedDB');
+        }
+        
+        // Požiadame o povolenie persistentného úložiska
+        if (navigator.storage && navigator.storage.persist) {
+            const isPersisted = await navigator.storage.persist();
+            console.log(`Persistentné úložisko ${isPersisted ? 'povolené' : 'zamietnuté'}`);
+        }
+        
+        // Uložíme handle do IndexedDB
+        const db = await openDatabase();
+        const transaction = db.transaction(['directoryHandles'], 'readwrite');
+        const store = transaction.objectStore('directoryHandles');
+        await store.put(handle, 'lastUsed');
+        
+        // Uložíme informácie o adresári aj do localStorage ako fallback
+        localStorage.setItem(config.storageKeyDirHandle, JSON.stringify({
+            name: handle.name,
+            kind: handle.kind,
+            timestamp: Date.now()
+        }));
+        
+        return true;
+    } catch (error) {
+        console.error('Chyba pri ukladaní adresára:', error);
+        
+        // Fallback - uložíme aspoň základné informácie do localStorage
+        if (handle && handle.name) {
+            localStorage.setItem(config.storageKeyDirHandle, JSON.stringify({
+                name: handle.name,
+                kind: handle.kind,
+                timestamp: Date.now()
+            }));
+        }
+        
+        return false;
+    }
+}
+
+// Funkcia na aktualizáciu času posledného načítania
+function updateLastLoadTime() {
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('sk-SK', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+    });
+    const timeStr = now.toLocaleTimeString('sk-SK', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    });
+    lastLoadTime.textContent = `Posledné načítanie: ${dateStr} ${timeStr}`;
+}
+
+// Funkcia na získanie všetkých vybraných ciest súborov
+function getSelectedFilePaths() {
+    const selectedPaths = new Set();
+
+    function collectSelected(node) {
+        if (node.type === 'file' && node.selected === true) {
+            selectedPaths.add(node.path);
+        } else if (node.type === 'directory' && node.children) {
+            for (const child of node.children) {
+                collectSelected(child);
+            }
+        }
+    }
+
+    if (directoryStructure) {
+        collectSelected(directoryStructure);
+    }
+
+    return selectedPaths;
+}
+
+// Funkcia na obnovenie výberu súborov podľa uložených ciest
+function restoreSelectedFilePaths(selectedPaths) {
+    if (!selectedPaths || selectedPaths.size === 0) return;
+
+    function restoreSelection(node) {
+        if (node.type === 'file') {
+            // Obnovíme výber len ak bol súbor predtým vybraný
+            // Inak explicitne nastavíme selected na false
+            if (selectedPaths.has(node.path)) {
+                node.selected = true;
+            } else {
+                node.selected = false;
+            }
+        } else if (node.type === 'directory' && node.children) {
+            // Rekurzívne spracujeme deti
+            for (const child of node.children) {
+                restoreSelection(child);
+            }
+            // Aktualizujeme stav adresára na základe detí
+            updateDirectorySelectionState(node);
+        }
+    }
+
+    if (directoryStructure) {
+        restoreSelection(directoryStructure);
+    }
+}
+
+// Handler pre obnovenie stromu adresára
+async function handleRefresh() {
+    if (!rootDirectory) {
+        showError('Nie je vybraný žiadny adresár.');
+        return;
+    }
+
+    try {
+        // Deaktivácia tlačidiel počas načítavania
+        refreshBtn.disabled = true;
+        generateBtn.disabled = true;
+
+        showStatus('Obnovujem strom adresára...');
+
+        // Uložíme si aktuálny výber súborov pred obnovením
+        const previouslySelectedPaths = getSelectedFilePaths();
+
+        // Znovu spracujeme adresár
+        await processSelectedDirectory();
+
+        // Obnovíme výber súborov podľa uložených ciest
+        restoreSelectedFilePaths(previouslySelectedPaths);
+
+        // Aktualizujeme stav koncoviek na základe obnoveného výberu
+        synchronizeExtensionsWithFiles();
+
+        // Aktualizujeme UI
+        updateCheckboxStatesInDOM();
+        updateExtensionsUI();
+        updateTotalSelectedFilesCount();
+
+    } catch (error) {
+        console.error('Chyba pri obnovení adresára:', error);
+        showError(`Chyba pri obnovení adresára: ${error.message}`);
+    } finally {
+        // Opätovné povolenie tlačidla
+        refreshBtn.disabled = false;
+    }
+}
+
+// Handler pre výber adresára
+async function handleDirectorySelection() {
+    try {
+        // Otvorenie dialógu pre výber adresára
+        // Skúsime využiť uložený adresár ako počiatočný bod, ak je k dispozícii
+        let options = {};
+        
+        if (savedDirectoryHandle) {
+            // Niektoré prehliadače podporujú id a startIn možnosti
+            options = {
+                id: savedDirectoryHandle.name,
+                startIn: savedDirectoryHandle
+            };
+        }
+        
+        try {
+            rootDirectory = await window.showDirectoryPicker(options);
+        } catch (error) {
+            // Ak sa nepodarí použiť options, skúsime bez nich
+            if (error.name !== 'AbortError') {
+                console.warn('Nepodarilo sa použiť uložený adresár, skúšam bez možností:', error);
+                rootDirectory = await window.showDirectoryPicker();
+            } else {
+                // Používateľ zrušil výber adresára
+                throw error;
+            }
+        }
+        
+        // Uložíme nový adresár pre budúce použitie
+        savedDirectoryHandle = rootDirectory;
+        await saveDirHandleToDB(rootDirectory);
+        
+        // Spracujeme vybraný adresár
+        await processSelectedDirectory();
+        
+    } catch (error) {
+        if (error.name !== 'AbortError') { // Ignorovanie "cancel" akcie od používateľa
+            console.error('Chyba pri výbere adresára:', error);
+            showError(`Chyba pri výbere adresára: ${error.message}`);
+        }
+    }
+}
+
+// Funkcia na spracovanie vybraného adresára
+async function processSelectedDirectory() {
+    if (!rootDirectory) return;
+    
+    // Aktualizácia UI
+    selectedDirPath.textContent = rootDirectory.name;
+    generateBtn.disabled = true;
+    showStatus('Načítavam adresárovú štruktúru...');
+    
+    // Resetovanie premenných
+    directoryStructure = null;
+    fileExtensions.clear();
+    
+    // Spracovanie adresárovej štruktúry (asynchrónne)
+    directoryStructure = await processDirectory(rootDirectory);
+    
+    // Aktualizácia UI
+    updateStatistics();
+    updateExtensionsUI();
+    renderTreeView();
+    updateTotalSelectedFilesCount();
+
+    generateBtn.disabled = false;
+    refreshBtn.disabled = false; // Povolenie refresh tlačidla
+    updateLastLoadTime(); // Aktualizácia času načítania
+    showStatus('Adresárová štruktúra bola úspešne načítaná.', 'success');
+
+    // Uloženie nastavení
+    saveSettings();
+}
+
+// Funkcia na spracovanie adresára a vytvorenie stromovej štruktúry
+async function processDirectory(directoryHandle, parentPath = null) {
+    const isRoot = parentPath === null;
+    const currentPath = isRoot ? directoryHandle.name : `${parentPath}/${directoryHandle.name}`;
+
+    const result = {
+        type: 'directory',
+        name: directoryHandle.name,
+        path: currentPath,
+        handle: directoryHandle,
+        children: [],
+        selected: false
+    };
+
+    // Iterácia cez všetky položky v adresári
+    for await (const entry of directoryHandle.values()) {
+        if (entry.kind === 'directory') {
+            // Rekurzívne spracovanie podadresára
+            const subDir = await processDirectory(entry, currentPath);
+            result.children.push(subDir);
+        } else {
+            // Spracovanie súboru
+            const file = {
+                type: 'file',
+                name: entry.name,
+                path: `${currentPath}/${entry.name}`,
+                handle: entry,
+                selected: false,
+                extension: getFileExtension(entry.name)
+            };
+            
+            // Získanie a spracovanie koncovky súboru
+            if (file.extension) {
+                // Aktualizácia počtu súborov pre danú koncovku
+                if (!fileExtensions.has(file.extension)) {
+                    fileExtensions.set(file.extension, {
+                        count: 1,
+                        selected: selectedExtensions.has(file.extension)
+                    });
+                } else {
+                    const extInfo = fileExtensions.get(file.extension);
+                    extInfo.count++;
+                    fileExtensions.set(file.extension, extInfo);
+                }
+                
+                // Nastavenie, či je súbor vybraný, na základe jeho koncovky
+                file.selected = fileExtensions.get(file.extension).selected;
+            }
+            
+            result.children.push(file);
+        }
+    }
+    
+    // Odvodzujeme stav výberu adresára na základe stavu jeho detí
+    updateDirectorySelectionState(result);
+    
+    return result;
+}
+
+// Funkcia na získanie koncovky súboru
+function getFileExtension(filename) {
+    const parts = filename.split('.');
+    if (parts.length === 1 || (parts[0] === '' && parts.length === 2)) {
+        return ''; // Súbor bez koncovky alebo skrytý súbor (napr. .gitignore)
+    }
+    return '.' + parts.pop().toLowerCase();
+}
+
+// Funkcia na aktualizáciu štatistík
+function updateStatistics() {
+    if (!directoryStructure) return;
+    
+    let dirs = 0;
+    let files = 0;
+    
+    function countItems(node) {
+        if (node.type === 'directory') {
+            dirs++;
+            for (const child of node.children) {
+                countItems(child);
+            }
+        } else {
+            files++;
+        }
+    }
+    
+    countItems(directoryStructure);
+    
+    // Odpočítame koreňový adresár
+    dirs--;
+    
+    // Aktualizácia UI
+    dirCount.textContent = dirs;
+    fileCount.textContent = files;
+}
+
+// Funkcia na počítanie vybraných súborov
+function updateTotalSelectedFilesCount() {
+    if (!directoryStructure) {
+        selectedFileCount.textContent = "0";
+        actionFileCount.textContent = "0 súborov vybraných";
+        return;
+    }
+    
+    let count = 0;
+    
+    function countSelectedFiles(node) {
+        if (node.type === 'file' && node.selected) {
+            count++;
+        } else if (node.type === 'directory') {
+            for (const child of node.children) {
+                countSelectedFiles(child);
+            }
+        }
+    }
+    
+    countSelectedFiles(directoryStructure);
+    
+    // Aktualizácia počítadiel
+    selectedFileCount.textContent = count;
+    
+    // Generovanie textu so správnym skloňovaním
+    let fileText = "súborov";
+    if (count === 1) {
+        fileText = "súbor";
+    } else if (count >= 2 && count <= 4) {
+        fileText = "súbory";
+    }
+    
+    actionFileCount.textContent = `${count} ${fileText} vybraných`;
+    
+    // Zablokujeme tlačidlo na generovanie, ak nie sú vybrané žiadne súbory
+    generateBtn.disabled = count === 0;
+}
+
+// Funkcia na synchronizáciu stavu koncoviek so stavom súborov
+function synchronizeExtensionsWithFiles() {
+    if (!directoryStructure) return;
+    
+    // Najprv resetujeme všetky koncovky
+    const extensionsStatus = new Map();
+    
+    // Prejdeme celý strom a zaznamenáme stav koncoviek
+    function trackExtensions(node) {
+        if (node.type === 'file' && node.extension) {
+            const ext = node.extension;
+            if (!extensionsStatus.has(ext)) {
+                extensionsStatus.set(ext, {
+                    count: 1,
+                    selectedCount: node.selected ? 1 : 0
+                });
+            } else {
+                const status = extensionsStatus.get(ext);
+                status.count++;
+                if (node.selected) status.selectedCount++;
+                extensionsStatus.set(ext, status);
+            }
+        } else if (node.type === 'directory') {
+            for (const child of node.children) {
+                trackExtensions(child);
+            }
+        }
+    }
+    
+    // Začíname od koreňového adresára
+    trackExtensions(directoryStructure);
+    
+    // Aktualizujeme informácie o koncovkách
+    for (const [ext, info] of fileExtensions.entries()) {
+        const status = extensionsStatus.get(ext);
+        if (status) {
+            const isSelected = status.selectedCount > 0;
+            info.selected = isSelected;
+            info.selectedCount = status.selectedCount;
+            
+            // Aktualizujeme aj množinu vybraných koncoviek
+            if (isSelected) {
+                selectedExtensions.add(ext);
+            } else {
+                selectedExtensions.delete(ext);
+            }
+        }
+    }
+    
+    // Uložíme nastavenia
+    saveSettings();
+    
+    // Aktualizácia počtu celkovo vybraných súborov
+    updateTotalSelectedFilesCount();
+}
+
+// Funkcia na aktualizáciu UI koncoviek súborov
+function updateExtensionsUI() {
+    extensionsContainer.innerHTML = '';
+    
+    // Zoradenie koncoviek podľa počtu súborov
+    const sortedExtensions = Array.from(fileExtensions.entries()).sort((a, b) => {
+        // Najprv zoradíme podľa vybraného stavu (vybrané koncovky na začiatku)
+        if (a[1].selected !== b[1].selected) {
+            return b[1].selected - a[1].selected;
+        }
+        // Potom podľa počtu súborov (zostupne)
+        return b[1].count - a[1].count;
+    });
+    
+    for (const [ext, info] of sortedExtensions) {
+        const extItem = document.createElement('div');
+        extItem.className = 'extension-item';
+        
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = info.selected;
+        checkbox.dataset.extension = ext;
+        
+        checkbox.addEventListener('change', (e) => {
+            const extension = e.target.dataset.extension;
+            const selected = e.target.checked;
+            
+            // Aktualizácia stavu koncovky
+            const extInfo = fileExtensions.get(extension);
+            extInfo.selected = selected;
+            fileExtensions.set(extension, extInfo);
+            
+            if (selected) {
+                selectedExtensions.add(extension);
+            } else {
+                selectedExtensions.delete(extension);
+            }
+            
+            // Nastavenie všetkých súborov s danou koncovkou 
+            updateAllFilesByExtension(directoryStructure, extension, selected);
+            
+            // Aktualizácia stavu koncoviek - prepočítame počet vybraných súborov
+            synchronizeExtensionsWithFiles();
+            
+            // Prekreslenie UI koncoviek, aby sa aktualizovali počty
+            updateExtensionsUI();
+            
+            // Aktualizácia počtu celkovo vybraných súborov
+            updateTotalSelectedFilesCount();
+            
+            // Uloženie nastavení
+            saveSettings();
+        });
+        
+        const label = document.createElement('label');
+        label.textContent = ext || '(bez koncovky)';
+        
+        const count = document.createElement('span');
+        count.className = 'extension-count';
+        
+        // Zobrazíme počet vybraných súborov a celkový počet súborov
+        const selectedCount = info.selectedCount || 0;
+        count.textContent = `(${selectedCount}/${info.count})`;
+        
+        extItem.appendChild(checkbox);
+        extItem.appendChild(label);
+        extItem.appendChild(count);
+        
+        extensionsContainer.appendChild(extItem);
+    }
+}
+
+// Aktualizácia všetkých súborov s danou koncovkou
+function updateAllFilesByExtension(node, extension, selected) {
+    let changed = false;
+    
+    if (node.type === 'file' && node.extension === extension) {
+        // Zmena stavu len ak je iný ako aktuálny
+        if (node.selected !== selected) {
+            node.selected = selected;
+            changed = true;
+        }
+    } else if (node.type === 'directory') {
+        // Rekurzívne prechádzame všetky deti
+        for (const child of node.children) {
+            if (updateAllFilesByExtension(child, extension, selected)) {
+                changed = true;
+            }
+        }
+        
+        // Ak došlo k zmene, aktualizujeme stav adresára
+        if (changed) {
+            // Prepočítame stav adresára na základe jeho detí
+            updateDirectorySelectionState(node);
+        }
+    }
+    
+    // Ak sa jedná o koreňový adresár a došlo k zmene, aktualizujeme checkboxy
+    if (node === directoryStructure && changed) {
+        updateCheckboxStatesInDOM();
+    }
+    
+    return changed;
+}
+
+// Funkcia na aktualizáciu stavu výberu adresára na základe jeho detí
+function updateDirectorySelectionState(directory) {
+    if (!directory || !directory.children || directory.children.length === 0) {
+        directory.selected = false;
+        return;
+    }
+    
+    const allSelected = directory.children.every(child => child.selected === true);
+    const noneSelected = directory.children.every(child => child.selected === false);
+    
+    if (allSelected) {
+        directory.selected = true;
+    } else if (noneSelected) {
+        directory.selected = false;
+    } else {
+        directory.selected = null; // Neurčitý stav
+    }
+}
+
+// Funkcia na efektívnu aktualizáciu checkbox stavov bez prekreslenia celého stromu
+function updateCheckboxStatesInDOM() {
+    if (!directoryStructure) return;
+
+    // Prejdeme všetky checkboxy v stromovej štruktúre
+    const checkboxes = treeView.querySelectorAll('.tree-checkbox[data-path]');
+
+    checkboxes.forEach(checkbox => {
+        const path = checkbox.dataset.path;
+        const node = findNodeByPath(directoryStructure, path);
+
+        if (node) {
+            checkbox.checked = node.selected === true;
+            checkbox.indeterminate = node.selected === null;
+        }
+    });
+}
+
+// Funkcia na vykreslenie stromovej štruktúry
+function renderTreeView() {
+    // Zapamätáme si rozbalené uzly pred prekreslením
+    const expandedElements = document.querySelectorAll('.tree-children[style="display: block;"]');
+    expandedElements.forEach(el => {
+        const parentItem = el.closest('.tree-item');
+        if (parentItem && parentItem.dataset.path) {
+            expandedNodes.add(parentItem.dataset.path);
+        }
+    });
+    
+    treeView.innerHTML = '';
+    
+    if (!directoryStructure) return;
+    
+    // Pre koreňový adresár vždy nastavíme rozbalenie
+    expandedNodes.add(directoryStructure.path);
+    
+    treeView.appendChild(createTreeItem(directoryStructure));
+}
+
+// Funkcia na vytvorenie položky stromovej štruktúry
+function createTreeItem(node) {
+    const item = document.createElement('div');
+    item.className = 'tree-item';
+    item.dataset.path = node.path;
+    
+    const row = document.createElement('div');
+    row.className = 'tree-row';
+    
+    // Tlačidlo na rozbalenie/zbalenie (len pre adresáre)
+    const toggle = document.createElement('span');
+    toggle.className = 'tree-toggle';
+    
+    if (node.type === 'directory' && node.children.length > 0) {
+        toggle.textContent = '▶';
+        toggle.style.cursor = 'pointer';
+        
+        // Event listener pre rozbalenie/zbalenie
+        toggle.addEventListener('click', (e) => {
+            e.stopPropagation(); // Zabrániť šíreniu udalosti
+            const children = item.querySelector('.tree-children');
+            if (children.style.display === 'none') {
+                children.style.display = 'block';
+                toggle.textContent = '▼';
+                expandedNodes.add(node.path);
+            } else {
+                children.style.display = 'none';
+                toggle.textContent = '▶';
+                expandedNodes.delete(node.path);
+            }
+        });
+    } else {
+        toggle.textContent = ' ';
+    }
+    
+    // Checkbox pre výber
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.className = 'tree-checkbox';
+    checkbox.dataset.path = node.path; // Pridáme cestu pre efektívnu aktualizáciu
+    checkbox.checked = node.selected === true;
+    checkbox.indeterminate = node.selected === null;
+    
+    // Event listener pre zmenu výberu
+    checkbox.addEventListener('change', (e) => {
+        e.stopPropagation(); // Zabrániť šíreniu udalosti
+        
+        // Získanie aktuálneho stavu
+        let selected = checkbox.checked;
+        
+        // Špeciálne spracovanie pre neurčitý stav - jednoduchý cyklus:
+        // neurčitý -> vybraný -> nevybraný
+        if (node.selected === null && !selected) {
+            selected = true;
+            checkbox.checked = true;
+        }
+        
+        // Nastavenie stavu aktuálneho uzla
+        node.selected = selected;
+        
+        // Ak je to adresár, rekurzívne nastavíme rovnaký stav pre všetky jeho deti
+        if (node.type === 'directory') {
+            setAllChildrenSelection(node, selected);
+        }
+        
+        // Aktualizácia stavu rodičovských adresárov smerom nahor
+        if (node !== directoryStructure) {
+            updateParentSelectionStates(directoryStructure, node.path);
+        }
+        
+        // Aktualizácia stavu koncoviek
+        synchronizeExtensionsWithFiles();
+
+        // Aktualizácia UI - len checkboxy, nie celý strom
+        updateCheckboxStatesInDOM();
+        updateExtensionsUI();
+        updateTotalSelectedFilesCount();
+    });
+    
+    // Názov položky
+    const name = document.createElement('span');
+    name.className = `tree-item-name ${node.type === 'directory' ? 'tree-directory' : 'tree-file'}`;
+    name.textContent = node.name;
+    
+    row.appendChild(toggle);
+    row.appendChild(checkbox);
+    row.appendChild(name);
+    
+    item.appendChild(row);
+    
+    // Vytvorenie podpoložiek pre adresáre
+    if (node.type === 'directory' && node.children.length > 0) {
+        const children = document.createElement('div');
+        children.className = 'tree-children';
+        
+        // Pre koreňový adresár vždy zobrazíme deti
+        if (node === directoryStructure || expandedNodes.has(node.path)) {
+            toggle.textContent = '▼';
+            children.style.display = 'block';
+        } else {
+            children.style.display = 'none';
+        }
+        
+        // Zoradenie detí: najprv adresáre, potom súbory, všetko abecedne
+        const sortedChildren = [...node.children].sort((a, b) => {
+            if (a.type !== b.type) {
+                return a.type === 'directory' ? -1 : 1;
+            }
+            return a.name.localeCompare(b.name);
+        });
+        
+        for (const child of sortedChildren) {
+            children.appendChild(createTreeItem(child));
+        }
+        
+        item.appendChild(children);
+    }
+    
+    return item;
+}
+
+// Lepšia funkcia pre rekurzívne nastavenie všetkých detí adresára
+function setAllChildrenSelection(directory, selected) {
+    if (!directory || directory.type !== 'directory') return;
+    
+    // Pre všetky deti nastavíme vybraný stav
+    for (let i = 0; i < directory.children.length; i++) {
+        const child = directory.children[i];
+        child.selected = selected;
+        
+        // Ak je dieťa adresár, rekurzívne nastavíme aj jeho deti
+        if (child.type === 'directory') {
+            setAllChildrenSelection(child, selected);
+        }
+    }
+}
+
+// Funkcia pre aktualizáciu stavu rodičov
+function updateParentSelectionStates(root, childPath) {
+    if (root.type !== 'directory') return false;
+    
+    let changed = false;
+    
+    // Skontrolujeme, či je tento uzol alebo niektorý z jeho detí hľadaným potomkom
+    let isParentOfChangedNode = false;
+    for (const child of root.children) {
+        // Priamy potomok alebo je v podstrome
+        if (child.path === childPath || 
+            (child.type === 'directory' && childPath.startsWith(child.path + '/'))) {
+            isParentOfChangedNode = true;
+            if (child.type === 'directory') {
+                updateParentSelectionStates(child, childPath);
+            }
+            break;
+        }
+    }
+    
+    // Ak je rodičom zmeneného uzla, prepočítame jeho stav
+    if (isParentOfChangedNode) {
+        const oldSelection = root.selected;
+        updateDirectorySelectionState(root);
+        return oldSelection !== root.selected;
+    }
+    
+    return false;
+}
+
+// Funkcia na nájdenie uzla podľa cesty
+function findNodeByPath(root, path) {
+    if (root.path === path) return root;
+    
+    if (root.type === 'directory') {
+        for (const child of root.children) {
+            const found = findNodeByPath(child, path);
+            if (found) return found;
+        }
+    }
+    
+    return null;
+}
+
+// Funkcia na generovanie výstupného súboru
+async function generateOutputFile() {
+    if (!directoryStructure) {
+        showError('Najprv vyberte adresár projektu.');
+        return;
+    }
+
+    try {
+        const splitFilesCheckbox = document.getElementById('split-files-checkbox');
+        const maxFileSizeKbInput = document.getElementById('max-file-size-kb');
+        const shouldSplit = splitFilesCheckbox.checked;
+        const maxFileSizeBytes = parseInt(maxFileSizeKbInput.value, 10) * 1024;
+
+        if (shouldSplit) {
+            showStatus('Generujem rozdelené textové súbory...');
+            await generateSplitFiles(directoryStructure, maxFileSizeBytes);
+        } else {
+            showStatus('Generujem textový súbor...');
+
+            // Vytvorenie obsahu výstupného súboru
+            const content = await generateFileContent(directoryStructure);
+
+            // Vytvorenie a stiahnutie súboru
+            downloadTextFile(content, `${directoryStructure.name}_context.txt`);
+
+            showStatus('Textový súbor bol úspešne vygenerovaný.', 'success');
+        }
+    } catch (error) {
+        console.error('Chyba pri generovaní súboru:', error);
+        showError(`Chyba pri generovaní súboru: ${error.message}`);
+    }
+}
+
+// Funkcia na stiahnutie textového súboru
+function downloadTextFile(content, filename) {
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+
+    // Odstránenie dočasného prvku a uvoľnenie URL
+    setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }, 0);
+}
+
+// Funkcia na získanie zoznamu všetkých vybraných súborov s ich obsahom
+async function getSelectedFilesWithContent(root) {
+    const files = [];
+
+    async function processNode(node) {
+        if (node.type === 'file' && node.selected) {
+            try {
+                const fileHandle = node.handle;
+                const file = await fileHandle.getFile();
+                let content;
+                let isOversized = false;
+
+                if (file.size > config.maxFileSize) {
+                    content = `// Súbor je príliš veľký (${formatFileSize(file.size)}), prekračuje limit ${formatFileSize(config.maxFileSize)}\n`;
+                    isOversized = true;
+                } else {
+                    content = await readFileAsText(file);
+                }
+
+                files.push({
+                    path: node.path,
+                    content: content,
+                    size: new Blob([config.outputSeparator.replace('{{filePath}}', node.path) + content]).size,
+                    isOversized: isOversized
+                });
+            } catch (error) {
+                console.error(`Chyba pri čítaní súboru ${node.path}:`, error);
+                const errorContent = `// Chyba pri čítaní súboru: ${error.message}\n`;
+                files.push({
+                    path: node.path,
+                    content: errorContent,
+                    size: new Blob([config.outputSeparator.replace('{{filePath}}', node.path) + errorContent]).size,
+                    isOversized: false
+                });
+            }
+        } else if (node.type === 'directory') {
+            for (const child of node.children) {
+                if (child.selected === true || child.selected === null) {
+                    await processNode(child);
+                }
+            }
+        }
+    }
+
+    await processNode(root);
+    return files;
+}
+
+// Funkcia na generovanie rozdelených súborov
+async function generateSplitFiles(root, maxSizeBytes) {
+    const allFiles = await getSelectedFilesWithContent(root);
+
+    if (allFiles.length === 0) {
+        showError('Nie sú vybrané žiadne súbory.');
+        return;
+    }
+
+    const outputFiles = [];
+    let currentFileContent = '';
+    let currentFileSize = 0;
+    let currentFileIndex = 1;
+
+    for (const file of allFiles) {
+        const separator = config.outputSeparator.replace('{{filePath}}', file.path);
+        const fullContent = separator + file.content;
+        const fullContentSize = new Blob([fullContent]).size;
+
+        // Ak je súbor väčší ako maximálna veľkosť, musíme ho rozdeliť
+        if (fullContentSize > maxSizeBytes) {
+            // Najprv uložíme aktuálny súbor, ak obsahuje niečo
+            if (currentFileContent.length > 0) {
+                outputFiles.push({
+                    index: currentFileIndex,
+                    content: currentFileContent
+                });
+                currentFileIndex++;
+                currentFileContent = '';
+                currentFileSize = 0;
+            }
+
+            // Rozdelíme veľký súbor na časti
+            const parts = splitLargeFile(file.path, file.content, maxSizeBytes);
+
+            for (let i = 0; i < parts.length; i++) {
+                const part = parts[i];
+                const partSize = new Blob([part]).size;
+
+                // Ak sa časť nezmestí do aktuálneho súboru, začneme nový
+                if (currentFileSize + partSize > maxSizeBytes && currentFileContent.length > 0) {
+                    outputFiles.push({
+                        index: currentFileIndex,
+                        content: currentFileContent
+                    });
+                    currentFileIndex++;
+                    currentFileContent = '';
+                    currentFileSize = 0;
+                }
+
+                currentFileContent += part;
+                currentFileSize += partSize;
+            }
+        } else {
+            // Ak sa súbor nezmestí do aktuálneho výstupného súboru, začneme nový
+            if (currentFileSize + fullContentSize > maxSizeBytes && currentFileContent.length > 0) {
+                outputFiles.push({
+                    index: currentFileIndex,
+                    content: currentFileContent
+                });
+                currentFileIndex++;
+                currentFileContent = '';
+                currentFileSize = 0;
+            }
+
+            currentFileContent += fullContent;
+            currentFileSize += fullContentSize;
+        }
+    }
+
+    // Uložíme posledný súbor
+    if (currentFileContent.length > 0) {
+        outputFiles.push({
+            index: currentFileIndex,
+            content: currentFileContent
+        });
+    }
+
+    // Stiahnutie všetkých súborov
+    const baseName = directoryStructure.name;
+    const totalFiles = outputFiles.length;
+
+    for (const outputFile of outputFiles) {
+        const filename = totalFiles === 1
+            ? `${baseName}_context.txt`
+            : `${baseName}_context_${String(outputFile.index).padStart(3, '0')}.txt`;
+
+        downloadTextFile(outputFile.content, filename);
+
+        // Malá pauza medzi stiahnutiami, aby prehliadač stihol spracovať
+        await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
+    showStatus(`Úspešne vygenerovaných ${totalFiles} súbor${totalFiles === 1 ? '' : totalFiles < 5 ? 'y' : 'ov'}.`, 'success');
+}
+
+// Funkcia na rozdelenie veľkého súboru na časti
+function splitLargeFile(filePath, content, maxSizeBytes) {
+    const parts = [];
+    const lines = content.split('\n');
+
+    // Odhadneme koľko častí budeme potrebovať
+    const contentSize = new Blob([content]).size;
+    const estimatedParts = Math.ceil(contentSize / maxSizeBytes);
+
+    let currentPart = '';
+    let currentPartSize = 0;
+    let partIndex = 1;
+
+    // Rezerva pre hlavičky a pätičky
+    const headerTemplate = `\n// ===== ${filePath} - ČASŤ ${partIndex}/${estimatedParts} (ZAČIATOK) =====\n\n`;
+    const footerTemplate = `\n// ===== ${filePath} - ČASŤ ${partIndex}/${estimatedParts} (KONIEC) =====\n`;
+    const headerFooterReserve = new Blob([headerTemplate + footerTemplate]).size + 200; // +200 pre istotu
+
+    const effectiveMaxSize = maxSizeBytes - headerFooterReserve;
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const lineWithNewline = i < lines.length - 1 ? line + '\n' : line;
+        const lineSize = new Blob([lineWithNewline]).size;
+
+        // Ak by pridanie riadku prekročilo limit, ukončíme aktuálnu časť
+        if (currentPartSize + lineSize > effectiveMaxSize && currentPart.length > 0) {
+            // Ukončíme aktuálnu časť
+            const totalParts = Math.ceil((contentSize - new Blob([currentPart]).size) / effectiveMaxSize) + partIndex;
+            const header = `\n// ===== ${filePath} - ČASŤ ${partIndex}/${totalParts} (ZAČIATOK) =====\n\n`;
+            const footer = `\n// ===== ${filePath} - ČASŤ ${partIndex}/${totalParts} (KONIEC) =====\n`;
+
+            parts.push(header + currentPart + footer);
+            partIndex++;
+            currentPart = '';
+            currentPartSize = 0;
+        }
+
+        currentPart += lineWithNewline;
+        currentPartSize += lineSize;
+    }
+
+    // Pridáme poslednú časť
+    if (currentPart.length > 0) {
+        const totalParts = partIndex;
+        const isLastPart = partIndex === totalParts;
+        const header = `\n// ===== ${filePath} - ČASŤ ${partIndex}/${totalParts}${isLastPart ? ' (POSLEDNÁ)' : ''} (ZAČIATOK) =====\n\n`;
+        const footer = `\n// ===== ${filePath} - ČASŤ ${partIndex}/${totalParts}${isLastPart ? ' (POSLEDNÁ)' : ''} (KONIEC) =====\n`;
+
+        parts.push(header + currentPart + footer);
+    }
+
+    // Aktualizujeme počet častí v hlavičkách
+    const actualTotalParts = parts.length;
+    return parts.map((part, index) => {
+        const partNum = index + 1;
+        const isLast = partNum === actualTotalParts;
+        const lastLabel = isLast ? ' (POSLEDNÁ)' : '';
+
+        // Nahradíme nesprávne počty správnymi
+        return part
+            .replace(/ČASŤ \d+\/\d+/g, `ČASŤ ${partNum}/${actualTotalParts}`)
+            .replace(/\(POSLEDNÁ\)/g, '')
+            .replace(/(ČASŤ \d+\/\d+)( \(ZAČIATOK\))/g, `$1${lastLabel}$2`)
+            .replace(/(ČASŤ \d+\/\d+)( \(KONIEC\))/g, `$1${lastLabel}$2`);
+    });
+}
+
+// Funkcia na generovanie obsahu výstupného súboru
+async function generateFileContent(root) {
+    let content = '';
+    
+    async function processNode(node) {
+        if (node.type === 'file' && node.selected) {
+            try {
+                // Načítanie obsahu súboru
+                const fileHandle = node.handle;
+                const file = await fileHandle.getFile();
+                
+                // Kontrola veľkosti súboru
+                if (file.size > config.maxFileSize) {
+                    content += config.outputSeparator.replace('{{filePath}}', node.path);
+                    content += `// Súbor je príliš veľký (${formatFileSize(file.size)}), prekračuje limit ${formatFileSize(config.maxFileSize)}\n`;
+                } else {
+                    // Prečítanie obsahu súboru
+                    const text = await readFileAsText(file);
+                    
+                    // Pridanie súboru do výstupu
+                    content += config.outputSeparator.replace('{{filePath}}', node.path);
+                    content += text;
+                }
+            } catch (error) {
+                console.error(`Chyba pri čítaní súboru ${node.path}:`, error);
+                content += config.outputSeparator.replace('{{filePath}}', node.path);
+                content += `// Chyba pri čítaní súboru: ${error.message}\n`;
+            }
+        } else if (node.type === 'directory') {
+            // Rekurzívne spracovanie vybraných podadresárov a súborov
+            for (const child of node.children) {
+                if (child.selected === true || child.selected === null) {
+                    await processNode(child);
+                }
+            }
+        }
+    }
+    
+    await processNode(root);
+    
+    return content;
+}
+
+// Funkcia na čítanie súboru ako text
+async function readFileAsText(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (event) => resolve(event.target.result);
+        reader.onerror = (event) => reject(new Error('Chyba pri čítaní súboru'));
+        reader.readAsText(file, 'UTF-8');
+    });
+}
+
+// Pomocná funkcia na formátovanie veľkosti súboru
+function formatFileSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / 1048576).toFixed(1) + ' MB';
+}
+
+// Funkcia na zobrazenie chybovej správy
+function showError(message) {
+    statusEl.textContent = message;
+    statusEl.className = 'status error';
+}
+
+// Funkcia na zobrazenie stavovej správy
+function showStatus(message, type = '') {
+    statusEl.textContent = message;
+    statusEl.className = type ? `status ${type}` : 'status';
+}
+//]]>
+</script>
+</html>

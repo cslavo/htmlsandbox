@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hlasové diktovanie</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        .container {
+            text-align: center;
+            background-color: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            max-width: 500px;
+            width: 100%;
+        }
+        #result {
+            width: 100%;
+            height: 150px;
+            margin-top: 1rem;
+            padding: 0.5rem;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            resize: vertical;
+        }
+        #startButton {
+            margin-top: 1rem;
+            padding: 0.5rem 1rem;
+            font-size: 1rem;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #startButton:hover {
+            background-color: #45a049;
+        }
+        #startButton:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        #status {
+            margin-top: 1rem;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Hlasové diktovanie</h1>
+        <p>Kliknite na tlačidlo a začnite rozprávať:</p>
+        <button id="startButton">Začať diktovanie</button>
+        <textarea id="result" readonly placeholder="Tu sa zobrazí váš diktovaný text..."></textarea>
+        <p id="status">Pripravené na diktovanie</p>
+    </div>
+
+    <script>
+        const startButton = document.getElementById('startButton');
+        const result = document.getElementById('result');
+        const status = document.getElementById('status');
+        let recognition;
+        let isListening = false;
+        let restartAttempts = 0;
+        const MAX_RESTART_ATTEMPTS = 3;
+        let lastProcessedIndex = 0;
+
+        function initializeRecognition() {
+            if (!recognition) {
+                recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+                recognition.lang = 'sk-SK';
+                recognition.interimResults = false;
+                recognition.continuous = true;
+
+                recognition.onstart = () => {
+                    status.textContent = "Rozpoznávanie reči je aktívne. Hovorte teraz.";
+                    isListening = true;
+                    startButton.textContent = "Zastaviť diktovanie";
+                    restartAttempts = 0;
+                };
+
+                recognition.onend = () => {
+                    if (isListening && restartAttempts < MAX_RESTART_ATTEMPTS) {
+                        restartAttempts++;
+                        setTimeout(() => recognition.start(), 1000);
+                        status.textContent = `Obnovujem spojenie... Pokus ${restartAttempts}`;
+                    } else {
+                        isListening = false;
+                        startButton.textContent = "Začať diktovanie";
+                        status.textContent = "Rozpoznávanie reči bolo ukončené.";
+                    }
+                };
+
+                recognition.onresult = (event) => {
+                    for (let i = lastProcessedIndex; i < event.results.length; i++) {
+                        if (event.results[i].isFinal) {
+                            const transcript = event.results[i][0].transcript.trim();
+                            appendTranscript(transcript);
+                            lastProcessedIndex = i + 1;
+                        }
+                    }
+                };
+
+                recognition.onerror = (event) => {
+                    console.error("Chyba rozpoznávania reči:", event.error);
+                    if (event.error === 'not-allowed') {
+                        status.textContent = "Prístup k mikrofónu bol zamietnutý. Povoľte prístup a skúste to znova.";
+                    } else {
+                        status.textContent = "Nastala chyba pri rozpoznávaní reči. Skúste to znova.";
+                    }
+                    isListening = false;
+                    startButton.textContent = "Začať diktovanie";
+                };
+            }
+        }
+
+        function appendTranscript(text) {
+            if (text) {
+                const words = text.split(/\s+/);
+                const uniqueWords = [];
+                for (const word of words) {
+                    if (uniqueWords.length === 0 || word.toLowerCase() !== uniqueWords[uniqueWords.length - 1].toLowerCase()) {
+                        uniqueWords.push(word);
+                    }
+                }
+                const uniqueText = uniqueWords.join(' ');
+                
+                if (result.value) {
+                    result.value += (result.value.endsWith('\n') ? '' : ' ') + uniqueText;
+                } else {
+                    result.value = uniqueText;
+                }
+                result.scrollTop = result.scrollHeight;
+            }
+        }
+
+        function toggleRecognition() {
+            if (!recognition) {
+                initializeRecognition();
+            }
+
+            if (isListening) {
+                recognition.stop();
+                isListening = false;
+                startButton.textContent = "Začať diktovanie";
+                status.textContent = "Rozpoznávanie reči bolo zastavené.";
+            } else {
+                restartAttempts = 0;
+                lastProcessedIndex = 0;
+                setTimeout(() => {
+                    recognition.start();
+                    status.textContent = "Inicializujem rozpoznávanie reči...";
+                }, 500);
+            }
+        }
+
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            startButton.addEventListener('click', toggleRecognition);
+        } else {
+            startButton.disabled = true;
+            status.textContent = "Prepáčte, váš prehliadač nepodporuje rozpoznávanie reči.";
+        }
+    </script>
+</body>
+</html>

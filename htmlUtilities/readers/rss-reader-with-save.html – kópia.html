@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RSS čítačka</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1, h2 {
+            color: #2c3e50;
+        }
+        #inputContainer, #settingsContainer {
+            margin-bottom: 20px;
+        }
+        #rssUrls {
+            width: 100%;
+            height: 100px;
+            padding: 10px;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+        #daysHistory {
+            width: 60px;
+            padding: 5px;
+            font-size: 16px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        .dateGroup {
+            margin-bottom: 30px;
+        }
+        .dateHeader {
+            background-color: #ecf0f1;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+        .rssItem {
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+        }
+        .itemTime {
+            font-weight: bold;
+            color: #7f8c8d;
+        }
+        .itemSource {
+            color: #3498db;
+            font-style: italic;
+        }
+        .itemTitle {
+            font-size: 18px;
+            margin: 5px 0;
+        }
+        .itemTitle a {
+            color: #2c3e50;
+            text-decoration: none;
+        }
+        .itemTitle a:hover {
+            text-decoration: underline;
+        }
+        .itemDescription {
+            font-size: 14px;
+        }
+        #copyButton {
+            display: none;
+            margin-top: 20px;
+        }
+        #savedUrlsContainer {
+            display: flex;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+        #savedUrlsContainer button {
+            margin-right: 5px;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>RSS čítačka</h1>
+    <div id="inputContainer">
+        <textarea id="rssUrls" placeholder="Zadajte URL adresy RSS kanálov, každú na nový riadok"></textarea>
+    </div>
+    <div id="settingsContainer">
+        <label for="daysHistory">Počet dní histórie <span id="maxDays"></span>:</label>
+        <input type="number" id="daysHistory" min="1" value="2">
+        <button onclick="loadRSS()">Načítať RSS</button>
+        <button onclick="saveRssUrls()">Uložiť RSS URL</button>
+        <button id="copyButton" onclick="copyToClipboard()">Kopírovať text správ</button>
+    </div>
+    <div id="savedUrlsContainer"></div>
+    <div id="rssContent"></div>
+
+    <script>
+        let oldestAvailableDate = new Date();
+        let maxHistoryDays = 0;
+        let allGroupedItems = {};
+
+        window.onload = function() {
+            const savedUrls = localStorage.getItem('rssUrls');
+            if (savedUrls) {
+                document.getElementById('rssUrls').value = savedUrls;
+            }
+            const savedDays = localStorage.getItem('daysHistory');
+            if (savedDays) {
+                document.getElementById('daysHistory').value = savedDays;
+            }
+            loadSavedUrlSets();
+        }
+
+        function loadRSS() {
+            const rssUrlsText = document.getElementById('rssUrls').value;
+            const rssUrls = rssUrlsText.split('\n').filter(url => url.trim() !== '');
+            const daysHistory = parseInt(document.getElementById('daysHistory').value);
+
+            localStorage.setItem('rssUrls', rssUrlsText);
+            localStorage.setItem('daysHistory', daysHistory);
+
+            let allItems = [];
+            oldestAvailableDate = new Date();
+
+            Promise.all(rssUrls.map(url => fetchRSS(url)))
+                .then(results => {
+                    results.forEach((items, index) => {
+                        items.forEach(item => {
+                            item.source = new URL(rssUrls[index]).hostname;
+                            if (item.pubDate < oldestAvailableDate) {
+                                oldestAvailableDate = new Date(item.pubDate);
+                            }
+                        });
+                        allItems = allItems.concat(items);
+                    });
+                    updateMaxHistoryDays();
+                    allGroupedItems = groupItemsByDate(allItems, daysHistory);
+                    displayItems(allGroupedItems);
+                    document.getElementById('copyButton').style.display = 'inline-block';
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.getElementById('rssContent').innerHTML = "Chyba pri načítaní RSS kanálov.";
+                });
+        }
+
+        function updateMaxHistoryDays() {
+            const now = new Date();
+            maxHistoryDays = Math.ceil((now - oldestAvailableDate) / (1000 * 60 * 60 * 24));
+            document.getElementById('maxDays').textContent = `(max ${maxHistoryDays})`;
+            document.getElementById('daysHistory').max = maxHistoryDays;
+        }
+
+        function fetchRSS(rssUrl) {
+            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`;
+            return fetch(proxyUrl)
+                .then(response => response.json())
+                .then(data => {
+                    const parser = new DOMParser();
+                    const xmlDoc = parser.parseFromString(data.contents, "text/xml");
+                    return Array.from(xmlDoc.getElementsByTagName("item")).map(item => ({
+                        pubDate: new Date(getElementTextContent(item, "pubDate")),
+                        title: getElementTextContent(item, "title"),
+                        description: removeImages(getElementTextContent(item, "description")),
+                        link: getElementTextContent(item, "link")
+                    }));
+                });
+        }
+
+        function removeImages(html) {
+            const div = document.createElement('div');
+            div.innerHTML = html;
+            const images = div.getElementsByTagName('img');
+            while(images.length > 0){
+                images[0].parentNode.removeChild(images[0]);
+            }
+            return div.innerHTML;
+        }
+
+        function groupItemsByDate(items, daysHistory) {
+            const groupedItems = {};
+            const cutoffDate = new Date();
+            cutoffDate.setDate(cutoffDate.getDate() - daysHistory);
+            
+            items.forEach(item => {
+                if (item.pubDate >= cutoffDate) {
+                    const dateStr = formatDate(item.pubDate);
+                    if (!groupedItems[dateStr]) {
+                        groupedItems[dateStr] = [];
+                    }
+                    groupedItems[dateStr].push({
+                        time: item.pubDate.toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' }),
+                        source: item.source,
+                        title: item.title,
+                        description: item.description,
+                        link: item.link
+                    });
+                }
+            });
+
+            for (const date in groupedItems) {
+                groupedItems[date].sort((a, b) => {
+                    return new Date('1970/01/01 ' + b.time) - new Date('1970/01/01 ' + a.time);
+                });
+            }
+
+            return Object.fromEntries(
+                Object.entries(groupedItems).sort((a, b) => new Date(b[0]) - new Date(a[0]))
+            );
+        }
+
+        function displayItems(groupedItems) {
+            let html = "";
+            for (const [date, dateItems] of Object.entries(groupedItems)) {
+                html += `<div class="dateGroup">`;
+                html += `<h2 class="dateHeader">${date}</h2>`;
+                for (const item of dateItems) {
+                    html += `<div class="rssItem">`;
+                    html += `<span class="itemTime">${item.time}</span> <span class="itemSource">(${item.source})</span>`;
+                    html += `<h3 class="itemTitle"><a href="${item.link}" target="_blank">${item.title}</a></h3>`;
+                    html += `<div class="itemDescription">${item.description}</div>`;
+                    html += `</div>`;
+                }
+                html += `</div>`;
+            }
+            document.getElementById('rssContent').innerHTML = html;
+        }
+
+        function formatDate(date) {
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            return date.toLocaleDateString('sk-SK', options);
+        }
+
+        function getElementTextContent(parent, tagName) {
+            const element = parent.getElementsByTagName(tagName)[0];
+            return element ? element.textContent : "N/A";
+        }
+
+        function copyToClipboard() {
+            let prompt = `# Prompt pre spracovanie a sumarizáciu obsahu z RSS čítačky
+
+## 0. Časové obdobie
+- Na začiatku uveďte časové rozpätie spracovaných správ.
+
+## 1. Prísne filtrovanie nežiaducich správ
+- Tento krok má ABSOLÚTNU PRIORITU. Žiadna správa z nasledujúcich kategórií NESMIE byť zahrnutá do súhrnu za žiadnych okolností:
+  - Šport (vrátane všetkých športových udalostí, olympiád, a akýchkoľvek zmienok o športových aktivitách)
+  - Dopravné nehody
+  - Pátranie po osobách alebo zvieratách
+  - Alkohol v doprave
+  - Tragédie, vraždy, samovraždy a podobné udalosti
+  - Kriminalita, napadnutia, krádeže a podobné incidenty
+- Ak máte AKÉKOĽVEK pochybnosti, či správa patrí do týchto kategórií, MUSÍTE ju odstrániť.
+- Po prvotnom filtrovaní vykonajte druhé kolo kontroly na kľúčové slová spojené s týmito kategóriami.
+- Akékoľvek zmienky o týchto témach, aj okrajové alebo nepriame, musia byť odstránené.
+
+## 2. Odstránenie duplicít
+- Identifikujte a spojte opakujúce sa správy alebo správy s takmer identickým obsahom.
+- Pri správach z viacerých zdrojov vytvorte jednu konsolidovanú verziu.
+
+## 3. Zlúčenie súvisiacich správ
+- Spojte správy o tej istej udalosti alebo téme.
+- Vytvorte stručný súhrn zlúčených správ so všetkými kľúčovými informáciami.
+
+## 4. Zoskupenie a kategorizácia správ
+- Roztrieďte zostávajúce správy do logických kategórií.
+- Vytvorte výstižné nadpisy pre každú kategóriu.
+
+## 5. Vytvorenie súhrnu
+- Pre každú tematickú kategóriu vytvorte stručný súhrn hlavných bodov a udalostí.
+- Zdôraznite najdôležitejšie alebo najzaujímavejšie správy v každej kategórii.
+- Vynechajte akékoľvek informácie, ktoré by mohli byť považované za citlivé alebo kontroverzné.
+
+## 6. Časová postupnosť
+- V rámci každej kategórie zoraďte správy od najnovších po najstaršie.
+- Neuvádzajte presný dátum ani čas pri jednotlivých udalostiach.
+
+## 7. Formátovanie
+- Použite prehľadné formátovanie s nadpismi, odrážkami a odstavcami pre ľahšiu čitateľnosť.
+- Zvýraznite kľúčové informácie alebo dôležité body.
+
+## 8. Záverečné zhrnutie
+- Na konci poskytnite krátke celkové zhrnutie hlavných tém a trendov zo všetkých spracovaných správ.
+- Zamerajte sa na pozitívne alebo neutrálne informácie.
+
+## 9. Kontrola obsahu
+- Pred finalizáciou súhrnu ešte raz skontrolujte, či neobsahuje žiadne informácie z kategórií uvedených v bode 1.
+- Ak nájdete akékoľvek zostávajúce nežiaduce informácie, odstráňte ich.
+
+## Záverečná kontrola
+Pred finalizáciou súhrnu vykonajte túto prísnu kontrolu:
+- Obsahuje súhrn AKÉKOĽVEK zmienky o športe, nehodách, kriminalite, pátraní, alebo iných nežiaducich témach?
+- Sú všetky potenciálne citlivé alebo negatívne informácie úplne odstránené?
+- Je každá veta v súhrne pozitívna alebo neutrálna?
+- Ak odpoveď na ktorúkoľvek z týchto otázok nie je jednoznačné "áno" pre pozitívne otázky alebo "nie" pre negatívne, MUSÍTE sa vrátiť a upraviť obsah.
+- Vykonajte túto kontrolu TRIKRÁT, aby ste zabezpečili, že žiadna nežiaduca informácia neprenikla do súhrnu.
+
+VAROVANIE: Nedodržanie týchto inštrukcií na filtrovanie a odstránenie nežiaducich správ bude považované za závažné zlyhanie.
+
+Spracujte poskytnutý text podľa týchto inštrukcií a vytvorte prehľadný, informatívny a ľahko čitateľný súhrn správ, ktorý neobsahuje žiadne nežiaduce alebo citlivé informácie.
+			
+Nasleduje text z rss citacky z viacerých RSS zdrojov:
+
+`;
+
+            let text = "";
+            for (const [date, dateItems] of Object.entries(allGroupedItems)) {
+                text += `${date}\n\n`;
+                for (const item of dateItems) {
+                    text += `${item.time} (${item.source})\n`;
+                    text += `${item.title}\n`;
+                    text += `${item.description}\n\n`;
+                }
+                text += "\n";
+            }
+            
+            let fullText = prompt + text;
+
+            navigator.clipboard.writeText(fullText).then(() => {
+                alert("Text správ s promptom bol skopírovaný do schránky.");
+            }).catch(err => {
+                console.error('Chyba pri kopírovaní textu: ', err);
+                alert("Nastala chyba pri kopírovaní textu do schránky.");
+            });
+        }
+
+        function saveRssUrls() {
+            const name = prompt("Zadajte názov pre uloženie RSS URL:");
+            if (name) {
+                const urls = document.getElementById('rssUrls').value;
+                const savedSets = JSON.parse(localStorage.getItem('savedRssUrlSets') || '{}');
+                savedSets[name] = urls;
+                localStorage.setItem('savedRssUrlSets', JSON.stringify(savedSets));
+                document.getElementById('rssUrls').value = '';
+                loadSavedUrlSets();
+            }
+        }
+
+        function loadSavedUrlSets() {
+            const savedSets = JSON.parse(localStorage.getItem('savedRssUrlSets') || '{}');
+            const container = document.getElementById('savedUrlsContainer');
+            container.innerHTML = '';
+            for (const [name, urls] of Object.entries(savedSets)) {
+                const button = document.createElement('button');
+                button.textContent = name;
+                button.onclick = () => loadSavedSet(name, urls);
+                button.ondblclick = () => deleteSavedSet(name);
+                container.appendChild(button);
+            }
+        }
+
+        function loadSavedSet(name, urls) {
+            document.getElementById('rssUrls').value = urls;
+        }
+
+        function deleteSavedSet(name) {
+            const savedSets = JSON.parse(localStorage.getItem('savedRssUrlSets') || '{}');
+            delete savedSets[name];
+            localStorage.setItem('savedRssUrlSets', JSON.stringify(savedSets));
+            loadSavedUrlSets();
+        }
+    </script>
+</body>
+</html>

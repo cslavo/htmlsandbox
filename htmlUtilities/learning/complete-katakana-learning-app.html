@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Učíme se Katakana</title>
+    <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        .katakana-app {
+            text-align: center;
+            background-color: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            max-width: 600px;
+            width: 100%;
+        }
+        .character {
+            font-size: 5rem;
+            margin: 1rem 0;
+        }
+        .options {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+        }
+        button {
+            font-size: 1.2rem;
+            padding: 0.5rem 1rem;
+            border: none;
+            background-color: #3498db;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        .correct-answer {
+            background-color: #2ecc71 !important;
+        }
+        .incorrect-answer {
+            background-color: #e74c3c !important;
+        }
+        .score, .total-knowledge {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+        }
+        .direction-toggle, .reset-button {
+            margin-bottom: 1rem;
+        }
+        .progress-bar {
+            width: 100%;
+            background-color: #e0e0e0;
+            border-radius: 5px;
+            margin-bottom: 1rem;
+        }
+        .progress {
+            height: 20px;
+            background-color: #3498db;
+            border-radius: 5px;
+            text-align: right;
+            padding-right: 5px;
+            color: white;
+            transition: width 0.5s ease-in-out;
+        }
+        .character-stats {
+            font-size: 1rem;
+            margin-bottom: 1rem;
+        }
+        .correct {
+            color: #2ecc71;
+        }
+        .incorrect {
+            color: #e74c3c;
+        }
+        .feedback {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script>
+        const katakanaChars = [
+            { character: 'ア', romanji: 'a' },
+            { character: 'イ', romanji: 'i' },
+            { character: 'ウ', romanji: 'u' },
+            { character: 'エ', romanji: 'e' },
+            { character: 'オ', romanji: 'o' },
+            { character: 'カ', romanji: 'ka' },
+            { character: 'キ', romanji: 'ki' },
+            { character: 'ク', romanji: 'ku' },
+            { character: 'ケ', romanji: 'ke' },
+            { character: 'コ', romanji: 'ko' },
+            { character: 'サ', romanji: 'sa' },
+            { character: 'シ', romanji: 'shi' },
+            { character: 'ス', romanji: 'su' },
+            { character: 'セ', romanji: 'se' },
+            { character: 'ソ', romanji: 'so' },
+            { character: 'タ', romanji: 'ta' },
+            { character: 'チ', romanji: 'chi' },
+            { character: 'ツ', romanji: 'tsu' },
+            { character: 'テ', romanji: 'te' },
+            { character: 'ト', romanji: 'to' },
+            { character: 'ナ', romanji: 'na' },
+            { character: 'ニ', romanji: 'ni' },
+            { character: 'ヌ', romanji: 'nu' },
+            { character: 'ネ', romanji: 'ne' },
+            { character: 'ノ', romanji: 'no' },
+            { character: 'ハ', romanji: 'ha' },
+            { character: 'ヒ', romanji: 'hi' },
+            { character: 'フ', romanji: 'fu' },
+            { character: 'ヘ', romanji: 'he' },
+            { character: 'ホ', romanji: 'ho' },
+            { character: 'マ', romanji: 'ma' },
+            { character: 'ミ', romanji: 'mi' },
+            { character: 'ム', romanji: 'mu' },
+            { character: 'メ', romanji: 'me' },
+            { character: 'モ', romanji: 'mo' },
+            { character: 'ヤ', romanji: 'ya' },
+            { character: 'ユ', romanji: 'yu' },
+            { character: 'ヨ', romanji: 'yo' },
+            { character: 'ラ', romanji: 'ra' },
+            { character: 'リ', romanji: 'ri' },
+            { character: 'ル', romanji: 'ru' },
+            { character: 'レ', romanji: 're' },
+            { character: 'ロ', romanji: 'ro' },
+            { character: 'ワ', romanji: 'wa' },
+            { character: 'ヲ', romanji: 'wo' },
+            { character: 'ン', romanji: 'n' }
+        ];
+
+        const e = React.createElement;
+
+        function KatakanaLearningApp() {
+            const [currentChar, setCurrentChar] = React.useState(null);
+            const [options, setOptions] = React.useState([]);
+            const [score, setScore] = React.useState(0);
+            const [progress, setProgress] = React.useState({});
+            const [direction, setDirection] = React.useState('katakanaToRomanji');
+            const [totalKnowledge, setTotalKnowledge] = React.useState(0);
+            const [feedback, setFeedback] = React.useState(null);
+            const [disableButtons, setDisableButtons] = React.useState(false);
+            const [userAnswer, setUserAnswer] = React.useState(null);
+
+            React.useEffect(() => {
+                loadProgress();
+                generateQuestion();
+            }, []);
+
+            React.useEffect(() => {
+                generateQuestion();
+            }, [direction]);
+
+            React.useEffect(() => {
+                calculateTotalKnowledge();
+            }, [progress]);
+
+            function loadProgress() {
+                const savedProgress = localStorage.getItem('katakanaProgress');
+                if (savedProgress) {
+                    setProgress(JSON.parse(savedProgress));
+                } else {
+                    const initialProgress = {};
+                    katakanaChars.forEach(char => {
+                        initialProgress[char.character] = { value: 0, correct: 0, incorrect: 0 };
+                    });
+                    setProgress(initialProgress);
+                }
+            }
+
+            function saveProgress() {
+                localStorage.setItem('katakanaProgress', JSON.stringify(progress));
+            }
+
+            function calculateTotalKnowledge() {
+                const totalValue = Object.values(progress).reduce((sum, char) => sum + (char?.value || 0), 0);
+                const maxPossibleValue = katakanaChars.length * 10;
+                const knowledgePercentage = (totalValue / maxPossibleValue) * 100;
+                setTotalKnowledge(isNaN(knowledgePercentage) ? 0 : knowledgePercentage.toFixed(2));
+            }
+
+            function generateQuestion() {
+                const weightedChars = katakanaChars.map(char => {
+                    const charProgress = progress[char.character] || { value: 0 };
+                    return { char, weight: 10 - charProgress.value };
+                });
+                
+                const totalWeight = weightedChars.reduce((sum, char) => sum + char.weight, 0);
+                let randomWeight = Math.random() * totalWeight;
+                
+                let selectedChar;
+                for (const char of weightedChars) {
+                    randomWeight -= char.weight;
+                    if (randomWeight <= 0) {
+                        selectedChar = char.char;
+                        break;
+                    }
+                }
+
+                if (!selectedChar) {
+                    selectedChar = katakanaChars[Math.floor(Math.random() * katakanaChars.length)];
+                }
+
+                setCurrentChar(selectedChar);
+                
+                const newOptions = [];
+                while (newOptions.length < 5) {
+                    const option = katakanaChars[Math.floor(Math.random() * katakanaChars.length)];
+                    const optionValue = direction === 'katakanaToRomanji' ? option.romanji : option.character;
+                    if (!newOptions.includes(optionValue) && option !== selectedChar) {
+                        newOptions.push(optionValue);
+                    }
+                }
+                const correctAnswer = direction === 'katakanaToRomanji' ? selectedChar.romanji : selectedChar.character;
+                newOptions.push(correctAnswer);
+                setOptions(newOptions.sort(() => Math.random() - 0.5));
+                setUserAnswer(null);
+            }
+
+            function handleAnswer(answer) {
+                if (!currentChar || disableButtons) return;
+
+                const correctAnswer = direction === 'katakanaToRomanji' ? currentChar.romanji : currentChar.character;
+                const isCorrect = answer === correctAnswer;
+                
+                setScore(prevScore => prevScore + (isCorrect ? 1 : 0));
+                setUserAnswer(answer);
+                
+                const charKey = currentChar.character;
+                setProgress(prevProgress => {
+                    const charProgress = prevProgress[charKey] || { value: 0, correct: 0, incorrect: 0 };
+                    return {
+                        ...prevProgress,
+                        [charKey]: {
+                            value: Math.min(Math.max(charProgress.value + (isCorrect ? 1 : -1), 0), 10),
+                            correct: charProgress.correct + (isCorrect ? 1 : 0),
+                            incorrect: charProgress.incorrect + (isCorrect ? 0 : 1)
+                        }
+                    };
+                });
+
+                setFeedback(isCorrect ? "Správně!" : "Nesprávně.");
+                setDisableButtons(true);
+
+                setTimeout(() => {
+                    setFeedback(null);
+                    setDisableButtons(false);
+                    setUserAnswer(null);
+                    saveProgress();
+                    generateQuestion();
+                }, isCorrect ? 2000 : 4000);
+            }
+
+            function toggleDirection() {
+                setDirection(prev => prev === 'katakanaToRomanji' ? 'romanjiToKatakana' : 'katakanaToRomanji');
+            }
+
+            function resetProgress() {
+                const initialProgress = {};
+                katakanaChars.forEach(char => {
+                    initialProgress[char.character] = { value: 0, correct: 0, incorrect: 0 };
+                });
+                setProgress(initialProgress);
+                setScore(0);
+                setTotalKnowledge('0.00');
+                saveProgress();
+                generateQuestion();
+            }
+
+            function calculateCharKnowledge(char) {
+                const charProgress = progress[char] || { value: 0 };
+                return ((charProgress.value || 0) / 10) * 100;
+            }
+
+            return e('div', {className: 'katakana-app'}, [
+                e('h1', {key: 'title'}, 'Učíme se Katakana'),
+                e('div', {key: 'score', className: 'score'}, `Skóre: ${score}`),
+                e('div', {key: 'total-knowledge', className: 'total-knowledge'}, `Celková znalost: ${totalKnowledge}%`),
+                e('div', {key: 'progress-bar', className: 'progress-bar'},
+                    e('div', {className: 'progress', style: {width: `${totalKnowledge}%`}}, `${totalKnowledge}%`)
+                ),
+                e('div', {key: 'direction-toggle', className: 'direction-toggle'},
+                    e('button', {onClick: toggleDirection},
+                        direction === 'katakanaToRomanji' ? 'Přepnout na Romanji → Katakana' : 'Přepnout na Katakana → Romanji'
+                    )
+                ),
+                e('div', {key: 'reset-button', className: 'reset-button'},
+                    e('button', {onClick: resetProgress}, 'Resetovat skóre učení')
+                ),
+                currentChar && e('div', {key: 'question', className: 'question'}, [
+                    e('div', {key: 'character', className: 'character'},
+                        direction === 'katakanaToRomanji' ? currentChar.character : currentChar.romanji
+                    ),
+                    e('div', {key: 'character-stats', className: 'character-stats'}, [
+                        '(',
+                        e('span', {key: 'correct', className: 'correct'}, progress[currentChar.character]?.correct || 0),
+                        ' / ',
+                        e('span', {key: 'incorrect', className: 'incorrect'}, progress[currentChar.character]?.incorrect || 0),
+                        ') ',
+                        `${calculateCharKnowledge(currentChar.character).toFixed(2)}% naučenost`
+                    ]),
+                    e('div', {key: 'options', className: 'options'},
+                        options.map((option, index) =>
+                            e('button', {
+                                key: index, 
+                                onClick: () => handleAnswer(option), 
+                                disabled: disableButtons,
+                                className: userAnswer ? 
+                                    (option === (direction === 'katakanaToRomanji' ? currentChar.romanji : currentChar.character) ? 'correct-answer' : 
+                                    (option === userAnswer ? 'incorrect-answer' : '')) : ''
+                            }, option)
+                        )
+                    ),
+                    feedback && e('div', {key: 'feedback', className: 'feedback'}, feedback)
+                ])
+            ]);
+        }
+
+        ReactDOM.render(e(KatakanaLearningApp), document.getElementById('root'));
+
+    </script>
+</body>
+</html>		

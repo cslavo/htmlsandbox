@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Wikipedia Search and Gpt Summarize</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <h1>Wikipedia Search</h1>
+    <input type="text" id="searchQuery" placeholder="Search Query">
+    <button id="searchButton">Search</button>
+
+    <h2>Wikipedia Search Results titles</h2>
+    <div id="results"></div>
+	<div id="apiResponse"></div>
+
+    <script type="text/javascript">
+document.getElementById('searchButton').addEventListener('click', function() {
+    let query = document.getElementById('searchQuery').value;
+    let lang = 'sk';
+    let searchUrl = getWikiSearchUrl(encodeURIComponent(query), encodeURIComponent(lang));
+
+    fetch(searchUrl)
+        .then(response => response.json())
+        .then(data => displayArticles(data.query.search, lang));
+});
+
+function getWikiSearchUrl(query, lang) {
+    return `https://${lang}.wikipedia.org/w/api.php?origin=*&action=query&list=search&utf8&format=json&srsearch=${query}`;
+}
+
+function displayArticles(articles, lang) {
+    let resultsDiv = document.getElementById('results');
+    resultsDiv.innerHTML = '';
+
+    articles.forEach((article, index) => {
+        let div = document.createElement('div');
+        div.innerHTML = `${index + 1}. ${article.title} (Click for details)`;
+        div.style.cursor = 'pointer';
+        div.addEventListener('click', function() {
+            getArticleDetails(article.pageid, lang, article.title);
+        });
+        resultsDiv.appendChild(div);
+    });
+}
+
+function getArticleDetails(pageId, lang, title) {
+    let pageUrl = getWikiPageUrl(pageId, lang);
+
+    fetch(pageUrl)
+        .then(response => response.json())
+        .then(data => {
+            let content = data.query.pages[pageId].extract;
+            let cleanContent = cleanText(content);
+            getAbstractFromGPT(cleanContent, title);
+        });
+}
+
+function getWikiPageUrl(pageId, lang) {
+    return `https://${lang}.wikipedia.org/w/api.php?origin=*&action=query&prop=extracts&format=json&pageids=${pageId}&explaintext`;
+}
+
+function cleanText(text) {
+    return text.replaceAll("[ \\t]+", " ")
+               .replaceAll(" \\n", "\n")
+               .replaceAll("(\\r?\\n)+", "\n")
+               .replaceAll("[\\x00-\\x09\\x0B-\\x0C\\x0E-\\x1F\\x7F]", "")
+               .trim();
+}
+
+function getAbstractFromGPT(text, title) {
+    const YOUR_API_KEY = 'YOUR_API_KEY'; // Replace with your API key
+    const apiURL = 'https://api.openai.com/v1/chat/completions';
+
+    let postData = {
+        model: 'gpt-4-1106-preview', // Update the model as needed
+        messages: [
+            { role: 'system', content: 'Summarize the provided text into main points and a detailed abstract in Slovak:\n' + text }
+        ]
+    };
+
+    fetch(apiURL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + YOUR_API_KEY
+        },
+        body: JSON.stringify(postData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.choices && data.choices.length > 0 && data.choices[0].message) {
+            displayAPIResponse(data.choices[0].message.content, title);
+        } else {
+            displayAPIResponse("No abstract was generated.", title);
+        }
+    })
+    .catch(error => {
+        displayAPIResponse("Error: " + error, title);
+    });
+}
+
+function displayAPIResponse(content, title) {
+    let apiResponseDiv = document.getElementById('apiResponse');
+    apiResponseDiv.innerHTML = `<h3>${title}</h3><p>${content.replace(/\n/g, '<br>')}</p>`;
+}
+
+</script>
+</body>
+</html>

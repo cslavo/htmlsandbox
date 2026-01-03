@@ -1,0 +1,1432 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML Live Style Editor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            padding: 20px;
+            gap: 20px;
+        }
+
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .file-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .file-controls input[type="file"] {
+            padding: 8px 16px;
+            border: 2px solid #667eea;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .file-controls button {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+
+        .file-controls button:hover {
+            background: #5568d3;
+        }
+
+        .main-content {
+            display: flex;
+            gap: 0;
+            flex: 1;
+            min-height: 0;
+            position: relative;
+        }
+
+        .left-panel {
+            flex: 0 0 50%;
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            min-width: 300px;
+            padding-right: 10px;
+        }
+
+        .resize-handle {
+            width: 10px;
+            cursor: col-resize;
+            background: linear-gradient(90deg, transparent 0%, #667eea 40%, #667eea 60%, transparent 100%);
+            position: relative;
+            flex-shrink: 0;
+            transition: background 0.2s;
+        }
+
+        .resize-handle:hover {
+            background: linear-gradient(90deg, transparent 0%, #764ba2 40%, #764ba2 60%, transparent 100%);
+        }
+
+        .resize-handle::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 4px;
+            height: 40px;
+            background: white;
+            border-radius: 2px;
+            opacity: 0.8;
+        }
+
+        .resize-handle-vertical {
+            height: 10px;
+            cursor: row-resize;
+            background: linear-gradient(180deg, transparent 0%, #667eea 40%, #667eea 60%, transparent 100%);
+            position: relative;
+            flex-shrink: 0;
+            transition: background 0.2s;
+            margin: 10px 0;
+        }
+
+        .resize-handle-vertical:hover {
+            background: linear-gradient(180deg, transparent 0%, #764ba2 40%, #764ba2 60%, transparent 100%);
+        }
+
+        .resize-handle-vertical::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px;
+            height: 4px;
+            background: white;
+            border-radius: 2px;
+            opacity: 0.8;
+        }
+
+        .editor-section {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            flex: 0 0 60%;
+            min-height: 200px;
+        }
+
+        .editor-section h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .editor-section h2 .collapse-icon {
+            font-size: 18px;
+            transition: transform 0.3s ease;
+        }
+
+        .editor-section h2 .collapse-icon.collapsed {
+            transform: rotate(-90deg);
+        }
+
+        .editor-section.collapsed {
+            flex: 0 0 auto;
+            min-height: auto;
+        }
+
+        .editor-section.collapsed #htmlEditor {
+            display: none;
+        }
+
+        #htmlEditor {
+            flex: 1;
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            resize: none;
+            min-height: 0;
+        }
+
+        #htmlEditor:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .controls-section {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            flex: 1;
+            overflow-y: auto;
+            min-height: 150px;
+        }
+
+        .controls-section h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 20px;
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 10;
+            padding: 10px 0;
+            margin-top: -10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .controls-header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .controls-header-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .page-format-buttons {
+            display: flex;
+            gap: 5px;
+        }
+
+        .page-format-buttons button {
+            padding: 6px 12px;
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .page-format-buttons button:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .page-format-buttons button.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .smart-zoom-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .smart-zoom-controls button {
+            width: 30px;
+            height: 30px;
+            border: none;
+            background: #764ba2;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .smart-zoom-controls button:hover {
+            background: #633a8a;
+        }
+
+        .smart-zoom-controls button:active {
+            transform: scale(0.95);
+        }
+
+        .smart-zoom-label {
+            font-size: 12px;
+            color: #764ba2;
+            font-weight: normal;
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        .control-group h3 {
+            color: #764ba2;
+            font-size: 16px;
+            margin-bottom: 10px;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 5px;
+        }
+
+        .control-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .control-item label {
+            min-width: 150px;
+            font-size: 14px;
+            color: #333;
+        }
+
+        .control-item input[type="range"] {
+            flex: 1;
+            cursor: pointer;
+        }
+
+        .control-item input[type="number"] {
+            width: 80px;
+            padding: 5px;
+            border: 1px solid #e0e0e0;
+            border-radius: 3px;
+            text-align: center;
+        }
+
+        .control-item select {
+            width: 80px;
+            padding: 5px;
+            border: 1px solid #e0e0e0;
+            border-radius: 3px;
+        }
+
+        .preview-section {
+            flex: 1;
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            min-width: 300px;
+            padding-left: 10px;
+        }
+
+        .preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .preview-section h2 {
+            color: #667eea;
+            font-size: 20px;
+            margin: 0;
+        }
+
+        .zoom-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .zoom-controls button {
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: #667eea;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .zoom-controls button:hover {
+            background: #5568d3;
+        }
+
+        .zoom-controls button:active {
+            transform: scale(0.95);
+        }
+
+        .zoom-display {
+            min-width: 60px;
+            text-align: center;
+            font-weight: bold;
+            color: #667eea;
+            font-size: 14px;
+        }
+
+        #preview {
+            flex: 1;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            background: white;
+            overflow: auto;
+            min-height: 0;
+            position: relative;
+        }
+
+        #preview iframe {
+            transform-origin: 0 0;
+            transition: transform 0.2s ease;
+        }
+
+        .reset-button {
+            padding: 10px 20px;
+            background: #764ba2;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s;
+            margin-top: 10px;
+        }
+
+        .reset-button:hover {
+            background: #633a8a;
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #5568d3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📝 HTML Live Style Editor</h1>
+            <div class="file-controls">
+                <input type="file" id="fileInput" accept=".html,.htm">
+                <button onclick="loadSampleHTML()">Načítať vzorový HTML</button>
+                <button onclick="exportHTML()">Exportovať HTML</button>
+                <button onclick="exportMarkdown()">Exportovať Markdown</button>
+                <button onclick="printPreview()">🖨️ Tlačiť Preview</button>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="left-panel">
+                <div class="editor-section" id="editorSection">
+                    <h2 onclick="toggleEditorCollapse()">
+                        <span class="collapse-icon" id="editorCollapseIcon">▼</span>
+                        <span>HTML Editor</span>
+                    </h2>
+                    <textarea id="htmlEditor" placeholder="Vložte sem váš HTML kód alebo načítajte súbor..."></textarea>
+                </div>
+
+                <div class="resize-handle-vertical" id="resizeHandleVertical"></div>
+
+                <div class="controls-section">
+                    <h2>
+                        <div class="controls-header-left">
+                            <span>Vizuálne parametre</span>
+                            <div class="page-format-buttons">
+                                <button onclick="setPageFormat('A4')" id="btnA4">A4</button>
+                                <button onclick="setPageFormat('A5')" id="btnA5">A5</button>
+                            </div>
+                        </div>
+                        <div class="controls-header-right">
+                            <div class="smart-zoom-controls">
+                                <span class="smart-zoom-label">Veľkosť:</span>
+                                <button onclick="smartZoomOut()" title="Zmenšiť">−</button>
+                                <button onclick="smartZoomIn()" title="Zväčšiť">+</button>
+                            </div>
+                        </div>
+                    </h2>
+
+                    <div class="control-group">
+                        <h3>Veľkosti fontov</h3>
+                        <div class="control-item">
+                            <label>Body font size:</label>
+                            <input type="range" id="bodyFontSize" min="8" max="32" value="16" step="1">
+                            <input type="number" id="bodyFontSizeValue" min="8" max="32" value="16">
+                            <span>px</span>
+                        </div>
+                        <div class="control-item">
+                            <label>H1 font size:</label>
+                            <input type="range" id="h1FontSize" min="16" max="72" value="32" step="1">
+                            <input type="number" id="h1FontSizeValue" min="16" max="72" value="32">
+                            <span>px</span>
+                        </div>
+                        <div class="control-item">
+                            <label>H2 font size:</label>
+                            <input type="range" id="h2FontSize" min="14" max="60" value="28" step="1">
+                            <input type="number" id="h2FontSizeValue" min="14" max="60" value="28">
+                            <span>px</span>
+                        </div>
+                        <div class="control-item">
+                            <label>H3 font size:</label>
+                            <input type="range" id="h3FontSize" min="12" max="48" value="24" step="1">
+                            <input type="number" id="h3FontSizeValue" min="12" max="48" value="24">
+                            <span>px</span>
+                        </div>
+                        <div class="control-item">
+                            <label>Paragraph font size:</label>
+                            <input type="range" id="pFontSize" min="8" max="32" value="16" step="1">
+                            <input type="number" id="pFontSizeValue" min="8" max="32" value="16">
+                            <span>px</span>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <h3>Margin (vonkajšie odsadenie)</h3>
+                        <div class="control-item">
+                            <label>Margin Top:</label>
+                            <input type="range" id="marginTop" min="0" max="100" value="0" step="1">
+                            <input type="number" id="marginTopValue" min="0" max="100" value="0">
+                            <span>px</span>
+                        </div>
+                        <div class="control-item">
+                            <label>Margin Right:</label>
+                            <input type="range" id="marginRight" min="0" max="100" value="0" step="1">
+                            <input type="number" id="marginRightValue" min="0" max="100" value="0">
+                            <span>px</span>
+                        </div>
+                        <div class="control-item">
+                            <label>Margin Bottom:</label>
+                            <input type="range" id="marginBottom" min="0" max="100" value="0" step="1">
+                            <input type="number" id="marginBottomValue" min="0" max="100" value="0">
+                            <span>px</span>
+                        </div>
+                        <div class="control-item">
+                            <label>Margin Left:</label>
+                            <input type="range" id="marginLeft" min="0" max="100" value="0" step="1">
+                            <input type="number" id="marginLeftValue" min="0" max="100" value="0">
+                            <span>px</span>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <h3>Padding (vnútorné odsadenie)</h3>
+                        <div class="control-item">
+                            <label>Padding Top:</label>
+                            <input type="range" id="paddingTop" min="0" max="100" value="20" step="1">
+                            <input type="number" id="paddingTopValue" min="0" max="100" value="20">
+                            <span>px</span>
+                        </div>
+                        <div class="control-item">
+                            <label>Padding Right:</label>
+                            <input type="range" id="paddingRight" min="0" max="100" value="20" step="1">
+                            <input type="number" id="paddingRightValue" min="0" max="100" value="20">
+                            <span>px</span>
+                        </div>
+                        <div class="control-item">
+                            <label>Padding Bottom:</label>
+                            <input type="range" id="paddingBottom" min="0" max="100" value="20" step="1">
+                            <input type="number" id="paddingBottomValue" min="0" max="100" value="20">
+                            <span>px</span>
+                        </div>
+                        <div class="control-item">
+                            <label>Padding Left:</label>
+                            <input type="range" id="paddingLeft" min="0" max="100" value="20" step="1">
+                            <input type="number" id="paddingLeftValue" min="0" max="100" value="20">
+                            <span>px</span>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <h3>Medzery a riadkovanie</h3>
+                        <div class="control-item">
+                            <label>Line height:</label>
+                            <input type="range" id="lineHeight" min="0.5" max="3" value="1.5" step="0.1">
+                            <input type="number" id="lineHeightValue" min="0.5" max="3" value="1.5" step="0.1">
+                        </div>
+                        <div class="control-item">
+                            <label>Letter spacing:</label>
+                            <input type="range" id="letterSpacing" min="-2" max="10" value="0" step="0.5">
+                            <input type="number" id="letterSpacingValue" min="-2" max="10" value="0" step="0.5">
+                            <span>px</span>
+                        </div>
+                        <div class="control-item">
+                            <label>Word spacing:</label>
+                            <input type="range" id="wordSpacing" min="-5" max="20" value="0" step="1">
+                            <input type="number" id="wordSpacingValue" min="-5" max="20" value="0">
+                            <span>px</span>
+                        </div>
+                        <div class="control-item">
+                            <label>Paragraph spacing:</label>
+                            <input type="range" id="paragraphSpacing" min="0" max="50" value="16" step="1">
+                            <input type="number" id="paragraphSpacingValue" min="0" max="50" value="16">
+                            <span>px</span>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <h3>Šírka a zarovnanie</h3>
+                        <div class="control-item">
+                            <label>Content width:</label>
+                            <input type="range" id="contentWidth" min="300" max="1200" value="800" step="10">
+                            <input type="number" id="contentWidthValue" min="300" max="1200" value="800">
+                            <span>px</span>
+                        </div>
+                        <div class="control-item">
+                            <label>Max width:</label>
+                            <input type="range" id="maxWidth" min="0" max="100" value="100" step="5">
+                            <input type="number" id="maxWidthValue" min="0" max="100" value="100">
+                            <span>%</span>
+                        </div>
+                    </div>
+
+                    <button class="reset-button" onclick="resetAllControls()">Resetovať všetky hodnoty</button>
+                </div>
+            </div>
+
+            <div class="resize-handle" id="resizeHandle"></div>
+
+            <div class="preview-section">
+                <div class="preview-header">
+                    <h2>Live Preview</h2>
+                    <div class="zoom-controls">
+                        <button onclick="zoomOut()" title="Zoom Out">−</button>
+                        <span class="zoom-display" id="zoomDisplay">100%</span>
+                        <button onclick="zoomIn()" title="Zoom In">+</button>
+                        <button onclick="resetZoom()" title="Reset Zoom">⟲</button>
+                    </div>
+                </div>
+                <div id="preview"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let currentHTML = '';
+        let styleOverrides = {};
+        let currentZoom = 1;
+        let isResizingHorizontal = false;
+        let isResizingVertical = false;
+        let editorCollapsed = false;
+        let editorExpandedFlex = '0 0 60%';
+        let currentPageFormat = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeControls();
+            initializeHorizontalResizer();
+            initializeVerticalResizer();
+            loadSampleHTML();
+        });
+
+        // File loading
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    currentHTML = e.target.result;
+                    document.getElementById('htmlEditor').value = currentHTML;
+                    updatePreview();
+                };
+                reader.readAsText(file);
+            }
+        });
+
+        // Editor changes
+        document.getElementById('htmlEditor').addEventListener('input', function(e) {
+            currentHTML = e.target.value;
+            updatePreview();
+        });
+
+        // Initialize all controls
+        function initializeControls() {
+            const controls = [
+                'bodyFontSize', 'h1FontSize', 'h2FontSize', 'h3FontSize', 'pFontSize',
+                'marginTop', 'marginRight', 'marginBottom', 'marginLeft',
+                'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft',
+                'lineHeight', 'letterSpacing', 'wordSpacing', 'paragraphSpacing',
+                'contentWidth', 'maxWidth'
+            ];
+
+            controls.forEach(controlId => {
+                const slider = document.getElementById(controlId);
+                const input = document.getElementById(controlId + 'Value');
+
+                if (slider && input) {
+                    // Sync slider with input
+                    slider.addEventListener('input', function() {
+                        input.value = this.value;
+                        updateStyles();
+                    });
+
+                    // Sync input with slider
+                    input.addEventListener('input', function() {
+                        slider.value = this.value;
+                        updateStyles();
+                    });
+                }
+            });
+        }
+
+        // Initialize horizontal resizer (between left panel and preview)
+        function initializeHorizontalResizer() {
+            const resizeHandle = document.getElementById('resizeHandle');
+            const leftPanel = document.querySelector('.left-panel');
+            const mainContent = document.querySelector('.main-content');
+
+            resizeHandle.addEventListener('mousedown', function(e) {
+                isResizingHorizontal = true;
+                document.body.style.cursor = 'col-resize';
+                document.body.style.userSelect = 'none';
+            });
+
+            document.addEventListener('mousemove', function(e) {
+                if (!isResizingHorizontal) return;
+
+                const containerRect = mainContent.getBoundingClientRect();
+                const newLeftWidth = e.clientX - containerRect.left;
+                const minWidth = 300;
+                const maxWidth = containerRect.width - 300 - 10; // 10px for handle
+
+                if (newLeftWidth >= minWidth && newLeftWidth <= maxWidth) {
+                    const percentage = (newLeftWidth / containerRect.width) * 100;
+                    leftPanel.style.flex = `0 0 ${percentage}%`;
+                }
+            });
+
+            document.addEventListener('mouseup', function() {
+                if (isResizingHorizontal) {
+                    isResizingHorizontal = false;
+                    document.body.style.cursor = '';
+                    document.body.style.userSelect = '';
+                }
+            });
+        }
+
+        // Initialize vertical resizer (between editor and controls)
+        function initializeVerticalResizer() {
+            const resizeHandle = document.getElementById('resizeHandleVertical');
+            const editorSection = document.querySelector('.editor-section');
+            const leftPanel = document.querySelector('.left-panel');
+
+            resizeHandle.addEventListener('mousedown', function(e) {
+                isResizingVertical = true;
+                document.body.style.cursor = 'row-resize';
+                document.body.style.userSelect = 'none';
+            });
+
+            document.addEventListener('mousemove', function(e) {
+                if (!isResizingVertical) return;
+
+                const containerRect = leftPanel.getBoundingClientRect();
+                const newEditorHeight = e.clientY - containerRect.top;
+                const minHeight = 200;
+                const maxHeight = containerRect.height - 150 - 10; // 150px min for controls, 10px for handle
+
+                if (newEditorHeight >= minHeight && newEditorHeight <= maxHeight) {
+                    const percentage = (newEditorHeight / containerRect.height) * 100;
+                    editorSection.style.flex = `0 0 ${percentage}%`;
+                }
+            });
+
+            document.addEventListener('mouseup', function() {
+                if (isResizingVertical) {
+                    isResizingVertical = false;
+                    document.body.style.cursor = '';
+                    document.body.style.userSelect = '';
+                }
+            });
+        }
+
+        // Zoom functions
+        function zoomIn() {
+            currentZoom = Math.min(currentZoom + 0.1, 3);
+            updateZoom();
+        }
+
+        function zoomOut() {
+            currentZoom = Math.max(currentZoom - 0.1, 0.25);
+            updateZoom();
+        }
+
+        function resetZoom() {
+            currentZoom = 1;
+            updateZoom();
+        }
+
+        function updateZoom() {
+            const preview = document.getElementById('preview');
+            const iframe = preview.querySelector('iframe');
+            const zoomDisplay = document.getElementById('zoomDisplay');
+
+            if (iframe) {
+                iframe.style.transform = `scale(${currentZoom})`;
+                iframe.style.width = `${100 / currentZoom}%`;
+                iframe.style.height = `${100 / currentZoom}%`;
+            }
+
+            zoomDisplay.textContent = `${Math.round(currentZoom * 100)}%`;
+        }
+
+        // Print preview
+        function printPreview() {
+            const preview = document.getElementById('preview');
+            const iframe = preview.querySelector('iframe');
+
+            if (iframe && iframe.contentWindow) {
+                // Temporarily reset zoom for printing
+                const originalTransform = iframe.style.transform;
+                const originalWidth = iframe.style.width;
+                const originalHeight = iframe.style.height;
+
+                iframe.style.transform = 'scale(1)';
+                iframe.style.width = '100%';
+                iframe.style.height = '100%';
+
+                // Print the iframe content
+                iframe.contentWindow.print();
+
+                // Restore zoom after print dialog
+                setTimeout(() => {
+                    iframe.style.transform = originalTransform;
+                    iframe.style.width = originalWidth;
+                    iframe.style.height = originalHeight;
+                }, 100);
+            } else {
+                alert('Preview nie je k dispozícii pre tlač. Najprv načítajte HTML obsah.');
+            }
+        }
+
+        // Update preview with styles
+        function updatePreview() {
+            const preview = document.getElementById('preview');
+            const iframe = document.createElement('iframe');
+            iframe.style.width = '100%';
+            iframe.style.height = '100%';
+            iframe.style.border = 'none';
+
+            preview.innerHTML = '';
+            preview.appendChild(iframe);
+
+            // Apply current zoom
+            updateZoom();
+
+            const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+
+            // Build complete HTML with style injections
+            let htmlContent = currentHTML;
+
+            // Inject our custom styles
+            const styleTag = `
+                <style id="live-editor-styles">
+                    body {
+                        font-size: ${document.getElementById('bodyFontSizeValue').value}px !important;
+                        margin: ${document.getElementById('marginTopValue').value}px
+                                ${document.getElementById('marginRightValue').value}px
+                                ${document.getElementById('marginBottomValue').value}px
+                                ${document.getElementById('marginLeftValue').value}px !important;
+                        padding: ${document.getElementById('paddingTopValue').value}px
+                                 ${document.getElementById('paddingRightValue').value}px
+                                 ${document.getElementById('paddingBottomValue').value}px
+                                 ${document.getElementById('paddingLeftValue').value}px !important;
+                        line-height: ${document.getElementById('lineHeightValue').value} !important;
+                        letter-spacing: ${document.getElementById('letterSpacingValue').value}px !important;
+                        word-spacing: ${document.getElementById('wordSpacingValue').value}px !important;
+                        max-width: ${document.getElementById('maxWidthValue').value}% !important;
+                    }
+
+                    h1 {
+                        font-size: ${document.getElementById('h1FontSizeValue').value}px !important;
+                    }
+
+                    h2 {
+                        font-size: ${document.getElementById('h2FontSizeValue').value}px !important;
+                    }
+
+                    h3 {
+                        font-size: ${document.getElementById('h3FontSizeValue').value}px !important;
+                    }
+
+                    p {
+                        font-size: ${document.getElementById('pFontSizeValue').value}px !important;
+                        margin-bottom: ${document.getElementById('paragraphSpacingValue').value}px !important;
+                    }
+
+                    .content-container, #content, .main-content, article {
+                        max-width: ${document.getElementById('contentWidthValue').value}px !important;
+                        margin-left: auto !important;
+                        margin-right: auto !important;
+                    }
+                </style>
+            `;
+
+            // If HTML has <head>, inject styles there, otherwise wrap it
+            if (htmlContent.toLowerCase().includes('<head>')) {
+                htmlContent = htmlContent.replace(/<\/head>/i, styleTag + '</head>');
+            } else if (htmlContent.toLowerCase().includes('<html>')) {
+                htmlContent = htmlContent.replace(/<html[^>]*>/i, '$&<head>' + styleTag + '</head>');
+            } else {
+                htmlContent = '<html><head>' + styleTag + '</head><body>' + htmlContent + '</body></html>';
+            }
+
+            iframeDoc.open();
+            iframeDoc.write(htmlContent);
+            iframeDoc.close();
+        }
+
+        // Update styles (called when controls change)
+        function updateStyles() {
+            updatePreview();
+        }
+
+        // Load sample HTML
+        function loadSampleHTML() {
+            const sampleHTML = `<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vzorový dokument</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+        }
+        .content-container {
+            background: white;
+            padding: 40px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="content-container">
+        <h1>Hlavný nadpis dokumentu</h1>
+        <p>Toto je úvodný odsek s dôležitým textom. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+
+        <h2>Druhý nadpis úrovne</h2>
+        <p>Ďalší odsek s informáciami. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+
+        <h3>Tretí nadpis úrovne</h3>
+        <p>Menší odsek s detailami. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.</p>
+
+        <p>Záverečný odsek s doplňujúcimi informáciami. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+
+        <ul>
+            <li>Prvý položka zoznamu</li>
+            <li>Druhá položka zoznamu</li>
+            <li>Tretia položka zoznamu</li>
+        </ul>
+    </div>
+</body>
+</html>`;
+
+            currentHTML = sampleHTML;
+            document.getElementById('htmlEditor').value = sampleHTML;
+            updatePreview();
+        }
+
+        // Export HTML with current styles
+        function exportHTML() {
+            const editor = document.getElementById('htmlEditor');
+            let htmlContent = editor.value;
+
+            // Inject the current style settings
+            const styleTag = `
+    <style>
+        body {
+            font-size: ${document.getElementById('bodyFontSizeValue').value}px;
+            margin: ${document.getElementById('marginTopValue').value}px ${document.getElementById('marginRightValue').value}px ${document.getElementById('marginBottomValue').value}px ${document.getElementById('marginLeftValue').value}px;
+            padding: ${document.getElementById('paddingTopValue').value}px ${document.getElementById('paddingRightValue').value}px ${document.getElementById('paddingBottomValue').value}px ${document.getElementById('paddingLeftValue').value}px;
+            line-height: ${document.getElementById('lineHeightValue').value};
+            letter-spacing: ${document.getElementById('letterSpacingValue').value}px;
+            word-spacing: ${document.getElementById('wordSpacingValue').value}px;
+            max-width: ${document.getElementById('maxWidthValue').value}%;
+        }
+
+        h1 { font-size: ${document.getElementById('h1FontSizeValue').value}px; }
+        h2 { font-size: ${document.getElementById('h2FontSizeValue').value}px; }
+        h3 { font-size: ${document.getElementById('h3FontSizeValue').value}px; }
+        p {
+            font-size: ${document.getElementById('pFontSizeValue').value}px;
+            margin-bottom: ${document.getElementById('paragraphSpacingValue').value}px;
+        }
+
+        .content-container, #content, .main-content, article {
+            max-width: ${document.getElementById('contentWidthValue').value}px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+    </style>`;
+
+            if (htmlContent.toLowerCase().includes('<head>')) {
+                htmlContent = htmlContent.replace(/<\/head>/i, styleTag + '\n</head>');
+            } else if (htmlContent.toLowerCase().includes('<html>')) {
+                htmlContent = htmlContent.replace(/<html[^>]*>/i, '$&\n<head>' + styleTag + '\n</head>');
+            } else {
+                htmlContent = '<!DOCTYPE html>\n<html>\n<head>' + styleTag + '\n</head>\n<body>\n' + htmlContent + '\n</body>\n</html>';
+            }
+
+            // Create download
+            const blob = new Blob([htmlContent], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'styled-document.html';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // Export as Markdown
+        function exportMarkdown() {
+            const preview = document.getElementById('preview');
+            const iframe = preview.querySelector('iframe');
+
+            if (!iframe || !iframe.contentDocument) {
+                alert('Najprv načítajte HTML obsah.');
+                return;
+            }
+
+            // Get the rendered content from iframe
+            const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+            const bodyContent = iframeDoc.body;
+
+            if (!bodyContent) {
+                alert('Nie je k dispozícii obsah na export.');
+                return;
+            }
+
+            // Convert HTML to Markdown
+            const markdown = htmlToMarkdown(bodyContent);
+
+            // Create download
+            const blob = new Blob([markdown], { type: 'text/markdown' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'document.md';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // Convert HTML to Markdown
+        function htmlToMarkdown(element) {
+            let markdown = '';
+            let listLevel = 0;
+            let orderedListCounters = [];
+
+            function processNode(node, level = 0) {
+                if (node.nodeType === Node.TEXT_NODE) {
+                    const text = node.textContent.trim();
+                    if (text) {
+                        return text;
+                    }
+                    return '';
+                }
+
+                if (node.nodeType !== Node.ELEMENT_NODE) {
+                    return '';
+                }
+
+                const tagName = node.tagName.toLowerCase();
+                let result = '';
+
+                // Skip style and script tags
+                if (tagName === 'style' || tagName === 'script') {
+                    return '';
+                }
+
+                switch (tagName) {
+                    case 'h1':
+                        result = '# ' + getTextContent(node) + '\n\n';
+                        break;
+                    case 'h2':
+                        result = '## ' + getTextContent(node) + '\n\n';
+                        break;
+                    case 'h3':
+                        result = '### ' + getTextContent(node) + '\n\n';
+                        break;
+                    case 'h4':
+                        result = '#### ' + getTextContent(node) + '\n\n';
+                        break;
+                    case 'h5':
+                        result = '##### ' + getTextContent(node) + '\n\n';
+                        break;
+                    case 'h6':
+                        result = '###### ' + getTextContent(node) + '\n\n';
+                        break;
+                    case 'p':
+                        const pText = getTextContent(node);
+                        if (pText) {
+                            result = pText + '\n\n';
+                        }
+                        break;
+                    case 'br':
+                        result = '\n';
+                        break;
+                    case 'hr':
+                        result = '\n---\n\n';
+                        break;
+                    case 'strong':
+                    case 'b':
+                        result = '**' + getTextContent(node) + '**';
+                        break;
+                    case 'em':
+                    case 'i':
+                        result = '*' + getTextContent(node) + '*';
+                        break;
+                    case 'code':
+                        result = '`' + getTextContent(node) + '`';
+                        break;
+                    case 'pre':
+                        result = '\n```\n' + getTextContent(node) + '\n```\n\n';
+                        break;
+                    case 'blockquote':
+                        const quoteLines = getTextContent(node).split('\n');
+                        result = quoteLines.map(line => '> ' + line).join('\n') + '\n\n';
+                        break;
+                    case 'a':
+                        const href = node.getAttribute('href') || '#';
+                        result = '[' + getTextContent(node) + '](' + href + ')';
+                        break;
+                    case 'img':
+                        const src = node.getAttribute('src') || '';
+                        const alt = node.getAttribute('alt') || '';
+                        result = '![' + alt + '](' + src + ')';
+                        break;
+                    case 'ul':
+                        listLevel++;
+                        for (let child of node.children) {
+                            if (child.tagName.toLowerCase() === 'li') {
+                                const indent = '  '.repeat(listLevel - 1);
+                                result += indent + '- ' + getTextContent(child).trim() + '\n';
+                            }
+                        }
+                        listLevel--;
+                        result += '\n';
+                        break;
+                    case 'ol':
+                        listLevel++;
+                        orderedListCounters[listLevel] = 0;
+                        for (let child of node.children) {
+                            if (child.tagName.toLowerCase() === 'li') {
+                                orderedListCounters[listLevel]++;
+                                const indent = '  '.repeat(listLevel - 1);
+                                result += indent + orderedListCounters[listLevel] + '. ' + getTextContent(child).trim() + '\n';
+                            }
+                        }
+                        listLevel--;
+                        result += '\n';
+                        break;
+                    case 'table':
+                        result = convertTableToMarkdown(node) + '\n\n';
+                        break;
+                    default:
+                        // For other elements, process children
+                        for (let child of node.childNodes) {
+                            result += processNode(child, level);
+                        }
+                        break;
+                }
+
+                return result;
+            }
+
+            function getTextContent(node) {
+                let text = '';
+                for (let child of node.childNodes) {
+                    if (child.nodeType === Node.TEXT_NODE) {
+                        text += child.textContent;
+                    } else if (child.nodeType === Node.ELEMENT_NODE) {
+                        const tagName = child.tagName.toLowerCase();
+                        if (tagName === 'strong' || tagName === 'b') {
+                            text += '**' + getTextContent(child) + '**';
+                        } else if (tagName === 'em' || tagName === 'i') {
+                            text += '*' + getTextContent(child) + '*';
+                        } else if (tagName === 'code') {
+                            text += '`' + getTextContent(child) + '`';
+                        } else if (tagName === 'a') {
+                            const href = child.getAttribute('href') || '#';
+                            text += '[' + getTextContent(child) + '](' + href + ')';
+                        } else if (tagName === 'br') {
+                            text += '\n';
+                        } else {
+                            text += getTextContent(child);
+                        }
+                    }
+                }
+                return text;
+            }
+
+            function convertTableToMarkdown(table) {
+                let md = '';
+                const rows = table.querySelectorAll('tr');
+
+                if (rows.length === 0) return '';
+
+                rows.forEach((row, rowIndex) => {
+                    const cells = row.querySelectorAll('th, td');
+                    const cellTexts = Array.from(cells).map(cell => getTextContent(cell).trim());
+
+                    md += '| ' + cellTexts.join(' | ') + ' |\n';
+
+                    // Add separator after header row
+                    if (rowIndex === 0) {
+                        md += '| ' + cellTexts.map(() => '---').join(' | ') + ' |\n';
+                    }
+                });
+
+                return md;
+            }
+
+            // Process all children of the body
+            for (let child of element.childNodes) {
+                markdown += processNode(child);
+            }
+
+            // Clean up excessive newlines
+            markdown = markdown.replace(/\n{3,}/g, '\n\n');
+
+            return markdown.trim() + '\n';
+        }
+
+        // Reset all controls to default
+        function resetAllControls() {
+            const defaults = {
+                bodyFontSize: 16,
+                h1FontSize: 32,
+                h2FontSize: 28,
+                h3FontSize: 24,
+                pFontSize: 16,
+                marginTop: 0,
+                marginRight: 0,
+                marginBottom: 0,
+                marginLeft: 0,
+                paddingTop: 20,
+                paddingRight: 20,
+                paddingBottom: 20,
+                paddingLeft: 20,
+                lineHeight: 1.5,
+                letterSpacing: 0,
+                wordSpacing: 0,
+                paragraphSpacing: 16,
+                contentWidth: 800,
+                maxWidth: 100
+            };
+
+            Object.keys(defaults).forEach(key => {
+                const slider = document.getElementById(key);
+                const input = document.getElementById(key + 'Value');
+                if (slider && input) {
+                    slider.value = defaults[key];
+                    input.value = defaults[key];
+                }
+            });
+
+            updatePreview();
+        }
+
+        // Toggle HTML Editor collapse/expand
+        function toggleEditorCollapse() {
+            const editorSection = document.getElementById('editorSection');
+            const collapseIcon = document.getElementById('editorCollapseIcon');
+
+            editorCollapsed = !editorCollapsed;
+
+            if (editorCollapsed) {
+                // Save current flex before collapsing (computed or inline style)
+                const computedStyle = window.getComputedStyle(editorSection);
+                editorExpandedFlex = editorSection.style.flex || computedStyle.flex;
+
+                // Apply collapsed state with explicit inline style to override any existing flex
+                editorSection.classList.add('collapsed');
+                editorSection.style.flex = '0 0 auto';
+                collapseIcon.classList.add('collapsed');
+            } else {
+                // Restore previous flex value
+                editorSection.classList.remove('collapsed');
+                collapseIcon.classList.remove('collapsed');
+                editorSection.style.flex = editorExpandedFlex;
+            }
+        }
+
+        // Set page format (A4 or A5)
+        function setPageFormat(format) {
+            // A4 dimensions: 210mm × 297mm (at 96 DPI: ~794px × ~1123px)
+            // A5 dimensions: 148mm × 210mm (at 96 DPI: ~559px × ~794px)
+            // Using slightly less for margins
+
+            const formats = {
+                'A4': {
+                    contentWidth: 750,  // ~210mm with margins
+                    paddingTop: 40,
+                    paddingRight: 40,
+                    paddingBottom: 40,
+                    paddingLeft: 40,
+                    marginTop: 0,
+                    marginRight: 0,
+                    marginBottom: 0,
+                    marginLeft: 0
+                },
+                'A5': {
+                    contentWidth: 520,  // ~148mm with margins
+                    paddingTop: 30,
+                    paddingRight: 30,
+                    paddingBottom: 30,
+                    paddingLeft: 30,
+                    marginTop: 0,
+                    marginRight: 0,
+                    marginBottom: 0,
+                    marginLeft: 0
+                }
+            };
+
+            if (!formats[format]) return;
+
+            currentPageFormat = format;
+            const settings = formats[format];
+
+            // Apply settings
+            Object.keys(settings).forEach(key => {
+                const slider = document.getElementById(key);
+                const input = document.getElementById(key + 'Value');
+                if (slider && input) {
+                    slider.value = settings[key];
+                    input.value = settings[key];
+                }
+            });
+
+            // Update button states
+            document.getElementById('btnA4').classList.toggle('active', format === 'A4');
+            document.getElementById('btnA5').classList.toggle('active', format === 'A5');
+
+            updatePreview();
+        }
+
+        // Smart zoom in (increase sizes with priorities)
+        function smartZoomIn() {
+            adjustSmartZoom(1.1); // Increase by 10%
+        }
+
+        // Smart zoom out (decrease sizes with priorities)
+        function smartZoomOut() {
+            adjustSmartZoom(0.9); // Decrease by 10%
+        }
+
+        // Adjust all visual parameters with priorities
+        function adjustSmartZoom(factor) {
+            // Priority 1: Body and paragraph font size (most important for readability)
+            adjustControl('bodyFontSize', factor, 1.0);
+            adjustControl('pFontSize', factor, 1.0);
+
+            // Priority 2: Paragraph spacing (important for text structure)
+            adjustControl('paragraphSpacing', factor, 0.8);
+            adjustControl('lineHeight', factor, 0.5, true); // Smaller adjustment for line height
+
+            // Priority 3: Heading sizes (moderate changes)
+            adjustControl('h1FontSize', factor, 0.7);
+            adjustControl('h2FontSize', factor, 0.7);
+            adjustControl('h3FontSize', factor, 0.7);
+
+            // Priority 4: Margins and padding (minimal changes)
+            adjustControl('paddingTop', factor, 0.3);
+            adjustControl('paddingRight', factor, 0.3);
+            adjustControl('paddingBottom', factor, 0.3);
+            adjustControl('paddingLeft', factor, 0.3);
+            adjustControl('marginTop', factor, 0.2);
+            adjustControl('marginRight', factor, 0.2);
+            adjustControl('marginBottom', factor, 0.2);
+            adjustControl('marginLeft', factor, 0.2);
+
+            updatePreview();
+        }
+
+        // Helper function to adjust a control value
+        function adjustControl(controlId, factor, priority, isDecimal = false) {
+            const slider = document.getElementById(controlId);
+            const input = document.getElementById(controlId + 'Value');
+
+            if (!slider || !input) return;
+
+            // Calculate new value with priority weight
+            let currentValue = parseFloat(input.value);
+            let change = (currentValue * (factor - 1)) * priority;
+            let newValue = currentValue + change;
+
+            // Respect min/max bounds
+            const min = parseFloat(slider.min);
+            const max = parseFloat(slider.max);
+            newValue = Math.max(min, Math.min(max, newValue));
+
+            // Round appropriately
+            if (isDecimal) {
+                newValue = Math.round(newValue * 10) / 10; // One decimal place
+            } else {
+                newValue = Math.round(newValue);
+            }
+
+            slider.value = newValue;
+            input.value = newValue;
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,715 @@
+<html><head><base href="https://melody-maker.com">
+    <title>Melody Maker</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css?family=Poppins:400,500,600,700&display=swap');
+        
+        :root {
+            --background-color: #ffffff;
+            --text-color: #202124;
+            --header-bg: #ffffff;
+            --grid-bg: #f8f9fa;
+            --cell-bg: #ffffff;
+            --cell-hover-bg: #e8f0fe;
+            --button-bg: #e8f0fe;
+            --button-color: #1a73e8;
+            --button-hover-bg: #d2e3fc;
+            --button-hover-color: #174ea6;
+            --play-btn-bg: #1a73e8;
+            --play-btn-color: #ffffff;
+            --instrument-bg: #f1f3f4;
+            --instrument-color: #5f6368;
+            --instrument-active-bg: #ffffff;
+            --instrument-active-color: #1a73e8;
+            --slider-bg: #dadce0;
+            --slider-thumb-bg: #1a73e8;
+            --footer-bg: #ffffff;
+            --icon-color: #5f6368;
+        }
+
+        [data-theme="dark"] {
+            --background-color: #121212;
+            --text-color: #e8eaed;
+            --header-bg: #1e1e1e;
+            --grid-bg: #1e1e1e;
+            --cell-bg: #2c2c2c;
+            --cell-hover-bg: #3d3d3d;
+            --button-bg: #2c2c2c;
+            --button-color: #4285f4;
+            --button-hover-bg: #3d3d3d;
+            --button-hover-color: #8ab4f8;
+            --play-btn-bg: #4285f4;
+            --play-btn-color: #121212;
+            --instrument-bg: #2c2c2c;
+            --instrument-color: #9aa0a6;
+            --instrument-active-bg: #3d3d3d;
+            --instrument-active-color: #4285f4;
+            --slider-bg: #5f6368;
+            --slider-thumb-bg: #4285f4;
+            --footer-bg: #1e1e1e;
+            --icon-color: #e8eaed;
+        }
+        
+        body, html {
+            margin: 0;
+            padding: 0;
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--background-color);
+            overflow: hidden;
+            color: var(--text-color);
+            font-weight: 500;
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+        }
+        .app-container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 16px;
+            background-color: var(--header-bg);
+            box-shadow: 0 1px 2px rgba(60,64,67,0.1), 0 1px 3px 1px rgba(60,64,67,0.1);
+            position: relative;
+            z-index: 10;
+        }
+        .icon-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: var(--text-color);
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background-color 0.2s, color 0.2s;
+            font-weight: 600;
+        }
+        .icon-btn:hover {
+            background-color: rgba(95,99,104,0.1);
+        }
+        .title {
+            font-size: 22px;
+            font-weight: 600;
+            color: var(--text-color);
+            flex-grow: 1;
+            text-align: left;
+            letter-spacing: 0.25px;
+        }
+        .controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .control-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 0.25px;
+            transition: background-color 0.2s, color 0.2s;
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--button-bg);
+            color: var(--button-color);
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .control-btn:hover {
+            background-color: var(--button-hover-bg);
+            color: var(--button-hover-color);
+        }
+        .grid-container {
+            flex-grow: 1;
+            background-color: var(--grid-bg);
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            position: relative;
+        }
+        .grid {
+            display: grid;
+            grid-template-rows: repeat(14, 1fr);
+            grid-template-columns: repeat(32, 1fr);
+            gap: 1px;
+            background-color: var(--slider-bg);
+            padding: 1px;
+            border-radius: 8px;
+            width: 100%;
+            height: 100%;
+            box-shadow: 0 1px 2px rgba(60,64,67,0.1), 0 2px 6px 2px rgba(60,64,67,0.1);
+        }
+        .grid-cell {
+            background-color: var(--cell-bg);
+            transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 2px;
+            position: relative;
+            overflow: hidden;
+        }
+        .grid-cell:hover {
+            background-color: var(--cell-hover-bg);
+            box-shadow: 0 1px 2px rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15);
+            z-index: 1;
+        }
+        .grid-cell.active {
+            box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1);
+            animation: pop-in 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .grid-cell.highlight::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(66, 133, 244, 0.2);
+            pointer-events: none;
+            z-index: 2;
+        }
+        @keyframes pop-in {
+            0% { transform: scale(0.8); opacity: 0.5; }
+            70% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes bounce {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+        .grid-cell.active.highlight {
+            animation: bounce 0.2s ease-in-out;
+        }
+        .grid-cell:nth-child(1) {
+            border-top-left-radius: 7px;
+        }
+        .grid-cell:nth-child(32) {
+            border-top-right-radius: 7px;
+        }
+        .grid-cell:nth-child(417) {
+            border-bottom-left-radius: 7px;
+        }
+        .grid-cell:nth-child(448) {
+            border-bottom-right-radius: 7px;
+        }
+        .footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background-color: var(--footer-bg);
+            box-shadow: 0 -1px 2px rgba(60,64,67,0.1), 0 -1px 3px 1px rgba(60,64,67,0.1);
+            position: relative;
+            z-index: 10;
+        }
+        .play-section {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex: 1;
+        }
+        .play-btn, .undo-btn {
+            width: 56px;
+            height: 56px;
+            background-color: var(--play-btn-bg);
+            border: none;
+            border-radius: 50%;
+            color: var(--play-btn-color);
+            font-size: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 1px 2px rgba(60,64,67,0.2), 0 1px 3px 1px rgba(60,64,67,0.1);
+            transition: background-color 0.2s, box-shadow 0.2s, transform 0.1s;
+            font-weight: 600;
+        }
+        .play-btn:hover, .undo-btn:hover {
+            background-color: var(--button-hover-bg);
+            box-shadow: 0 1px 3px rgba(60,64,67,0.2), 0 2px 6px 2px rgba(60,64,67,0.1);
+        }
+        .play-btn:active, .undo-btn:active {
+            transform: scale(0.95);
+        }
+        .instrument-selector {
+            display: inline-flex;
+            background-color: var(--instrument-bg);
+            border-radius: 22px;
+            padding: 2px;
+            height: 36px;
+            box-shadow: 0 1px 2px rgba(60,64,67,0.1);
+        }
+        .instrument {
+            padding: 8px 16px;
+            font-size: 14px;
+            color: var(--instrument-color);
+            font-weight: 600;
+            transition: all 0.2s;
+            cursor: pointer;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+        }
+        .instrument.active {
+            background-color: var(--instrument-active-bg);
+            color: var(--instrument-active-color);
+            box-shadow: 0 1px 2px rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15);
+        }
+        .tempo-control {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex: 2;
+            justify-content: center;
+        }
+        .tempo-label {
+            font-size: 14px;
+            color: var(--text-color);
+            font-weight: 600;
+        }
+        .tempo-slider {
+            width: 160px;
+            -webkit-appearance: none;
+            background: var(--slider-bg);
+            outline: none;
+            height: 4px;
+            border-radius: 2px;
+            transition: background 0.2s;
+        }
+        .tempo-slider:hover {
+            background: var(--slider-bg);
+        }
+        .tempo-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: var(--slider-thumb-bg);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 1px 2px rgba(60,64,67,0.2), 0 1px 3px 1px rgba(60,64,67,0.1);
+            transition: background 0.2s, box-shadow 0.2s;
+        }
+        .tempo-slider::-webkit-slider-thumb:hover {
+            background: var(--button-hover-bg);
+            box-shadow: 0 1px 3px rgba(60,64,67,0.2), 0 2px 6px 2px rgba(60,64,67,0.1);
+        }
+        .tempo-value {
+            font-size: 14px;
+            color: var(--text-color);
+            min-width: 36px;
+            text-align: right;
+            font-weight: 600;
+            transition: transform 0.1s ease-out;
+        }
+        .footer-controls {
+            display: flex;
+            gap: 8px;
+            flex: 1;
+            justify-content: flex-end;
+        }
+        .theme-toggle {
+            width: 36px;
+            height: 36px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: 600;
+            transition: background-color 0.2s, color 0.2s;
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--button-bg);
+            color: var(--button-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+        }
+        .theme-toggle:hover {
+            background-color: var(--button-hover-bg);
+            color: var(--button-hover-color);
+        }
+        .theme-toggle svg {
+            width: 24px;
+            height: 24px;
+        }
+        .theme-toggle svg path {
+            fill: var(--icon-color);
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header class="header">
+            <div class="title">Melody Maker</div>
+            <div class="controls">
+                <button class="control-btn restart-btn">Restart</button>
+                <button class="theme-toggle">
+                    <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#5f6368"><path d="M480-280q-83 0-141.5-58.5T280-480q0-83 58.5-141.5T480-680q83 0 141.5 58.5T680-480q0 83-58.5 141.5T480-280ZM80-440q-17 0-28.5-11.5T40-480q0-17 11.5-28.5T80-520h80q17 0 28.5 11.5T200-480q0 17-11.5 28.5T160-440H80Zm720 0q-17 0-28.5-11.5T760-480q0-17 11.5-28.5T800-520h80q17 0 28.5 11.5T920-480q0 17-11.5 28.5T880-440h-80ZM480-760q-17 0-28.5-11.5T440-800v-80q0-17 11.5-28.5T480-920q17 0 28.5 11.5T520-880v80q0 17-11.5 28.5T480-760Zm0 720q-17 0-28.5-11.5T440-80v-80q0-17 11.5-28.5T480-200q17 0 28.5 11.5T520-160v80q0 17-11.5 28.5T480-40ZM226-678l-43-42q-12-11-11.5-28t11.5-29q12-12 29-12t28 12l42 43q11 12 11 28t-11 28q-11 12-27.5 11.5T226-678Zm494 495-42-43q-11-12-11-28.5t11-27.5q11-12 27.5-11.5T734-282l43 42q12 11 11.5 28T777-183q-12 12-29 12t-28-12Zm-42-495q-12-11-11.5-27.5T678-734l42-43q11-12 28-11.5t29 11.5q12 12 12 29t-12 28l-43 42q-12 11-28 11t-28-11ZM183-183q-12-12-12-29t12-28l43-42q12-11 28.5-11t27.5 11q12 11 11.5 27.5T282-226l-42 43q-11 12-28 11.5T183-183Z"/></svg>
+                </button>
+            </div>
+        </header>
+        
+        <div class="grid-container">
+            <div class="grid">
+                <!-- Grid cells will be dynamically generated here -->
+            </div>
+        </div>
+        
+        <footer class="footer">
+            <div class="play-section">
+                <button class="play-btn">▶</button>
+                <div class="instrument-selector">
+                    <div class="instrument active">Piano</div>
+                    <div class="instrument">Pluck</div>
+                </div>
+            </div>
+            <div class="tempo-control">
+                <span class="tempo-label">Tempo</span>
+                <input type="range" class="tempo-slider" min="60" max="180" value="120">
+                <span class="tempo-value">120</span>
+            </div>
+            <div class="footer-controls">
+                <button class="undo-btn">↺</button>
+            </div>
+        </footer>
+    </div>
+    <script>
+        // JavaScript code continues here...
+        // (The rest of the JavaScript code remains unchanged)
+    </script>
+</body>
+</html>
+440H80Zm0 720q-17 0-28.5-11.5T440-80v-80q0-17 11.5-28.5T480-200q17 0 28.5 11.5T520-160v80q0 17-11.5 28.5T480-40ZM226-678l-43-42q-12-11-11.5-28t11.5-29q12-12 29-12t28 12l42 43q11 12 11 28t-11 28q-11 12-27.5 11.5T226-678Zm494 495-42-43q-11-12-11-28.5t11-27.5q11-12 27.5-11.5T734-282l43 42q12 11 11.5 28T777-183q-12 12-29 12t-28-12Zm-42-495q-12-11-11.5-27.5T678-734l42-43q11-12 28-11.5t29 11.5q12 12 12 29t-12 28l-43 42q-12 11-28 11t-28-11ZM183-183q-12-12-12-29t12-28l43-42q12-11 28.5-11t27.5 11q12 11 11.5 27.5T282-226l-42 43q-11 12-28 11.5T183-183Z"/></svg>
+                </button>
+            </div>
+        </header>
+        
+        <div class="grid-container">
+            <div class="grid">
+                <!-- Grid cells will be dynamically generated here -->
+            </div>
+        </div>
+        
+        <footer class="footer">
+            <div class="play-section">
+                <button class="play-btn">▶</button>
+                <div class="instrument-selector">
+                    <div class="instrument active">Piano</div>
+                    <div class="instrument">Pluck</div>
+                </div>
+            </div>
+            <div class="tempo-control">
+                <span class="tempo-label">Tempo</span>
+                <input type="range" class="tempo-slider" min="60" max="180" value="120">
+                <span class="tempo-value">120</span>
+            </div>
+            <div class="footer-controls">
+                <button class="undo-btn">↺</button>
+            </div>
+        </footer>
+    </div>
+    <script>
+        const instruments = document.querySelectorAll('.instrument');
+        let currentInstrument = 'Piano';
+        instruments.forEach(instrument => {
+            instrument.addEventListener('click', () => {
+                instruments.forEach(i => i.classList.remove('active'));
+                instrument.classList.add('active');
+                currentInstrument = instrument.textContent;
+            });
+        });
+
+        const tempoSlider = document.querySelector('.tempo-slider');
+        const tempoValue = document.querySelector('.tempo-value');
+        let lastValue = parseInt(tempoSlider.value);
+
+        tempoSlider.addEventListener('input', () => {
+            const currentValue = parseInt(tempoSlider.value);
+            tempoValue.textContent = currentValue;
+
+            if (currentValue !== lastValue) {
+                tempoValue.classList.remove('bounce');
+                void tempoValue.offsetWidth; // Trigger reflow
+                tempoValue.classList.add('bounce');
+            }
+
+            lastValue = currentValue;
+            updatePlaybackSpeed();
+        });
+
+        // Generate grid cells
+        const grid = document.querySelector('.grid');
+        const colors = [
+            '#FF9999', '#FFB366', '#FFEE99', '#99E699', '#99CCFF', '#CC99FF', '#FF99CC'
+        ];
+
+        let isMouseDown = false;
+        let isDragging = false;
+        let isAdding = true;
+        let lastToggledCell = null;
+        let startCell = null;
+        let actionHistory = [];
+
+        for (let i = 0; i < 14 * 32; i++) {
+            const cell = document.createElement('div');
+            cell.classList.add('grid-cell');
+            const row = Math.floor(i / 32);
+            
+            const toggleCell = (force) => {
+                const previousState = cell.classList.contains('active');
+                if (force !== undefined ? force : !previousState) {
+                    cell.classList.add('active');
+                    cell.style.backgroundColor = colors[row % 7];
+                    playInstrument(row); // Play sound when note is placed
+                } else {
+                    cell.classList.remove('active');
+                    cell.style.backgroundColor = '';
+                }
+                return previousState;
+            };
+
+            cell.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                isMouseDown = true;
+                isDragging = false;
+                isAdding = !cell.classList.contains('active');
+                startCell = cell;
+                toggleCell(isAdding); // Toggle and play sound immediately on mousedown
+            });
+
+            cell.addEventListener('mousemove', (e) => {
+                if (isMouseDown) {
+                    isDragging = true;
+                    if (cell !== lastToggledCell) {
+                        const previousState = toggleCell(isAdding);
+                        actionHistory.push({ cell, previousState });
+                        lastToggledCell = cell;
+                    }
+                }
+            });
+
+            cell.addEventListener('mouseup', (e) => {
+                e.preventDefault();
+                isMouseDown = false;
+                isDragging = false;
+                lastToggledCell = null;
+                startCell = null;
+            });
+
+            grid.appendChild(cell);
+        }
+
+        document.addEventListener('mouseup', () => {
+            isMouseDown = false;
+            isDragging = false;
+            lastToggledCell = null;
+            startCell = null;
+        });
+
+        grid.addEventListener('mouseleave', () => {
+            isMouseDown = false;
+            isDragging = false;
+        });
+
+        const undoBtn = document.querySelector('.undo-btn');
+        undoBtn.addEventListener('click', () => {
+            if (actionHistory.length > 0) {
+                const lastAction = actionHistory.pop();
+                const { cell, previousState } = lastAction;
+                if (previousState) {
+                    cell.classList.add('active');
+                    cell.style.backgroundColor = colors[Math.floor(Array.from(grid.children).indexOf(cell) / 32) % 7];
+                } else {
+                    cell.classList.remove('active');
+                    cell.style.backgroundColor = '';
+                }
+            }
+        });
+
+        const playBtn = document.querySelector('.play-btn');
+        let isPlaying = false;
+        let playbackInterval;
+        let currentColumn = 0;
+
+        function highlightColumn(column) {
+            document.querySelectorAll('.grid-cell').forEach((cell, index) => {
+                if (index % 32 === column) {
+                    cell.classList.add('highlight');
+                    if (cell.classList.contains('active')) {
+                        cell.classList.remove('bounce');
+                        void cell.offsetWidth; // Trigger reflow
+                        cell.classList.add('bounce');
+                        playInstrument(Math.floor(index / 32));
+                    }
+                } else {
+                    cell.classList.remove('highlight');
+                }
+            });
+        }
+
+        function movePlayback() {
+            highlightColumn(currentColumn);
+            currentColumn = (currentColumn + 1) % 32;
+        }
+
+        function updatePlaybackSpeed() {
+            if (isPlaying) {
+                clearInterval(playbackInterval);
+                const tempo = parseInt(tempoSlider.value);
+                const beatDuration = 60 / tempo; // Duration of one beat in seconds
+                const columnDuration = beatDuration / 4; // Each column represents a 16th note
+                playbackInterval = setInterval(movePlayback, columnDuration * 1000);
+            }
+        }
+
+        playBtn.addEventListener('click', () => {
+            isPlaying = !isPlaying;
+            if (isPlaying) {
+                playBtn.textContent = '❚❚';
+                currentColumn = 0;
+                movePlayback(); // Highlight the first column immediately
+                updatePlaybackSpeed();
+            } else {
+                playBtn.textContent = '▶';
+                clearInterval(playbackInterval);
+                document.querySelectorAll('.grid-cell').forEach(cell => cell.classList.remove('highlight'));
+            }
+        });
+
+        const restartBtn = document.querySelector('.restart-btn');
+        restartBtn.addEventListener('click', () => {
+            // Reset all active cells
+            document.querySelectorAll('.grid-cell').forEach(cell => {
+                cell.classList.remove('active');
+                cell.style.backgroundColor = '';
+            });
+            
+            // Reset tempo to default (120 BPM)
+            tempoSlider.value = 120;
+            tempoValue.textContent = '120';
+            
+            // Reset instrument to default (Piano)
+            instruments.forEach(i => i.classList.remove('active'));
+            instruments[0].classList.add('active');
+            currentInstrument = 'Piano';
+            
+            // Clear action history
+            actionHistory = [];
+            
+            // Stop playback if it's running
+            if (isPlaying) {
+                isPlaying = false;
+                playBtn.textContent = '▶';
+                clearInterval(playbackInterval);
+                document.querySelectorAll('.grid-cell').forEach(cell => cell.classList.remove('highlight'));
+            }
+            
+            // Reset current column
+            currentColumn = 0;
+            
+            updatePlaybackSpeed();
+        });
+
+        tempoSlider.addEventListener('input', updatePlaybackSpeed);
+
+        // Audio context and synth setup
+        let audioContext;
+        let createPianoSynth;
+        let createPluckSynth;
+
+        function initAudio() {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            createPianoSynth = createSynthFactory('triangle', 1000, 1);
+            createPluckSynth = createSynthFactory('sawtooth', 2000, 5);
+        }
+
+        function createSynthFactory(oscillatorType, filterFreq, filterQ) {
+            return () => {
+                const oscillator = audioContext.createOscillator();
+                oscillator.type = oscillatorType;
+                
+                const gainNode = audioContext.createGain();
+                gainNode.gain.value = 0;
+
+                const filter = audioContext.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.value = filterFreq;
+                filter.Q.value = filterQ;
+
+                oscillator.connect(filter);
+                filter.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+
+                return { oscillator, filter, gainNode };
+            };
+        }
+
+        function playInstrument(row) {
+            if (!audioContext) initAudio();
+            
+            const frequency = 440 * Math.pow(2, (13 - row) / 12); // A4 is 440Hz, each row is a semitone
+            
+            if (currentInstrument === 'Piano') {
+                playSound(frequency, createPianoSynth, 0.5, 1000, 100);
+            } else if (currentInstrument === 'Pluck') {
+                playSound(frequency, createPluckSynth, 0.1, 3000, 200);
+            }
+        }
+
+        function playSound(frequency, createSynth, duration, filterStart, filterEnd) {
+            const now = audioContext.currentTime;
+            const { oscillator, filter, gainNode } = createSynth();
+            
+            oscillator.frequency.setValueAtTime(frequency, now);
+            
+            gainNode.gain.setValueAtTime(0, now);
+            gainNode.gain.linearRampToValueAtTime(0.8, now + 0.01);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, now + duration);
+
+            filter.frequency.setValueAtTime(filterStart, now);
+            filter.frequency.exponentialRampToValueAtTime(filterEnd, now + duration);
+
+            oscillator.start(now);
+            oscillator.stop(now + duration);
+        }
+
+        // Initialize audio on first user interaction
+        document.body.addEventListener('click', initAudio, { once: true });
+
+        // Theme toggle functionality
+        const themeToggle = document.querySelector('.theme-toggle');
+        const body = document.body;
+
+        themeToggle.addEventListener('click', () => {
+            body.setAttribute('data-theme', body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+            updateThemeIcon();
+        });
+
+        function updateThemeIcon() {
+            const isDarkTheme = body.getAttribute('data-theme') === 'dark';
+            const iconPath = themeToggle.querySelector('path');
+            if (isDarkTheme) {
+                iconPath.setAttribute('d', 'M480-120q-151 0-255.5-104.5T120-480q0-138 90-239.5T440-838q13-2 23 3.5t16 14.5q6 9 6.5 21t-7.5 23q-17 26-25.5 55t-8.5 61q0 90 63 153t153 63q31 0 61.5-9t54.5-25q11-7 22.5-6.5T819-479q10 5 15.5 15t3.5 24q-14 138-117.5 229T480-120Z');
+            } else {
+                iconPath.setAttribute('d', 'M480-280q-83 0-141.5-58.5T280-480q0-83 58.5-141.5T480-680q83 0 141.5 58.5T680-480q0 83-58.5 141.5T480-280ZM80-440q-17 0-28.5-11.5T40-480q0-17 11.5-28.5T80-520h80q17 0 28.5 11.5T200-480q0 17-11.5 28.5T160-440H80Zm720 0q-17 0-28.5-11.5T760-480q0-17 11.5-28.5T800-520h80q17 0 28.5 11.5T920-480q0 17-11.5 28.5T880-440h-80ZM480-760q-17 0-28.5-11.5T440-800v-80q0-17 11.5-28.5T480-920q17 0 28.5 11.5T520-880v80q0 17-11.5 28.5T480-760Zm0 720q-17 0-28.5-11.5T440-80v-80q0-17 11.5-28.5T480-200q17 0 28.5 11.5T520-160v80q0 17-11.5 28.5T480-40ZM226-678l-43-42q-12-11-11.5-28t11.5-29q12-12 29-12t28 12l42 43q11 12 11 28t-11 28q-11 12-27.5 11.5T226-678Zm494 495-42-43q-11-12-11-28.5t11-27.5q11-12 27.5-11.5T734-282l43 42q12 11 11.5 28T777-183q-12 12-29 12t-28-12Zm-42-495q-12-11-11.5-27.5T678-734l42-43q11-12 28-11.5t29 11.5q12 12 12 29t-12 28l-43 42q-12 11-28 11t-28-11ZM183-183q-12-12-12-29t12-28l43-42q12-11 28.5-11t27.5 11q12 11 11.5 27.5T282-226l-42 43q-11 12-28 11.5T183-183Z');
+            }
+            iconPath.setAttribute('fill', isDarkTheme ? '#e8eaed' : '#5f6368');
+        }
+
+        // Initial theme setup
+        updateThemeIcon();
+    </script>
+</body>
+</html>

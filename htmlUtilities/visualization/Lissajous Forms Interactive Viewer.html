@@ -1,0 +1,127 @@
+<html><head><base href="https://lissajous.websim.ai/"><title>Lissajous Forms Interactive Viewer</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #f0f0f0;
+        margin: 0;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    h1 {
+        color: #333;
+        text-align: center;
+    }
+    #canvas {
+        border: 1px solid #ccc;
+        background-color: #fff;
+    }
+    .controls {
+        margin-top: 20px;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px;
+    }
+    .control-group {
+        background-color: #fff;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        padding: 10px;
+    }
+    label {
+        display: inline-block;
+        width: 120px;
+        text-align: right;
+        margin-right: 10px;
+    }
+    input[type="range"] {
+        width: 200px;
+    }
+    #info {
+        margin-top: 20px;
+        text-align: center;
+        color: #666;
+    }
+</style>
+</head>
+<body>
+    <h1>Lissajous Forms Interactive Viewer</h1>
+    <canvas id="canvas" width="500" height="500"></canvas>
+    <div class="controls">
+        <div class="control-group">
+            <label for="freqX">Frequency X:</label>
+            <input type="range" id="freqX" min="1" max="10" step="0.1" value="3">
+            <span id="freqXValue">3</span>
+        </div>
+        <div class="control-group">
+            <label for="freqY">Frequency Y:</label>
+            <input type="range" id="freqY" min="1" max="10" step="0.1" value="2">
+            <span id="freqYValue">2</span>
+        </div>
+        <div class="control-group">
+            <label for="phaseX">Phase X:</label>
+            <input type="range" id="phaseX" min="0" max="6.28" step="0.1" value="0">
+            <span id="phaseXValue">0</span>
+        </div>
+        <div class="control-group">
+            <label for="phaseY">Phase Y:</label>
+            <input type="range" id="phaseY" min="0" max="6.28" step="0.1" value="0">
+            <span id="phaseYValue">0</span>
+        </div>
+    </div>
+    <div id="info">
+        <p>Lissajous figures are the graph of a system of parametric equations:</p>
+        <p>x = A * sin(a * t + δ), y = B * sin(b * t)</p>
+        <p>where A and B are amplitudes, a and b are angular frequencies, and δ is the phase shift.</p>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const width = canvas.width;
+        const height = canvas.height;
+
+        function drawLissajous() {
+            const freqX = parseFloat(document.getElementById('freqX').value);
+            const freqY = parseFloat(document.getElementById('freqY').value);
+            const phaseX = parseFloat(document.getElementById('phaseX').value);
+            const phaseY = parseFloat(document.getElementById('phaseY').value);
+
+            ctx.clearRect(0, 0, width, height);
+            ctx.beginPath();
+            ctx.strokeStyle = 'blue';
+            ctx.lineWidth = 2;
+
+            for (let t = 0; t < Math.PI * 20; t += 0.01) {
+                const x = width / 2 + Math.sin(freqX * t + phaseX) * (width / 2 - 10);
+                const y = height / 2 + Math.sin(freqY * t + phaseY) * (height / 2 - 10);
+
+                if (t === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+
+            ctx.stroke();
+        }
+
+        function updateValue(id) {
+            const value = document.getElementById(id).value;
+            document.getElementById(id + 'Value').textContent = parseFloat(value).toFixed(1);
+        }
+
+        ['freqX', 'freqY', 'phaseX', 'phaseY'].forEach(id => {
+            const input = document.getElementById(id);
+            input.addEventListener('input', () => {
+                updateValue(id);
+                drawLissajous();
+            });
+            updateValue(id);
+        });
+
+        drawLissajous();
+    </script>
+</body></html>

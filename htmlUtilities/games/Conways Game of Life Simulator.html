@@ -1,0 +1,367 @@
+<html><head><base href="https://websim.ai">
+  <title>Life Game Simulator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f0f0f0;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    h1 {
+      color: #333;
+      text-align: center;
+    }
+    #game-container {
+      background-color: white;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      max-width: 800px;
+      width: 100%;
+    }
+    #grid {
+      display: grid;
+      gap: 1px;
+      margin-bottom: 20px;
+      width: 550px;
+      height: 550px;
+    }
+    .cell {
+      background-color: #eee;
+      border: 1px solid #ddd;
+      cursor: pointer;
+      box-sizing: border-box;
+    }
+    .cell.alive {
+      background-color: #3498db;
+    }
+    button {
+      background-color: #3498db;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      margin: 5px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    button:hover {
+      background-color: #2980b9;
+    }
+    button:disabled {
+      background-color: #95a5a6;
+      cursor: not-allowed;
+    }
+    #controls {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    #stats {
+      display: flex;
+      justify-content: space-around;
+      margin-bottom: 20px;
+      font-size: 18px;
+    }
+    .stat-item {
+      text-align: center;
+    }
+    .stat-value {
+      font-size: 24px;
+      font-weight: bold;
+      color: #3498db;
+    }
+    #grid-size-control {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+      gap: 10px;
+    }
+    #grid-size-slider {
+      width: 200px;
+    }
+    #chart-container {
+      margin-top: 20px;
+      border-top: 2px solid #eee;
+      padding-top: 20px;
+    }
+    #chart {
+      width: 100%;
+      height: 150px;
+      border: 1px solid #ddd;
+      background-color: #f9f9f9;
+    }
+  </style>
+</head>
+<body>
+  <h1>Conway's Game of Life Simulator</h1>
+  <div id="game-container">
+    <div id="grid-size-control">
+      <label for="grid-size-slider">Grid Size:</label>
+      <input type="range" id="grid-size-slider" min="20" max="100" value="50" step="5">
+      <span id="grid-size-value">50x50</span>
+    </div>
+    <div id="grid"></div>
+    <div id="stats">
+      <div class="stat-item">
+        <div>Generation</div>
+        <div class="stat-value" id="generation-count">0</div>
+      </div>
+      <div class="stat-item">
+        <div>Living Cells</div>
+        <div class="stat-value" id="living-cells-count">0</div>
+      </div>
+    </div>
+    <div id="controls">
+      <button id="start">Start</button>
+      <button id="stop">Stop</button>
+      <button id="clear">Clear</button>
+      <button id="random">Random</button>
+    </div>
+    <div id="chart-container">
+      <h3 style="text-align: center; color: #333;">Living Cells Over Time</h3>
+      <canvas id="chart"></canvas>
+    </div>
+  </div>
+
+  <script>
+    let GRID_SIZE = 50;
+    let grid = [];
+    let isRunning = false;
+    let generationCount = 0;
+    let intervalId;
+    let livingCellsHistory = [];
+    let chart;
+    let chartCtx;
+
+    function initChart() {
+      chart = document.getElementById('chart');
+      chartCtx = chart.getContext('2d');
+      chart.width = chart.offsetWidth;
+      chart.height = 150;
+    }
+
+    function drawChart() {
+      const width = chart.width;
+      const height = chart.height;
+      const padding = 30;
+      const graphWidth = width - 2 * padding;
+      const graphHeight = height - 2 * padding;
+
+      chartCtx.clearRect(0, 0, width, height);
+
+      if (livingCellsHistory.length === 0) return;
+
+      const maxCells = Math.max(...livingCellsHistory, 1);
+      const minCells = 0;
+
+      // Draw background
+      chartCtx.fillStyle = '#f9f9f9';
+      chartCtx.fillRect(0, 0, width, height);
+
+      // Draw grid lines
+      chartCtx.strokeStyle = '#e0e0e0';
+      chartCtx.lineWidth = 1;
+      for (let i = 0; i <= 5; i++) {
+        const y = padding + (graphHeight / 5) * i;
+        chartCtx.beginPath();
+        chartCtx.moveTo(padding, y);
+        chartCtx.lineTo(width - padding, y);
+        chartCtx.stroke();
+      }
+
+      // Draw axes
+      chartCtx.strokeStyle = '#333';
+      chartCtx.lineWidth = 2;
+      chartCtx.beginPath();
+      chartCtx.moveTo(padding, padding);
+      chartCtx.lineTo(padding, height - padding);
+      chartCtx.lineTo(width - padding, height - padding);
+      chartCtx.stroke();
+
+      // Draw data line
+      if (livingCellsHistory.length > 1) {
+        chartCtx.strokeStyle = '#3498db';
+        chartCtx.lineWidth = 2;
+        chartCtx.beginPath();
+
+        const pointsToShow = Math.min(livingCellsHistory.length, 100);
+        const startIndex = Math.max(0, livingCellsHistory.length - pointsToShow);
+
+        for (let i = 0; i < pointsToShow; i++) {
+          const dataIndex = startIndex + i;
+          const x = padding + (graphWidth / (pointsToShow - 1)) * i;
+          const normalizedValue = (livingCellsHistory[dataIndex] - minCells) / (maxCells - minCells);
+          const y = height - padding - normalizedValue * graphHeight;
+
+          if (i === 0) {
+            chartCtx.moveTo(x, y);
+          } else {
+            chartCtx.lineTo(x, y);
+          }
+        }
+        chartCtx.stroke();
+      }
+
+      // Draw labels
+      chartCtx.fillStyle = '#333';
+      chartCtx.font = '12px Arial';
+      chartCtx.textAlign = 'right';
+      chartCtx.fillText(maxCells, padding - 5, padding + 5);
+      chartCtx.fillText(Math.round(maxCells / 2), padding - 5, height / 2);
+      chartCtx.fillText('0', padding - 5, height - padding + 5);
+    }
+
+    function createGrid() {
+      const gridElement = document.getElementById('grid');
+      gridElement.innerHTML = '';
+      grid = [];
+
+      const gridSize = 550;
+      const gapSize = 1;
+      const totalGaps = (GRID_SIZE - 1) * gapSize;
+      const availableSpace = gridSize - totalGaps;
+      const cellSize = Math.floor(availableSpace / GRID_SIZE);
+
+      gridElement.style.gridTemplateColumns = `repeat(${GRID_SIZE}, ${cellSize}px)`;
+      gridElement.style.gridTemplateRows = `repeat(${GRID_SIZE}, ${cellSize}px)`;
+
+      for (let i = 0; i < GRID_SIZE; i++) {
+        grid[i] = [];
+        for (let j = 0; j < GRID_SIZE; j++) {
+          const cell = document.createElement('div');
+          cell.classList.add('cell');
+          cell.addEventListener('click', () => toggleCell(i, j));
+          gridElement.appendChild(cell);
+          grid[i][j] = { element: cell, alive: false };
+        }
+      }
+      updateStats();
+    }
+
+    function toggleCell(i, j) {
+      if (isRunning) return;
+      grid[i][j].alive = !grid[i][j].alive;
+      grid[i][j].element.classList.toggle('alive');
+      updateStats();
+    }
+
+    function randomizeGrid() {
+      for (let i = 0; i < GRID_SIZE; i++) {
+        for (let j = 0; j < GRID_SIZE; j++) {
+          grid[i][j].alive = Math.random() > 0.7;
+          grid[i][j].element.classList.toggle('alive', grid[i][j].alive);
+        }
+      }
+      updateStats();
+    }
+
+    function clearGrid() {
+      for (let i = 0; i < GRID_SIZE; i++) {
+        for (let j = 0; j < GRID_SIZE; j++) {
+          grid[i][j].alive = false;
+          grid[i][j].element.classList.remove('alive');
+        }
+      }
+      generationCount = 0;
+      livingCellsHistory = [];
+      updateStats();
+      drawChart();
+    }
+
+    function countLivingCells() {
+      let count = 0;
+      for (let i = 0; i < GRID_SIZE; i++) {
+        for (let j = 0; j < GRID_SIZE; j++) {
+          if (grid[i][j].alive) count++;
+        }
+      }
+      return count;
+    }
+
+    function countNeighbors(i, j) {
+      let count = 0;
+      for (let di = -1; di <= 1; di++) {
+        for (let dj = -1; dj <= 1; dj++) {
+          if (di === 0 && dj === 0) continue;
+          const ni = (i + di + GRID_SIZE) % GRID_SIZE;
+          const nj = (j + dj + GRID_SIZE) % GRID_SIZE;
+          if (grid[ni][nj].alive) count++;
+        }
+      }
+      return count;
+    }
+
+    function updateGrid() {
+      const newGrid = JSON.parse(JSON.stringify(grid));
+      for (let i = 0; i < GRID_SIZE; i++) {
+        for (let j = 0; j < GRID_SIZE; j++) {
+          const neighbors = countNeighbors(i, j);
+          if (grid[i][j].alive) {
+            newGrid[i][j].alive = neighbors === 2 || neighbors === 3;
+          } else {
+            newGrid[i][j].alive = neighbors === 3;
+          }
+        }
+      }
+      for (let i = 0; i < GRID_SIZE; i++) {
+        for (let j = 0; j < GRID_SIZE; j++) {
+          grid[i][j].alive = newGrid[i][j].alive;
+          grid[i][j].element.classList.toggle('alive', grid[i][j].alive);
+        }
+      }
+      generationCount++;
+      updateStats();
+      drawChart();
+    }
+
+    function updateStats() {
+      const livingCells = countLivingCells();
+      livingCellsHistory.push(livingCells);
+      document.getElementById('generation-count').textContent = generationCount;
+      document.getElementById('living-cells-count').textContent = livingCells;
+    }
+
+    function startSimulation() {
+      if (!isRunning) {
+        isRunning = true;
+        document.getElementById('grid-size-slider').disabled = true;
+        intervalId = setInterval(updateGrid, 100);
+      }
+    }
+
+    function stopSimulation() {
+      if (isRunning) {
+        isRunning = false;
+        document.getElementById('grid-size-slider').disabled = false;
+        clearInterval(intervalId);
+      }
+    }
+
+    function updateGridSize() {
+      if (isRunning) return;
+      const slider = document.getElementById('grid-size-slider');
+      GRID_SIZE = parseInt(slider.value);
+      document.getElementById('grid-size-value').textContent = `${GRID_SIZE}x${GRID_SIZE}`;
+      generationCount = 0;
+      livingCellsHistory = [];
+      createGrid();
+      drawChart();
+    }
+
+    document.getElementById('start').addEventListener('click', startSimulation);
+    document.getElementById('stop').addEventListener('click', stopSimulation);
+    document.getElementById('clear').addEventListener('click', clearGrid);
+    document.getElementById('random').addEventListener('click', randomizeGrid);
+    document.getElementById('grid-size-slider').addEventListener('input', updateGridSize);
+
+    initChart();
+    createGrid();
+    drawChart();
+  </script>
+</body></html>

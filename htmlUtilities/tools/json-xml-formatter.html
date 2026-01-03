@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON/XML Formatter & Validator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8f9fa;
+            --text-primary: #212529;
+            --text-secondary: #6c757d;
+            --border-color: #dee2e6;
+            --accent-color: #0d6efd;
+            --success-color: #198754;
+            --error-color: #dc3545;
+            --warning-color: #ffc107;
+            --key-color: #d73a49;
+            --string-color: #032f62;
+            --number-color: #005cc5;
+            --boolean-color: #d73a49;
+            --null-color: #6f42c1;
+        }
+
+        body.dark-mode {
+            --bg-primary: #1e1e1e;
+            --bg-secondary: #2d2d2d;
+            --text-primary: #e0e0e0;
+            --text-secondary: #a0a0a0;
+            --border-color: #404040;
+            --accent-color: #4a9eff;
+            --success-color: #28a745;
+            --error-color: #dc3545;
+            --key-color: #ff6b6b;
+            --string-color: #98c379;
+            --number-color: #d19a66;
+            --boolean-color: #c678dd;
+            --null-color: #56b6c2;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        button {
+            padding: 8px 16px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background: var(--bg-secondary);
+            border-color: var(--accent-color);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        button.primary {
+            background: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+
+        button.primary:hover {
+            opacity: 0.9;
+        }
+
+        .toolbar {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 10px 20px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .mode-selector {
+            display: flex;
+            gap: 0;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .mode-selector button {
+            border: none;
+            border-radius: 0;
+            border-right: 1px solid var(--border-color);
+        }
+
+        .mode-selector button:last-child {
+            border-right: none;
+        }
+
+        .mode-selector button.active {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .indent-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .indent-control select {
+            padding: 6px 10px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            border-radius: 4px;
+        }
+
+        .main-container {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        .input-panel, .output-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .input-panel {
+            border-right: 1px solid var(--border-color);
+        }
+
+        .panel-header {
+            background: var(--bg-secondary);
+            padding: 8px 15px;
+            border-bottom: 1px solid var(--border-color);
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .panel-content {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        textarea, .output-display {
+            width: 100%;
+            height: 100%;
+            padding: 15px;
+            border: none;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            resize: none;
+            outline: none;
+            overflow: auto;
+        }
+
+        .output-display {
+            white-space: pre;
+        }
+
+        .status-bar {
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+            padding: 8px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+        }
+
+        .status-bar.valid {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .status-bar.invalid {
+            background: var(--error-color);
+            color: white;
+        }
+
+        .stats {
+            display: flex;
+            gap: 20px;
+        }
+
+        .json-key { color: var(--key-color); }
+        .json-string { color: var(--string-color); }
+        .json-number { color: var(--number-color); }
+        .json-boolean { color: var(--boolean-color); }
+        .json-null { color: var(--null-color); }
+
+        .tree-view {
+            padding: 15px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 14px;
+        }
+
+        .tree-node {
+            margin-left: 20px;
+        }
+
+        .tree-toggle {
+            cursor: pointer;
+            user-select: none;
+            color: var(--text-secondary);
+        }
+
+        .tree-toggle:hover {
+            color: var(--accent-color);
+        }
+
+        .tree-collapsed > .tree-children {
+            display: none;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg-primary);
+            padding: 25px;
+            border-radius: 8px;
+            max-width: 800px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-content h3 {
+            margin-bottom: 15px;
+        }
+
+        .sample-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .diff-view {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .diff-panel {
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .diff-added { background: rgba(25, 135, 84, 0.2); }
+        .diff-removed { background: rgba(220, 53, 69, 0.2); }
+        .diff-modified { background: rgba(255, 193, 7, 0.2); }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>JSON/XML Formatter & Validator</h1>
+        <div class="header-controls">
+            <button onclick="toggleTheme()">🌓 Theme</button>
+            <button onclick="showSamples()">📝 Samples</button>
+            <button onclick="showDiff()">⚖️ Compare</button>
+        </div>
+    </div>
+
+    <div class="toolbar">
+        <div class="mode-selector">
+            <button class="active" onclick="setMode('json')" id="jsonMode">JSON</button>
+            <button onclick="setMode('xml')" id="xmlMode">XML</button>
+        </div>
+
+        <button class="primary" onclick="formatAndValidate()">✓ Validate & Format</button>
+        <button onclick="beautify()">✨ Beautify</button>
+        <button onclick="minify()">📦 Minify</button>
+        <button onclick="toggleTreeView()">🌳 Tree View</button>
+
+        <div class="indent-control">
+            <label>Indent:</label>
+            <select id="indentSize">
+                <option value="2" selected>2 spaces</option>
+                <option value="4">4 spaces</option>
+                <option value="tab">Tab</option>
+            </select>
+        </div>
+
+        <button onclick="copyOutput()">📋 Copy</button>
+        <button onclick="downloadOutput()">💾 Download</button>
+        <button onclick="clearAll()">🗑️ Clear</button>
+    </div>
+
+    <div class="main-container">
+        <div class="input-panel">
+            <div class="panel-header">Input</div>
+            <div class="panel-content">
+                <textarea id="input" placeholder='Enter your JSON or XML here...
+
+Example JSON:
+{
+  "name": "John Doe",
+  "age": 30,
+  "active": true
+}'></textarea>
+            </div>
+        </div>
+
+        <div class="output-panel">
+            <div class="panel-header">Output</div>
+            <div class="panel-content">
+                <div id="output" class="output-display"></div>
+                <div id="treeView" class="tree-view" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="status-bar" id="statusBar">
+        <div class="stats">
+            <span id="validationStatus">Ready</span>
+            <span id="statsInfo"></span>
+        </div>
+        <div id="errorMessage"></div>
+    </div>
+
+    <!-- Samples Modal -->
+    <div class="modal" id="samplesModal">
+        <div class="modal-content">
+            <h3>Sample Data</h3>
+            <div class="sample-buttons">
+                <button onclick="loadSample('json-simple')">Simple JSON</button>
+                <button onclick="loadSample('json-complex')">Complex JSON</button>
+                <button onclick="loadSample('json-array')">JSON Array</button>
+                <button onclick="loadSample('xml-simple')">Simple XML</button>
+                <button onclick="loadSample('xml-complex')">Complex XML</button>
+            </div>
+            <button onclick="closeModal('samplesModal')">Close</button>
+        </div>
+    </div>
+
+    <!-- Diff Modal -->
+    <div class="modal" id="diffModal">
+        <div class="modal-content">
+            <h3>Compare JSON/XML</h3>
+            <div class="diff-view">
+                <div class="diff-panel">
+                    <div class="panel-header">Original</div>
+                    <textarea id="diffInput1" rows="15"></textarea>
+                </div>
+                <div class="diff-panel">
+                    <div class="panel-header">Compare With</div>
+                    <textarea id="diffInput2" rows="15"></textarea>
+                </div>
+            </div>
+            <button onclick="performDiff()" class="primary" style="margin-top: 15px;">Compare</button>
+            <button onclick="closeModal('diffModal')" style="margin-top: 15px;">Close</button>
+            <div id="diffResult" style="margin-top: 15px;"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentMode = 'json';
+        let isTreeView = false;
+
+        function setMode(mode) {
+            currentMode = mode;
+            document.getElementById('jsonMode').classList.toggle('active', mode === 'json');
+            document.getElementById('xmlMode').classList.toggle('active', mode === 'xml');
+            document.getElementById('input').placeholder = mode === 'json'
+                ? 'Enter your JSON here...'
+                : 'Enter your XML here...';
+        }
+
+        function formatAndValidate() {
+            const input = document.getElementById('input').value.trim();
+            const output = document.getElementById('output');
+            const statusBar = document.getElementById('statusBar');
+            const validationStatus = document.getElementById('validationStatus');
+            const errorMessage = document.getElementById('errorMessage');
+            const statsInfo = document.getElementById('statsInfo');
+
+            if (!input) {
+                updateStatus('error', 'No input provided');
+                return;
+            }
+
+            try {
+                if (currentMode === 'json') {
+                    const parsed = JSON.parse(input);
+                    const formatted = formatJSON(parsed);
+                    output.innerHTML = syntaxHighlight(formatted);
+
+                    // Calculate stats
+                    const stats = calculateJSONStats(parsed);
+                    statsInfo.textContent = `Objects: ${stats.objects} | Arrays: ${stats.arrays} | Properties: ${stats.properties} | Depth: ${stats.depth}`;
+
+                    updateStatus('success', '✓ Valid JSON');
+                } else {
+                    const parser = new DOMParser();
+                    const xmlDoc = parser.parseFromString(input, 'text/xml');
+
+                    const parseError = xmlDoc.querySelector('parsererror');
+                    if (parseError) {
+                        throw new Error('Invalid XML: ' + parseError.textContent);
+                    }
+
+                    const formatted = formatXML(input);
+                    output.innerHTML = escapeHtml(formatted);
+
+                    updateStatus('success', '✓ Valid XML');
+                    statsInfo.textContent = `Elements: ${xmlDoc.getElementsByTagName('*').length}`;
+                }
+
+                errorMessage.textContent = '';
+            } catch (error) {
+                updateStatus('error', '✗ Invalid ' + currentMode.toUpperCase());
+                errorMessage.textContent = error.message;
+                output.textContent = '';
+                statsInfo.textContent = '';
+            }
+        }
+
+        function beautify() {
+            formatAndValidate();
+        }
+
+        function minify() {
+            const input = document.getElementById('input').value.trim();
+            const output = document.getElementById('output');
+
+            try {
+                if (currentMode === 'json') {
+                    const parsed = JSON.parse(input);
+                    output.textContent = JSON.stringify(parsed);
+                    updateStatus('success', '✓ Minified');
+                } else {
+                    const minified = input.replace(/>\s+</g, '><').replace(/\s+/g, ' ').trim();
+                    output.textContent = minified;
+                    updateStatus('success', '✓ Minified');
+                }
+            } catch (error) {
+                updateStatus('error', 'Error minifying: ' + error.message);
+            }
+        }
+
+        function formatJSON(obj) {
+            const indent = getIndentString();
+            return JSON.stringify(obj, null, indent);
+        }
+
+        function formatXML(xml) {
+            const indent = getIndentString();
+            let formatted = '';
+            let level = 0;
+            const lines = xml.replace(/>\s*</g, '>\n<').split('\n');
+
+            lines.forEach(line => {
+                if (line.match(/^<\/\w/)) level--;
+                formatted += indent.repeat(Math.max(0, level)) + line + '\n';
+                if (line.match(/^<\w[^>]*[^\/]>.*$/)) level++;
+            });
+
+            return formatted.trim();
+        }
+
+        function syntaxHighlight(json) {
+            json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+                let cls = 'json-number';
+                if (/^"/.test(match)) {
+                    if (/:$/.test(match)) {
+                        cls = 'json-key';
+                    } else {
+                        cls = 'json-string';
+                    }
+                } else if (/true|false/.test(match)) {
+                    cls = 'json-boolean';
+                } else if (/null/.test(match)) {
+                    cls = 'json-null';
+                }
+                return '<span class="' + cls + '">' + match + '</span>';
+            });
+        }
+
+        function calculateJSONStats(obj, depth = 0) {
+            let stats = { objects: 0, arrays: 0, properties: 0, depth: depth };
+
+            if (Array.isArray(obj)) {
+                stats.arrays = 1;
+                obj.forEach(item => {
+                    const childStats = calculateJSONStats(item, depth + 1);
+                    stats.objects += childStats.objects;
+                    stats.arrays += childStats.arrays;
+                    stats.properties += childStats.properties;
+                    stats.depth = Math.max(stats.depth, childStats.depth);
+                });
+            } else if (typeof obj === 'object' && obj !== null) {
+                stats.objects = 1;
+                stats.properties = Object.keys(obj).length;
+                Object.values(obj).forEach(value => {
+                    const childStats = calculateJSONStats(value, depth + 1);
+                    stats.objects += childStats.objects;
+                    stats.arrays += childStats.arrays;
+                    stats.properties += childStats.properties;
+                    stats.depth = Math.max(stats.depth, childStats.depth);
+                });
+            }
+
+            return stats;
+        }
+
+        function toggleTreeView() {
+            isTreeView = !isTreeView;
+            const output = document.getElementById('output');
+            const treeView = document.getElementById('treeView');
+
+            if (isTreeView) {
+                output.style.display = 'none';
+                treeView.style.display = 'block';
+                renderTreeView();
+            } else {
+                output.style.display = 'block';
+                treeView.style.display = 'none';
+            }
+        }
+
+        function renderTreeView() {
+            const input = document.getElementById('input').value.trim();
+            const treeView = document.getElementById('treeView');
+
+            try {
+                if (currentMode === 'json') {
+                    const parsed = JSON.parse(input);
+                    treeView.innerHTML = buildJSONTree(parsed);
+                } else {
+                    treeView.innerHTML = 'Tree view available for JSON only';
+                }
+            } catch (error) {
+                treeView.innerHTML = 'Invalid JSON';
+            }
+        }
+
+        function buildJSONTree(obj, key = 'root') {
+            if (obj === null) return `<div class="tree-node">${key}: <span class="json-null">null</span></div>`;
+            if (typeof obj !== 'object') {
+                const cls = typeof obj === 'string' ? 'json-string' : typeof obj === 'number' ? 'json-number' : 'json-boolean';
+                return `<div class="tree-node">${key}: <span class="${cls}">${JSON.stringify(obj)}</span></div>`;
+            }
+
+            const isArray = Array.isArray(obj);
+            const bracket = isArray ? '[]' : '{}';
+            const children = isArray ? obj.map((item, i) => buildJSONTree(item, i)) : Object.entries(obj).map(([k, v]) => buildJSONTree(v, k));
+
+            return `
+                <div class="tree-node">
+                    <span class="tree-toggle" onclick="toggleNode(this)">▼</span>
+                    <span class="json-key">${key}</span> ${bracket}
+                    <div class="tree-children">${children.join('')}</div>
+                </div>
+            `;
+        }
+
+        function toggleNode(element) {
+            element.textContent = element.textContent === '▼' ? '▶' : '▼';
+            element.parentElement.classList.toggle('tree-collapsed');
+        }
+
+        function getIndentString() {
+            const indentSize = document.getElementById('indentSize').value;
+            return indentSize === 'tab' ? '\t' : ' '.repeat(parseInt(indentSize));
+        }
+
+        function copyOutput() {
+            const output = document.getElementById('output').textContent;
+            navigator.clipboard.writeText(output).then(() => {
+                updateStatus('success', '✓ Copied to clipboard');
+            });
+        }
+
+        function downloadOutput() {
+            const output = document.getElementById('output').textContent;
+            const blob = new Blob([output], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `formatted.${currentMode}`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function clearAll() {
+            document.getElementById('input').value = '';
+            document.getElementById('output').textContent = '';
+            updateStatus('info', 'Cleared');
+        }
+
+        function updateStatus(type, message) {
+            const statusBar = document.getElementById('statusBar');
+            const validationStatus = document.getElementById('validationStatus');
+
+            statusBar.className = 'status-bar';
+            if (type === 'success') statusBar.classList.add('valid');
+            if (type === 'error') statusBar.classList.add('invalid');
+
+            validationStatus.textContent = message;
+        }
+
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('dark-mode', document.body.classList.contains('dark-mode'));
+        }
+
+        function showSamples() {
+            document.getElementById('samplesModal').classList.add('active');
+        }
+
+        function showDiff() {
+            document.getElementById('diffModal').classList.add('active');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        function loadSample(type) {
+            const samples = {
+                'json-simple': '{\n  "name": "John Doe",\n  "age": 30,\n  "email": "john@example.com",\n  "active": true\n}',
+                'json-complex': '{\n  "users": [\n    {"id": 1, "name": "Alice", "roles": ["admin", "user"]},\n    {"id": 2, "name": "Bob", "roles": ["user"]}\n  ],\n  "settings": {\n    "theme": "dark",\n    "notifications": true\n  }\n}',
+                'json-array': '[\n  {"id": 1, "product": "Laptop", "price": 999.99},\n  {"id": 2, "product": "Mouse", "price": 29.99},\n  {"id": 3, "product": "Keyboard", "price": 79.99}\n]',
+                'xml-simple': '<?xml version="1.0" encoding="UTF-8"?>\n<person>\n  <name>John Doe</name>\n  <age>30</age>\n  <email>john@example.com</email>\n</person>',
+                'xml-complex': '<?xml version="1.0" encoding="UTF-8"?>\n<library>\n  <book id="1">\n    <title>The Great Gatsby</title>\n    <author>F. Scott Fitzgerald</author>\n    <year>1925</year>\n  </book>\n  <book id="2">\n    <title>1984</title>\n    <author>George Orwell</author>\n    <year>1949</year>\n  </book>\n</library>'
+            };
+
+            document.getElementById('input').value = samples[type];
+            closeModal('samplesModal');
+
+            if (type.startsWith('json')) setMode('json');
+            if (type.startsWith('xml')) setMode('xml');
+        }
+
+        function performDiff() {
+            const input1 = document.getElementById('diffInput1').value;
+            const input2 = document.getElementById('diffInput2').value;
+            const result = document.getElementById('diffResult');
+
+            try {
+                const obj1 = JSON.parse(input1);
+                const obj2 = JSON.parse(input2);
+
+                const diff = compareObjects(obj1, obj2);
+                result.innerHTML = `<h4>Differences Found:</h4><pre>${JSON.stringify(diff, null, 2)}</pre>`;
+            } catch (error) {
+                result.innerHTML = `<span style="color: var(--error-color);">Error: ${error.message}</span>`;
+            }
+        }
+
+        function compareObjects(obj1, obj2, path = '') {
+            const differences = [];
+
+            const keys = new Set([...Object.keys(obj1 || {}), ...Object.keys(obj2 || {})]);
+
+            keys.forEach(key => {
+                const newPath = path ? `${path}.${key}` : key;
+                const val1 = obj1?.[key];
+                const val2 = obj2?.[key];
+
+                if (val1 === undefined) {
+                    differences.push({ path: newPath, type: 'added', value: val2 });
+                } else if (val2 === undefined) {
+                    differences.push({ path: newPath, type: 'removed', value: val1 });
+                } else if (typeof val1 === 'object' && typeof val2 === 'object') {
+                    differences.push(...compareObjects(val1, val2, newPath));
+                } else if (val1 !== val2) {
+                    differences.push({ path: newPath, type: 'modified', old: val1, new: val2 });
+                }
+            });
+
+            return differences;
+        }
+
+        function escapeHtml(text) {
+            return text.replace(/[&<>'"]/g, tag => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                "'": '&#39;',
+                '"': '&quot;'
+            }[tag]));
+        }
+
+        // Load theme preference
+        if (localStorage.getItem('dark-mode') === 'true') {
+            document.body.classList.add('dark-mode');
+        }
+
+        // Close modals on outside click
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.remove('active');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,1539 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text Processor</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            max-width: 1200px;
+            margin: 20px auto;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .editor-container {
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .CodeMirror {
+            height: 300px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            width: fit-content;
+            margin-right: 5px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .info-text {
+            color: #666;
+            font-size: 14px;
+            margin: 5px 0;
+        }
+
+        .input-label {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        h3 {
+            margin: 15px 0 5px 0;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+        }
+
+        .header {
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .header h1 {
+            margin: 0 0 5px 0;
+            font-size: 1.5em;
+            color: #333;
+        }
+
+        .header .version {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .header .description {
+            font-size: 0.95em;
+            color: #555;
+        }
+
+        /* --- STYLY PRE VISUALIZER --- */
+        .visualizer-controls {
+            margin-bottom: 10px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .toggles-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .toggles-container label {
+            display: flex;
+            align-items: center;
+            font-size: 12px;
+            cursor: pointer;
+            background: white;
+            padding: 2px 6px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            user-select: none;
+        }
+
+        .toggles-container input {
+            margin-right: 5px;
+        }
+
+        /* Obal pre obsah bloku (tabulka + json) */
+        .block-content-wrapper {
+            border: 1px solid #ccc;
+            border-top: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            margin-bottom: 10px;
+        }
+
+        .entity-table-wrapper {
+            overflow-x: auto;
+        }
+
+        table.entity-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: white;
+        }
+
+        table.entity-table th, table.entity-table td {
+            border: 1px solid #ddd;
+            padding: 6px;
+            text-align: left;
+            white-space: nowrap;
+        }
+
+        table.entity-table th {
+            background-color: #f2f2f2;
+            cursor: pointer;
+            position: sticky;
+            top: 0;
+            font-weight: bold;
+            user-select: none;
+            z-index: 1;
+        }
+
+        table.entity-table th:hover {
+            background-color: #e0e0e0;
+        }
+
+        table.entity-table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        table.entity-table tr:hover {
+            background-color: #e8f0fe;
+        }
+
+        .block-header {
+            background-color: #e9ecef;
+            padding: 8px 12px;
+            font-weight: bold;
+            border-left: 4px solid #007bff;
+            margin-top: 5px;
+            margin-bottom: 0;
+            border-top: 1px solid #ccc;
+            border-right: 1px solid #ccc;
+            border-bottom: 1px solid #ccc;
+            border-top-left-radius: 4px;
+            border-top-right-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+        }
+
+        .block-header:hover {
+            background-color: #dde2e6;
+        }
+
+        .arrow-indicator {
+            transition: transform 0.2s;
+            font-size: 12px;
+        }
+
+        .expanded .arrow-indicator {
+            transform: rotate(180deg);
+        }
+
+        /* JSON Viewer Styles */
+        .json-viewer-container {
+            border-top: 2px solid #007bff; /* Oddeľovač medzi tabuľkou a JSON */
+            background-color: #fff;
+        }
+
+        .json-label {
+            font-size: 11px;
+            font-weight: bold;
+            color: #555;
+            padding: 5px 10px;
+            background-color: #f1f3f5;
+            border-bottom: 1px solid #eee;
+        }
+
+        .json-content {
+            padding: 10px;
+            margin: 0;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            color: #333;
+            max-height: 300px;
+            overflow-y: auto;
+            background-color: #fcfcfc;
+        }
+
+        /* --- STYLY PRE Q8 CONFIGURATION --- */
+        #q8Configuration {
+            background-color: #fcfcfc;
+            border: 1px solid #eee;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 10px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .config-block {
+            margin-bottom: 10px;
+            border-left: 3px solid #28a745;
+            padding-left: 0;
+            background: white;
+            border: 1px solid #ddd;
+            border-left-width: 4px;
+            border-left-color: #28a745;
+            border-radius: 3px;
+        }
+
+        .config-header {
+            font-weight: bold;
+            color: #555;
+            font-size: 13px;
+            padding: 8px 10px;
+            background-color: #f8f9fa;
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .config-header:hover {
+            background-color: #eef1f3;
+        }
+
+        .config-content {
+            padding: 10px;
+            display: none; /* Default collapsed */
+            border-top: 1px solid #eee;
+        }
+
+        .config-item {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 13px;
+            margin-bottom: 2px;
+            color: #333;
+        }
+
+        .config-key {
+            font-weight: bold;
+            color: #0056b3;
+        }
+
+        .config-value {
+            color: #333;
+        }
+
+        .config-arrow {
+            font-size: 12px;
+            transition: transform 0.2s;
+        }
+
+        .config-block.expanded .config-arrow {
+            transform: rotate(180deg);
+        }
+
+        .config-block.expanded .config-content {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>TransactionSalesEntity Parser</h1>
+        <div class="version">Verzia 1.13 | 19.12.2025</div>
+        <div class="description">
+            Nástroj na analýzu logov Q8 TransactionSales servisu.
+        </div>
+    </div>
+
+    <div class="input-label">Vložte sem log obsahujúci záznamy z Q8 TransactionSales servisu:</div>
+    <div class="editor-container">
+        <div id="inputEditor"></div>
+    </div>
+    <div id="inputInfo" class="info-text">Počet riadkov: 0</div>
+
+    <button onclick="processText()">Spracovať text</button>
+
+    <div style="margin-top: 5px;"></div>
+
+    <div id="serviceVersions" class="info-text"></div>
+
+    <!-- ČASŤ PRE Q8 KONFIGURÁCIU -->
+    <h3>Q8 configuration</h3>
+    <div id="q8Configuration" class="info-text"></div>
+
+    <h3>TransactionSalesEntity</h3>
+    <div class="editor-container">
+        <div id="outputEditor"></div>
+    </div>
+    <div id="outputInfo" class="info-text">Počet blokov: 0</div>
+    <button onclick="exportSalesBlocks()" style="margin-top: 5px;">Export sales blocks</button>
+    <div id="exportStatus" class="info-text"></div>
+    <h3>TransactionSalesEntity statistika</h3>
+    <div id="statistics" class="info-text"></div>
+
+    <h3>Sent messages to Q8</h3>
+    <div class="editor-container">
+        <div id="sentMessagesEditor"></div>
+    </div>
+
+    <div id="duplicates" style="margin-top: 10px;">
+        <h3>Duplicitné receiptNumber:</h3>
+        <div id="duplicatesInfo" class="info-text"></div>
+    </div>
+
+    <h3>Sending to Cutover</h3>
+    <div class="editor-container">
+        <div id="cutoverMessagesEditor"></div>
+    </div>
+
+    <!-- ČASŤ PRE VIZUALIZÁCIU TABULIEK -->
+    <h3>Detailný pohľad na TransactionSalesEntity</h3>
+    <div class="visualizer-controls">
+        <div style="margin-bottom: 5px; font-weight: bold;">Zobraziť stĺpce:</div>
+        <div id="columnToggles" class="toggles-container"></div>
+        <div>
+            <button onclick="Visualizer.toggleAllColumns(false)" style="padding: 5px 10px; font-size: 12px;">Hide All Columns</button>
+            <button onclick="Visualizer.toggleAllColumns(true)" style="padding: 5px 10px; font-size: 12px;">Show All Columns</button>
+            <button onclick="Visualizer.toggleAllTables(true)" style="padding: 5px 10px; font-size: 12px; background-color: #6c757d;">Expand All Tables</button>
+            <button onclick="Visualizer.toggleAllTables(false)" style="padding: 5px 10px; font-size: 12px; background-color: #6c757d;">Collapse All Tables</button>
+        </div>
+    </div>
+    <div id="visualizerContainer"></div>
+
+</div>
+
+<script>
+    // Globálna premenná pre uloženie exportovaných dát
+    let exportData = [];
+    let savedDirectoryHandle = null;
+
+    // IndexedDB pre uloženie directory handle
+    const DB_NAME = 'TransactionSalesEntityParserDB';
+    const STORE_NAME = 'directoryHandles';
+
+    function openDB() {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open(DB_NAME, 1);
+            request.onerror = () => reject(request.error);
+            request.onsuccess = () => resolve(request.result);
+            request.onupgradeneeded = (event) => {
+                const db = event.target.result;
+                if (!db.objectStoreNames.contains(STORE_NAME)) {
+                    db.createObjectStore(STORE_NAME);
+                }
+            };
+        });
+    }
+
+    async function saveDirectoryHandle(handle) {
+        const db = await openDB();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(STORE_NAME, 'readwrite');
+            const store = tx.objectStore(STORE_NAME);
+            const request = store.put(handle, 'exportDirectory');
+            request.onsuccess = () => resolve();
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    async function loadDirectoryHandle() {
+        const db = await openDB();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(STORE_NAME, 'readonly');
+            const store = tx.objectStore(STORE_NAME);
+            const request = store.get('exportDirectory');
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    // Načítanie uloženého directory handle pri štarte
+    (async () => {
+        try {
+            savedDirectoryHandle = await loadDirectoryHandle();
+        } catch (e) {
+            console.log('Nepodarilo sa načítať uložený adresár:', e);
+        }
+    })();
+
+    // Pomocná funkcia pre stiahnutie súboru
+    function downloadFile(filename, content) {
+        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    async function exportSalesBlocks() {
+        const statusEl = document.getElementById('exportStatus');
+
+        if (exportData.length === 0) {
+            statusEl.textContent = 'Žiadne dáta na export. Najprv spracujte text.';
+            return;
+        }
+
+        // Skontrolujeme, či je dostupné File System Access API
+        const useFileSystemAPI = typeof window.showDirectoryPicker === 'function';
+
+        if (useFileSystemAPI) {
+            // Použijeme File System Access API (funguje na localhost/HTTPS)
+            try {
+                let dirHandle = savedDirectoryHandle;
+
+                if (dirHandle) {
+                    try {
+                        const permission = await dirHandle.queryPermission({ mode: 'readwrite' });
+                        if (permission !== 'granted') {
+                            const newPermission = await dirHandle.requestPermission({ mode: 'readwrite' });
+                            if (newPermission !== 'granted') {
+                                dirHandle = null;
+                            }
+                        }
+                    } catch (e) {
+                        dirHandle = null;
+                    }
+                }
+
+                if (!dirHandle) {
+                    dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+                    savedDirectoryHandle = dirHandle;
+                    await saveDirectoryHandle(dirHandle);
+                }
+
+                statusEl.textContent = 'Exportujem...';
+                let exportedCount = 0;
+
+                for (const item of exportData) {
+                    const { block, date, entityText, json } = item;
+                    const dateStr = date.replace(/-/g, '').substring(0, 8);
+                    const baseFileName = `${dateStr}0${block}`;
+
+                    const txtFile = await dirHandle.getFileHandle(`${baseFileName}.txt`, { create: true });
+                    const txtWritable = await txtFile.createWritable();
+                    await txtWritable.write(entityText);
+                    await txtWritable.close();
+
+                    if (json) {
+                        const jsonFile = await dirHandle.getFileHandle(`${baseFileName}.json`, { create: true });
+                        const jsonWritable = await jsonFile.createWritable();
+                        await jsonWritable.write(JSON.stringify(JSON.parse(json), null, 2));
+                        await jsonWritable.close();
+                    }
+
+                    exportedCount++;
+                }
+
+                statusEl.textContent = `Export dokončený. Exportovaných ${exportedCount} blokov.`;
+            } catch (e) {
+                if (e.name === 'AbortError') {
+                    statusEl.textContent = 'Export zrušený.';
+                } else {
+                    statusEl.textContent = `Chyba pri exporte: ${e.message}`;
+                    console.error('Export error:', e);
+                }
+            }
+        } else {
+            // Fallback - sťahovanie jednotlivých súborov (pre file:// protokol)
+            statusEl.textContent = 'Exportujem... (sťahovanie súborov)';
+            let exportedCount = 0;
+            const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+            for (const item of exportData) {
+                const { block, date, entityText, json } = item;
+                const dateStr = date.replace(/-/g, '').substring(0, 8);
+                const baseFileName = `${dateStr}0${block}`;
+
+                // Export TXT
+                downloadFile(`${baseFileName}.txt`, entityText);
+                await delay(100); // Malé oneskorenie medzi sťahovaniami
+
+                // Export JSON
+                if (json) {
+                    try {
+                        const formattedJson = JSON.stringify(JSON.parse(json), null, 2);
+                        downloadFile(`${baseFileName}.json`, formattedJson);
+                        await delay(100);
+                    } catch (e) {
+                        console.error('JSON parse error:', e);
+                    }
+                }
+
+                exportedCount++;
+            }
+
+            statusEl.textContent = `Export dokončený. Exportovaných ${exportedCount} blokov (súbory v priečinku Stiahnuté).`;
+        }
+    }
+
+    // Inicializácia CodeMirror editorov
+    const inputEditor = CodeMirror(document.getElementById('inputEditor'), {
+        lineNumbers: true,
+        lineWrapping: false,
+        mode: 'text',
+        value: ''
+    });
+
+    const outputEditor = CodeMirror(document.getElementById('outputEditor'), {
+        lineNumbers: true,
+        lineWrapping: false,
+        mode: 'text',
+        readOnly: true,
+        value: ''
+    });
+
+    const sentMessagesEditor = CodeMirror(document.getElementById('sentMessagesEditor'), {
+        lineNumbers: true,
+        lineWrapping: false,
+        mode: 'text',
+        readOnly: true,
+        value: ''
+    });
+
+    const cutoverMessagesEditor = CodeMirror(document.getElementById('cutoverMessagesEditor'), {
+        lineNumbers: true,
+        lineWrapping: false,
+        mode: 'text',
+        readOnly: true,
+        value: ''
+    });
+
+    // Aktualizácia počtu riadkov
+    function updateLineInfo() {
+        const inputLines = inputEditor.lineCount();
+        document.getElementById('inputInfo').textContent = `Počet riadkov: ${inputLines}`;
+    }
+
+    // Aktualizácia počtu blokov
+    function updateBlockInfo(blockCount) {
+        document.getElementById('outputInfo').textContent = `Počet blokov: ${blockCount}`;
+    }
+
+    // Načítanie uloženého textu z localStorage
+    const savedInput = localStorage.getItem('transactionSalesEntityParserInput');
+    if (savedInput) {
+        inputEditor.setValue(savedInput);
+    }
+
+    // Event listener pre zmeny v editore
+    inputEditor.on('change', () => {
+        updateLineInfo();
+        // Uloženie textu do localStorage
+        localStorage.setItem('transactionSalesEntityParserInput', inputEditor.getValue());
+    });
+
+    // Konštanty pre spracovanie
+    const CONSTANTS = {
+        ART_CLASS_ARTICLE: 0,
+        ART_CLASS_SOA_SOE: 1,
+        ART_CLASS_RETURN_REASON: 910,
+        ART_CLASS_DISCOUNT_PROMOTION: 906,
+        ART_CLASS_PUMP_TEST: 998,
+        ART_CLASS_PREPAYMENT: 999,
+        ART_CLASS_LINE_DISCOUNT: 999,
+        ART_CLASS_PAYMENT_ROUNDING: 999,
+        ART_CLASS_PAYMENT_CASH_BACK: 999,
+        ART_CLASS_PAYMENT_CARD: 1003,
+        ART_CLASS_PAYMENT_CREDIT_CUSTOMER: 1003,
+        ART_CLASS_PAYMENT_CASH: 1004,
+        ART_CLASS_PAYMENT_VOUCHER: 1004,
+
+        ART_ID_PAYMENT_CREDIT_CUSTOMER: 1050,
+        ART_ID_PAYMENT_CASH_BACK: 100042,
+        ART_ID_PAYMENT_ROUNDING: 100090,
+        ART_ID_PREPAYMENT: 100161,
+        ART_ID_LINE_DISCOUNT: 111003,
+
+        // Rozsahy
+        ART_ID_PAYMENT_CARD_MIN: 1000,
+        ART_ID_PAYMENT_CARD_MAX: 2000,
+        ART_ID_PAYMENT_CASH_MIN: 1300,
+        ART_ID_PAYMENT_CASH_MAX: 1400,
+        ART_ID_PAYMENT_CASH_RET_MIN: 1600,
+        ART_ID_PAYMENT_CASH_RET_MAX: 1700,
+        ART_ID_PAYMENT_CASH_VOUCHER_MIN: 130000,
+        ART_ID_PAYMENT_CASH_VOUCHER_MAX: 140000,
+        ART_ID_SHOP_PRODUCT_TYPE_CASH_IN_MIN: 1,
+        ART_ID_SHOP_PRODUCT_TYPE_CASH_IN_MAX: 1000,
+
+        //Konstanty pre salesFlag bity
+        AS_ZERO: 0,
+        AS_RETURN: 0x0001, // Return of sale
+        AS_OFFLINE: 0x0002, // Offline sale for online article
+        AS_CANCEL: 0x0004, // Cancel for a single article-STO Storno
+        AS_SPECIAL_PRICE: 0x0008, // Sale for special price - SP Probe price
+        AS_REPEAT_KEY: 0x0010, // Sale with repeat key - VW SaleRepeat
+        AS_FAILURE: 0x0020, // May be failure
+        AS_DISPUTED: 0x0040, // May be disputed
+        AS_HAND: 0x0080, // Key in of PAN - HEI Manual input
+        AS_SOE: 0x0100, // SOE (Sondereinnahmen) Special income
+        AS_SOA: 0x0200, // SOA (Sonderausgaben) Special expenses
+        AS_ORDER: 0x0400, // Flag for access systems - not revenue related
+        AS_DISCOUNT: 0x0800, // Article-related reload
+        AS_P_VALEND: 0x1000, // TP has to generate VT_P_VALEND
+        AS_EK_SALE: 0x2000, // Sale at purchase price
+        AS_WEBSHOP_SALE: 0x4000, // Sale via webshop
+        AS_SET_ALT_VAT: 0x8000, // Set sale via alternative VAT
+    };
+
+    // Funkcia na ziskanie nazvov saleFlag bitov
+    function getSaleFlagNames(saleFlag) {
+        const flagNames = [];
+        for (const [key, value] of Object.entries(CONSTANTS)) {
+            if (key.startsWith('AS_') && (saleFlag & value) !== 0) {
+                flagNames.push(key.substring(3)); // Odstrániť 'AS_'
+            }
+        }
+        return flagNames.length > 0 ? `(${flagNames.join(', ')})` : '';
+    }
+
+    // --- OBJEKT PRE VISUALIZÁCIU ---
+    const Visualizer = {
+        dataByBlock: {}, // Map<blockId, Array<Object>>
+        jsonByBlock: {}, // Map<blockId, String> (JSON content)
+        allColumns: new Set(),
+        presetColumns: ["id", "block", "amount", "saleFlag", "artRef", "artClassRef", "text", "quantity"],
+
+        // Vyčistenie a príprava
+        reset: function() {
+            this.dataByBlock = {};
+            this.jsonByBlock = {};
+            this.allColumns = new Set();
+            document.getElementById('columnToggles').innerHTML = '';
+            document.getElementById('visualizerContainer').innerHTML = '';
+            this.sortState = {};
+        },
+
+        // Parsovanie riadku logu pre vizualizér
+        processLine: function(line, blockNumber) {
+            const startIndex = line.indexOf('[TransactionSalesEntity');
+            if (startIndex === -1) return;
+
+            let bracketCount = 0;
+            let endIndex = -1;
+            for (let i = startIndex; i < line.length; i++) {
+                if (line[i] === '[') bracketCount++;
+                else if (line[i] === ']') {
+                    bracketCount--;
+                    if (bracketCount === 0) {
+                        endIndex = i;
+                        break;
+                    }
+                }
+            }
+
+            if (endIndex === -1) return;
+
+            const listContent = line.substring(startIndex + 1, endIndex);
+            const rawEntities = listContent.split(/, (?=TransactionSalesEntity)/);
+
+            rawEntities.forEach(entityStr => {
+                const obj = this.parseEntityString(entityStr);
+                if (!obj.block) obj.block = blockNumber;
+
+                if (!this.dataByBlock[blockNumber]) {
+                    this.dataByBlock[blockNumber] = [];
+                }
+                this.dataByBlock[blockNumber].push(obj);
+            });
+        },
+
+        parseEntityString: function(entityStr) {
+            const contentStart = entityStr.indexOf('(') + 1;
+            const contentEnd = entityStr.lastIndexOf(')');
+            if (contentStart <= 0 || contentEnd <= contentStart) return {};
+
+            const content = entityStr.substring(contentStart, contentEnd);
+            const obj = {};
+
+            let key = "";
+            let value = "";
+            let readingKey = true;
+            let insideQuotes = false;
+
+            for (let i = 0; i < content.length; i++) {
+                const char = content[i];
+
+                if (readingKey) {
+                    if (char === '=') {
+                        readingKey = false;
+                    } else if (char !== ' ' || key.length > 0) {
+                        key += char;
+                    }
+                } else {
+                    if (char === '"' && value.length === 0) {
+                        insideQuotes = true;
+                    } else if (char === '"' && insideQuotes) {
+                        insideQuotes = false;
+                    } else if (char === ',' && !insideQuotes) {
+                        this.savePair(obj, key, value);
+                        key = "";
+                        value = "";
+                        readingKey = true;
+                    } else {
+                        if (char !== ' ' || insideQuotes || value.length > 0) {
+                            value += char;
+                        }
+                    }
+                }
+            }
+            if (key) this.savePair(obj, key, value);
+
+            return obj;
+        },
+
+        savePair: function(obj, key, value) {
+            key = key.trim();
+            if (value.startsWith('"') && value.endsWith('"')) {
+                value = value.substring(1, value.length - 1);
+            }
+            obj[key] = value;
+            this.allColumns.add(key);
+        },
+
+        render: function() {
+            this.renderControls();
+            this.renderTables();
+        },
+
+        compareColumns: function(a, b) {
+            if (a === 'id') return -1;
+            if (b === 'id') return 1;
+
+            const idxA = Visualizer.presetColumns.indexOf(a);
+            const idxB = Visualizer.presetColumns.indexOf(b);
+
+            if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+            if (idxA !== -1) return -1;
+            if (idxB !== -1) return 1;
+            return a.localeCompare(b);
+        },
+
+        renderControls: function() {
+            const container = document.getElementById('columnToggles');
+            container.innerHTML = '';
+
+            const sortedColumns = Array.from(this.allColumns).sort(this.compareColumns);
+
+            sortedColumns.forEach((col) => {
+                const label = document.createElement('label');
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.value = col;
+                checkbox.checked = this.presetColumns.includes(col);
+                checkbox.onchange = () => this.updateColumnVisibility(col, checkbox.checked);
+
+                label.appendChild(checkbox);
+                label.appendChild(document.createTextNode(col));
+                container.appendChild(label);
+            });
+        },
+
+        renderTables: function() {
+            const container = document.getElementById('visualizerContainer');
+            container.innerHTML = '';
+
+            if (Object.keys(this.dataByBlock).length === 0) {
+                container.innerHTML = '<div class="info-text">Žiadne dáta pre vizualizáciu.</div>';
+                return;
+            }
+
+            const columns = Array.from(this.allColumns).sort(this.compareColumns);
+            const sortedBlockIds = Object.keys(this.dataByBlock).sort((a,b) => parseInt(a) - parseInt(b));
+
+            sortedBlockIds.forEach(blockId => {
+                const rows = this.dataByBlock[blockId];
+                const wrapper = document.createElement('div');
+
+                const header = document.createElement('div');
+                header.className = 'block-header';
+                header.innerHTML = `<span>Block: ${blockId} (Items: ${rows.length})</span><span class="arrow-indicator">▼</span>`;
+
+                wrapper.appendChild(header);
+
+                // Hlavny kontajner pre obsah (tabulka + json), ktory sa skryva
+                const contentWrapper = document.createElement('div');
+                contentWrapper.className = 'block-content-wrapper';
+                contentWrapper.style.display = 'none'; // Defaultne skryte
+
+                // Kliknutie na header prepina zobrazenie obsahu
+                header.onclick = function() {
+                    const isHidden = contentWrapper.style.display === 'none';
+                    contentWrapper.style.display = isHidden ? 'block' : 'none';
+                    if (isHidden) {
+                        header.classList.add('expanded');
+                    } else {
+                        header.classList.remove('expanded');
+                    }
+                };
+
+                // 1. Tabuľka
+                const tableWrapper = document.createElement('div');
+                tableWrapper.className = 'entity-table-wrapper';
+
+                const table = document.createElement('table');
+                table.className = 'entity-table';
+                table.id = `table-block-${blockId}`;
+
+                // Header tabuľky
+                const thead = document.createElement('thead');
+                const trHead = document.createElement('tr');
+                columns.forEach((col, idx) => {
+                    const th = document.createElement('th');
+                    th.textContent = col;
+                    th.dataset.col = col;
+                    th.onclick = (e) => {
+                        e.stopPropagation();
+                        this.sortTable(table, idx);
+                    };
+                    if (!this.presetColumns.includes(col)) th.style.display = 'none';
+                    trHead.appendChild(th);
+                });
+                thead.appendChild(trHead);
+                table.appendChild(thead);
+
+                // Body tabuľky
+                const tbody = document.createElement('tbody');
+                rows.forEach(row => {
+                    const tr = document.createElement('tr');
+                    columns.forEach(col => {
+                        const td = document.createElement('td');
+                        td.textContent = row[col] !== undefined ? row[col] : '';
+                        td.dataset.col = col;
+                        if (!this.presetColumns.includes(col)) td.style.display = 'none';
+                        tr.appendChild(td);
+                    });
+                    tbody.appendChild(tr);
+                });
+                table.appendChild(tbody);
+
+                tableWrapper.appendChild(table);
+                contentWrapper.appendChild(tableWrapper);
+
+                // 2. JSON (ak existuje pre tento blok)
+                const jsonString = this.jsonByBlock.get(blockId);
+                if (jsonString) {
+                    const jsonContainer = document.createElement('div');
+                    jsonContainer.className = 'json-viewer-container';
+
+                    const jsonLabel = document.createElement('div');
+                    jsonLabel.className = 'json-label';
+                    jsonLabel.textContent = `Generated JSON for Block (ReceiptNumber) ${blockId}:`;
+                    jsonContainer.appendChild(jsonLabel);
+
+                    const jsonContent = document.createElement('pre');
+                    jsonContent.className = 'json-content';
+                    try {
+                        const parsed = JSON.parse(jsonString);
+                        jsonContent.textContent = JSON.stringify(parsed, null, 2);
+                    } catch(e) {
+                        jsonContent.textContent = jsonString; // Fallback ak nie je validny
+                    }
+                    jsonContainer.appendChild(jsonContent);
+
+                    contentWrapper.appendChild(jsonContainer);
+                }
+
+                wrapper.appendChild(contentWrapper);
+                container.appendChild(wrapper);
+            });
+        },
+
+        updateColumnVisibility: function(colName, isVisible) {
+            const tables = document.querySelectorAll('table.entity-table');
+            tables.forEach(table => {
+                const headers = table.querySelectorAll(`th[data-col="${colName}"]`);
+                headers.forEach(th => th.style.display = isVisible ? '' : 'none');
+                const cells = table.querySelectorAll(`td[data-col="${colName}"]`);
+                cells.forEach(td => td.style.display = isVisible ? '' : 'none');
+            });
+        },
+
+        toggleAllColumns: function(show) {
+            const checkboxes = document.querySelectorAll('#columnToggles input[type="checkbox"]');
+            checkboxes.forEach(cb => {
+                cb.checked = show;
+                this.updateColumnVisibility(cb.value, show);
+            });
+        },
+
+        toggleAllTables: function(expand) {
+            const wrappers = document.querySelectorAll('.block-content-wrapper');
+            const headers = document.querySelectorAll('.block-header');
+
+            wrappers.forEach(w => w.style.display = expand ? 'block' : 'none');
+            headers.forEach(h => {
+                if (expand) h.classList.add('expanded');
+                else h.classList.remove('expanded');
+            });
+        },
+
+        sortState: {},
+
+        sortTable: function(table, colIndex) {
+            const tbody = table.querySelector('tbody');
+            const rows = Array.from(tbody.rows);
+            const tableId = table.id;
+
+            if (!this.sortState[tableId]) this.sortState[tableId] = {};
+            const currentDir = this.sortState[tableId][colIndex] || 'asc';
+            const newDir = currentDir === 'asc' ? 'desc' : 'asc';
+            this.sortState[tableId][colIndex] = newDir;
+
+            const isNumeric = rows.every(row => {
+                const val = row.cells[colIndex].textContent.trim();
+                return val === '' || !isNaN(parseFloat(val));
+            });
+
+            rows.sort((a, b) => {
+                let valA = a.cells[colIndex].textContent.trim();
+                let valB = b.cells[colIndex].textContent.trim();
+
+                if (isNumeric) {
+                    valA = valA === '' ? -Infinity : parseFloat(valA);
+                    valB = valB === '' ? -Infinity : parseFloat(valB);
+                }
+
+                if (valA < valB) return newDir === 'asc' ? -1 : 1;
+                if (valA > valB) return newDir === 'asc' ? 1 : -1;
+                return 0;
+            });
+
+            rows.forEach(row => tbody.appendChild(row));
+        }
+    };
+
+    // --- PÔVODNÉ FUNKCIE (Bez zmien) ---
+
+    function extractRecords(line) {
+        const records = [];
+        const matches = line.match(/\(([^)]+)\)/g);
+
+        if (matches) {
+            matches.forEach(match => {
+                const pairs = match.slice(1, -1).split(', ');
+                const record = {};
+
+                pairs.forEach(pair => {
+                    const [key, value] = pair.split('=');
+                    record[key] = value;
+                });
+
+                const artClassRef = parseInt(record.artClassRef);
+                if ([
+                    CONSTANTS.ART_CLASS_ARTICLE,
+                    CONSTANTS.ART_CLASS_SOA_SOE,
+                    CONSTANTS.ART_CLASS_RETURN_REASON,
+                    CONSTANTS.ART_CLASS_DISCOUNT_PROMOTION,
+                    CONSTANTS.ART_CLASS_PUMP_TEST,
+                    CONSTANTS.ART_CLASS_PREPAYMENT,
+                    CONSTANTS.ART_CLASS_LINE_DISCOUNT,
+                    CONSTANTS.ART_CLASS_PAYMENT_ROUNDING,
+                    CONSTANTS.ART_CLASS_PAYMENT_CASH_BACK,
+                    CONSTANTS.ART_CLASS_PAYMENT_CARD,
+                    CONSTANTS.ART_CLASS_PAYMENT_CREDIT_CUSTOMER,
+                    CONSTANTS.ART_CLASS_PAYMENT_CASH,
+                    CONSTANTS.ART_CLASS_PAYMENT_VOUCHER
+                ].includes(artClassRef)) {
+                    const artRef = parseInt(record.artRef);
+                    const saleFlag = parseInt(record.saleFlag);
+
+                    let recordLine = [
+                        record.artRef ? `artRef=${record.artRef}` : null,
+                        record.artClassRef ? `artClassRef=${record.artClassRef}` : null,
+                        record.text ? `text="${record.text}"` : null,
+                        record.saleFlag ? `saleFlag=${record.saleFlag}` : null
+                    ].filter(Boolean).join(', ');
+
+                    if (recordLine) {
+                        const saleFlagNames = getSaleFlagNames(saleFlag);
+                        if (saleFlagNames) {
+                            recordLine += ` ${saleFlagNames}`;
+                        }
+                        if (artClassRef === CONSTANTS.ART_CLASS_ARTICLE) {
+                            recordLine += artRef < 100 ? ' - FUEL' : ' - SHOP';
+                        } else if (artClassRef === CONSTANTS.ART_CLASS_SOA_SOE) {
+                            if ((saleFlag & CONSTANTS.AS_SOE) !== 0) {
+                                recordLine += ' - SOE';
+                            } else if ((saleFlag & CONSTANTS.AS_SOA) !== 0) {
+                                recordLine += ' - SOA';
+                            }
+                        } else if (artClassRef === CONSTANTS.ART_CLASS_PREPAYMENT && artRef === CONSTANTS.ART_ID_PREPAYMENT) {
+                            recordLine += ' - PREPAYMENT';
+                        } else if (artClassRef === CONSTANTS.ART_CLASS_PAYMENT_CASH && artRef >= CONSTANTS.ART_ID_PAYMENT_CASH_MIN && artRef < CONSTANTS.ART_ID_PAYMENT_CASH_MAX) {
+                            recordLine += ' - CASH';
+                        } else if (artClassRef === CONSTANTS.ART_CLASS_PAYMENT_CASH && artRef >= CONSTANTS.ART_ID_PAYMENT_CASH_RET_MIN && artRef < CONSTANTS.ART_ID_PAYMENT_CASH_RET_MAX) {
+                            recordLine += ' - CASH_RETURN';
+                        } else if (artClassRef === CONSTANTS.ART_CLASS_PAYMENT_CASH_BACK && artRef === CONSTANTS.ART_ID_PAYMENT_CASH_BACK) {
+                            recordLine += ' - CASH_BACK';
+                        } else if (artClassRef === CONSTANTS.ART_CLASS_PAYMENT_VOUCHER && artRef >= CONSTANTS.ART_ID_PAYMENT_CASH_VOUCHER_MIN && artRef < CONSTANTS.ART_ID_PAYMENT_CASH_VOUCHER_MAX) {
+                            recordLine += ' - CASH_VOUCHER';
+                        } else if (artClassRef === CONSTANTS.ART_CLASS_PAYMENT_CARD && artRef >= CONSTANTS.ART_ID_PAYMENT_CARD_MIN && artRef < CONSTANTS.ART_ID_PAYMENT_CARD_MAX) {
+                            recordLine += ' - CARD';
+                        } else if (artClassRef === CONSTANTS.ART_CLASS_PAYMENT_CREDIT_CUSTOMER && artRef === CONSTANTS.ART_ID_PAYMENT_CREDIT_CUSTOMER) {
+                            recordLine += ' - CREDIT_CUSTOMER';
+                        } else if (artClassRef === CONSTANTS.ART_CLASS_PAYMENT_ROUNDING && artRef === CONSTANTS.ART_ID_PAYMENT_ROUNDING) {
+                            recordLine += ' - PAYMENT_ROUNDING';
+                        } else if (artClassRef === CONSTANTS.ART_CLASS_LINE_DISCOUNT && artRef === CONSTANTS.ART_ID_LINE_DISCOUNT) {
+                            recordLine += ' - LINE_DISCOUNT';
+                        } else if (artClassRef === CONSTANTS.ART_CLASS_DISCOUNT_PROMOTION) {
+                            recordLine += ' - DISCOUNT_PROMOTION';
+                        }
+                        records.push(recordLine);
+                    }
+                }
+            });
+        }
+
+        return records;
+    }
+
+    function generateStatistics(results, uniqueBlocks) {
+        const stats = {
+            artClassRefCounts: {},
+            artClassRefArtRefComboCounts: {},
+            saleFlagCounts: {},
+            categoryCounts: {},
+        };
+
+        const artClassRefArtRefCombos = [];
+        const saleFlagCombos = new Set();
+
+        const lines = results;
+
+        lines.forEach(line => {
+            if (line.startsWith('artRef')) {
+                const parts = line.split(', ');
+                const record = {};
+                parts.forEach(part => {
+                    const [key, value] = part.split('=');
+                    record[key] = value.replace(/^"(.*)"$/, '$1');
+                });
+
+                const artClassRef = parseInt(record.artClassRef);
+                const artRef = parseInt(record.artRef);
+                const saleFlag = parseInt(record.saleFlag);
+                const text = record.text ? record.text : "";
+
+                stats.artClassRefCounts[artClassRef] = (stats.artClassRefCounts[artClassRef] || 0) + 1;
+                artClassRefArtRefCombos.push({ artClassRef, artRef, text });
+
+                const currentSaleFlagCombo = [];
+                for (const [key, value] of Object.entries(CONSTANTS)) {
+                    if (key.startsWith('AS_') && (saleFlag & value) !== 0) {
+                        const flagName = key.substring(3);
+                        stats.saleFlagCounts[flagName] = (stats.saleFlagCounts[flagName] || 0) + 1;
+                        currentSaleFlagCombo.push(flagName);
+                    }
+                }
+                saleFlagCombos.add(currentSaleFlagCombo.sort().join(','));
+
+                let category = '';
+                if (artClassRef === CONSTANTS.ART_CLASS_ARTICLE) {
+                    category = artRef < 100 ? 'FUEL' : 'SHOP';
+                } else if (artClassRef === CONSTANTS.ART_CLASS_SOA_SOE) {
+                    if ((saleFlag & CONSTANTS.AS_SOE) !== 0) {
+                        category = 'SOE';
+                    } else if ((saleFlag & CONSTANTS.AS_SOA) !== 0) {
+                        category = 'SOA';
+                    }
+                } else if (artClassRef === CONSTANTS.ART_CLASS_PREPAYMENT && artRef === CONSTANTS.ART_ID_PREPAYMENT) {
+                    category = 'PREPAYMENT';
+                } else if (artClassRef === CONSTANTS.ART_CLASS_PAYMENT_CASH && artRef >= CONSTANTS.ART_ID_PAYMENT_CASH_MIN && artRef < CONSTANTS.ART_ID_PAYMENT_CASH_MAX) {
+                    category = 'CASH';
+                } else if (artClassRef === CONSTANTS.ART_CLASS_PAYMENT_CASH && artRef >= CONSTANTS.ART_ID_PAYMENT_CASH_RET_MIN && artRef < CONSTANTS.ART_ID_PAYMENT_CASH_RET_MAX) {
+                    category = 'CASH_RETURN';
+                } else if (artClassRef === CONSTANTS.ART_CLASS_PAYMENT_CASH_BACK && artRef === CONSTANTS.ART_ID_PAYMENT_CASH_BACK) {
+                    category = 'CASH_BACK';
+                } else if (artClassRef === CONSTANTS.ART_CLASS_PAYMENT_VOUCHER && artRef >= CONSTANTS.ART_ID_PAYMENT_CASH_VOUCHER_MIN && artRef < CONSTANTS.ART_ID_PAYMENT_CASH_VOUCHER_MAX) {
+                    category = 'CASH_VOUCHER';
+                } else if (artClassRef === CONSTANTS.ART_CLASS_PAYMENT_CARD && artRef >= CONSTANTS.ART_ID_PAYMENT_CARD_MIN && artRef < CONSTANTS.ART_ID_PAYMENT_CARD_MAX) {
+                    category = 'CARD';
+                } else if (artClassRef === CONSTANTS.ART_CLASS_PAYMENT_CREDIT_CUSTOMER && artRef === CONSTANTS.ART_ID_PAYMENT_CREDIT_CUSTOMER) {
+                    category = 'CREDIT_CUSTOMER';
+                } else if (artClassRef === CONSTANTS.ART_CLASS_PAYMENT_ROUNDING && artRef === CONSTANTS.ART_ID_PAYMENT_ROUNDING) {
+                    category = 'PAYMENT_ROUNDING';
+                } else if (artClassRef === CONSTANTS.ART_CLASS_LINE_DISCOUNT && artRef === CONSTANTS.ART_ID_LINE_DISCOUNT) {
+                    category = 'LINE_DISCOUNT';
+                } else if (artClassRef === CONSTANTS.ART_CLASS_DISCOUNT_PROMOTION) {
+                    category = 'DISCOUNT_PROMOTION';
+                }
+                if (category) stats.categoryCounts[category] = (stats.categoryCounts[category] || 0) + 1;
+            }
+        });
+
+        artClassRefArtRefCombos.sort((a, b) => {
+            const countA = artClassRefArtRefCombos.filter(x => x.artClassRef === a.artClassRef && x.artRef === a.artRef).length;
+            const countB = artClassRefArtRefCombos.filter(x => x.artClassRef === b.artClassRef && x.artRef === b.artRef).length;
+            return countB - countA;
+        });
+
+        const topN = 10;
+        const topCombos = artClassRefArtRefCombos.filter((v, i, a) => a.findIndex(t => (t.artClassRef === v.artClassRef && t.artRef === v.artRef)) === i).slice(0, topN);
+        topCombos.forEach(combo => {
+            const count = artClassRefArtRefCombos.filter(x => x.artClassRef === combo.artClassRef && x.artRef === combo.artRef).length;
+
+            let category = '';
+            const artClassRef = combo.artClassRef;
+            const artRef = combo.artRef;
+
+            if (artClassRef === CONSTANTS.ART_CLASS_ARTICLE) {
+                category = artRef < 100 ? 'FUEL' : 'SHOP';
+            } else if (artClassRef === CONSTANTS.ART_CLASS_SOA_SOE) {
+                category = 'SOE/SOA';
+            } else if (artClassRef === CONSTANTS.ART_CLASS_PREPAYMENT && artRef === CONSTANTS.ART_ID_PREPAYMENT) {
+                category = 'PREPAYMENT';
+            } else if (artClassRef === CONSTANTS.ART_CLASS_PAYMENT_CASH && artRef >= CONSTANTS.ART_ID_PAYMENT_CASH_MIN && artRef < CONSTANTS.ART_ID_PAYMENT_CASH_MAX) {
+                category = 'CASH';
+            } else if (artClassRef === CONSTANTS.ART_CLASS_PAYMENT_CASH && artRef >= CONSTANTS.ART_ID_PAYMENT_CASH_RET_MIN && artRef < CONSTANTS.ART_ID_PAYMENT_CASH_RET_MAX) {
+                category = 'CASH_RETURN';
+            } else if (artClassRef === CONSTANTS.ART_CLASS_PAYMENT_CASH_BACK && artRef === CONSTANTS.ART_ID_PAYMENT_CASH_BACK) {
+                category = 'CASH_BACK';
+            } else if (artClassRef === CONSTANTS.ART_CLASS_PAYMENT_VOUCHER && artRef >= CONSTANTS.ART_ID_PAYMENT_CASH_VOUCHER_MIN && artRef < CONSTANTS.ART_ID_PAYMENT_CASH_VOUCHER_MAX) {
+                category = 'CASH_VOUCHER';
+            } else if (artClassRef === CONSTANTS.ART_CLASS_PAYMENT_CARD && artRef >= CONSTANTS.ART_ID_PAYMENT_CARD_MIN && artRef < CONSTANTS.ART_ID_PAYMENT_CARD_MAX) {
+                category = 'CARD';
+            } else if (artClassRef === CONSTANTS.ART_CLASS_PAYMENT_CREDIT_CUSTOMER && artRef === CONSTANTS.ART_ID_PAYMENT_CREDIT_CUSTOMER) {
+                category = 'CREDIT_CUSTOMER';
+            } else if (artClassRef === CONSTANTS.ART_CLASS_PAYMENT_ROUNDING && artRef === CONSTANTS.ART_ID_PAYMENT_ROUNDING) {
+                category = 'PAYMENT_ROUNDING';
+            } else if (artClassRef === CONSTANTS.ART_CLASS_LINE_DISCOUNT && artRef === CONSTANTS.ART_ID_LINE_DISCOUNT) {
+                category = 'LINE_DISCOUNT';
+            } else if (artClassRef === CONSTANTS.ART_CLASS_DISCOUNT_PROMOTION) {
+                category = 'DISCOUNT_PROMOTION';
+            }
+
+            stats.artClassRefArtRefComboCounts[`artClassRef=${combo.artClassRef}, artRef=${combo.artRef}, text="${combo.text}" (${category})`] = count;
+        });
+
+        let statsText = '';
+
+        statsText += 'Počty artClassRef:<br>';
+        for (const [artClassRef, count] of Object.entries(stats.artClassRefCounts)) {
+            statsText += `- ${artClassRef}: ${count}x<br>`;
+        }
+
+        statsText += '<br>Top 10 kombinácií artClassRef a artRef:<br>';
+        for (const [combo, count] of Object.entries(stats.artClassRefArtRefComboCounts)) {
+            statsText += `- ${combo}: ${count}x<br>`;
+        }
+
+        statsText += '<br>Počty saleFlag bitov:<br>';
+        for (const [flag, count] of Object.entries(stats.saleFlagCounts)) {
+            statsText += `- ${flag}: ${count}x<br>`;
+        }
+
+        statsText += '<br>Počty kategórií:<br>';
+        for (const [category, count] of Object.entries(stats.categoryCounts)) {
+            statsText += `- ${category}: ${count}x<br>`;
+        }
+
+        document.getElementById('statistics').innerHTML = statsText;
+    }
+
+    function processText() {
+        Visualizer.reset();
+
+        const inputText = inputEditor.getValue();
+        const results = [];
+        const blockCounts = new Map();
+        const uniqueBlocks = new Set();
+        const lines = inputText.split('\n');
+
+        exportData = [];
+
+        // --- SPRACOVANIE Q8 KONFIGURÁCIE S GRUPOVANÍM (5000ms tolerancia) ---
+
+        // Helper funkcia na parsovanie dátumu z logu na milisekundy
+        function parseLogTime(timeStr) {
+            // timeStr format: "YYYY-MM-DD HH:mm:ss,SSS"
+            // JS Date očakáva "YYYY-MM-DDTHH:mm:ss.SSS" alebo podobné,
+            // nahradíme medzeru 'T' a čiarku '.' pre kompatibilitu
+            const isoStr = timeStr.replace(' ', 'T').replace(',', '.');
+            return new Date(isoStr).getTime();
+        }
+
+        const configBatches = []; // Pole objektov: { startTimeStr, startTimeVal, data: {} }
+        let currentBatch = null;
+
+        lines.forEach(line => {
+            const match = line.match(/^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3}).*q8_configuration: key (.*?) -> value (.*)$/);
+            if (match) {
+                const ts = match[1];
+                const key = match[2].trim();
+                const val = match[3].trim();
+                const timeVal = parseLogTime(ts);
+
+                if (!currentBatch) {
+                    // Prvý batch
+                    currentBatch = { startTimeStr: ts, startTimeVal: timeVal, data: {} };
+                    configBatches.push(currentBatch);
+                } else {
+                    // Kontrola tolerancie 5000ms od ZAČIATKU batche
+                    if (timeVal - currentBatch.startTimeVal > 5000) {
+                        // Nový batch
+                        currentBatch = { startTimeStr: ts, startTimeVal: timeVal, data: {} };
+                        configBatches.push(currentBatch);
+                    }
+                }
+
+                // Pridanie dát do aktuálneho batche
+                currentBatch.data[key] = val;
+            }
+        });
+
+        let lastConfigStr = "";
+        let configDisplayHtml = "";
+
+        if (configBatches.length === 0) {
+            configDisplayHtml = "Nenašla sa žiadna Q8 konfigurácia.";
+        } else {
+            configBatches.forEach(batch => {
+                const config = batch.data;
+
+                // Zmena: Explicitné získanie a zoradenie kľúčov (case-insensitive)
+                const sortedKeys = Object.keys(config).sort((a, b) => {
+                    return a.toLowerCase().localeCompare(b.toLowerCase());
+                });
+
+                // Vytvorenie objektu pre JSON.stringify (pre porovnanie zmien)
+                const orderedConfig = {};
+                sortedKeys.forEach(key => {
+                    orderedConfig[key] = config[key];
+                });
+
+                const currentConfigStr = JSON.stringify(orderedConfig);
+
+                // Zobrazíme iba ak je zmena oproti predchádzajúcemu zobrazenému
+                if (currentConfigStr !== lastConfigStr) {
+                    // Pridanie HTML s onclick handlerom pre toggle
+                    configDisplayHtml += `
+                        <div class="config-block">
+                            <div class="config-header" onclick="this.parentElement.classList.toggle('expanded')">
+                                <span>(od ${batch.startTimeStr})</span>
+                                <span class="config-arrow">▼</span>
+                            </div>
+                            <div class="config-content">`;
+
+                    // Iterujeme cez zoradené kľúče
+                    sortedKeys.forEach(key => {
+                        const val = config[key];
+                        configDisplayHtml += `<div class="config-item"><span class="config-key">${key}:</span> <span class="config-value">${val}</span></div>`;
+                    });
+
+                    configDisplayHtml += `</div></div>`;
+                    lastConfigStr = currentConfigStr;
+                }
+            });
+        }
+        document.getElementById('q8Configuration').innerHTML = configDisplayHtml;
+
+
+        // Parsovanie JSON správ pre blockToJsonMap a Visualizer
+        const blockToJsonMap = new Map();
+        for (const line of lines) {
+            if (line.includes("Sent message content:") && line.includes('{')) {
+                const jsonStart = line.indexOf('{');
+                const jsonString = line.substring(jsonStart);
+
+                // Zmena: Hľadáme všetky výskyty receiptNumber v jednom JSON reťazci
+                const regex = /"receiptNumber":(\d+)/g;
+                let match;
+                while ((match = regex.exec(jsonString)) !== null) {
+                    const receiptNumber = match[1];
+                    if (!blockToJsonMap.has(receiptNumber)) {
+                        blockToJsonMap.set(receiptNumber, jsonString);
+                    }
+                }
+            }
+        }
+
+        // Priradenie JSON dát do vizualizéra
+        Visualizer.jsonByBlock = blockToJsonMap;
+
+        const versions = new Set();
+        for (const line of lines) {
+            if (line.includes("com.scheidtbachmann.frs.siqma.q8.transaction.domain.message.DefaultTransactionSalesService") &&
+                line.includes("transactionSales.size():") &&
+                line.includes("transactionSales: [TransactionSalesEntity(id=")) {
+
+                const match = line.match(/\(EJB default - \d+\) \(([^)]+)\)/);
+                if (match) {
+                    const version = `q8-transactions-sales-service ${match[1]}`;
+                    versions.add(version);
+                }
+            }
+        }
+
+        document.getElementById('serviceVersions').innerHTML = Array.from(versions).join('<br>');
+
+        lines.forEach(line => {
+            const blockMatch = line.match(/block=(\d+)/);
+            if (blockMatch) {
+                const blockNumber = blockMatch[1];
+                blockCounts.set(blockNumber, (blockCounts.get(blockNumber) || 0) + 1);
+                uniqueBlocks.add(blockNumber);
+            }
+        });
+
+        const processedBlocks = new Set();
+
+        for (const line of lines) {
+            const startIndex = line.indexOf('[TransactionSalesEntity');
+
+            if (startIndex !== -1) {
+                const blockMatch = line.match(/block=(\d+)/);
+                if (blockMatch && !processedBlocks.has(blockMatch[1])) {
+                    const blockNumber = blockMatch[1];
+                    processedBlocks.add(blockNumber);
+
+                    Visualizer.processLine(line, blockNumber);
+
+                    if (results.length > 0) results.push('');
+                    const count = blockCounts.get(blockNumber);
+                    results.push(`block=${blockNumber} (${count}x)`);
+
+                    const extractedRecords = extractRecords(line);
+                    results.push(...extractedRecords);
+
+                    let bracketCount = 0;
+                    let currentIndex = startIndex;
+                    let found = false;
+
+                    while (currentIndex < line.length && !found) {
+                        if (line[currentIndex] === '[') {
+                            bracketCount++;
+                        } else if (line[currentIndex] === ']') {
+                            bracketCount--;
+                            if (bracketCount === 0) {
+                                const extractedText = line.substring(startIndex, currentIndex + 1);
+                                results.push(extractedText);
+                                found = true;
+
+                                const actionTimeMatch = extractedText.match(/actionTime=(\d{4}-\d{2}-\d{2})/);
+                                const date = actionTimeMatch ? actionTimeMatch[1] : new Date().toISOString().substring(0, 10);
+
+                                exportData.push({
+                                    block: blockNumber,
+                                    date: date,
+                                    entityText: extractedText,
+                                    json: blockToJsonMap.get(blockNumber) || null
+                                });
+                            }
+                        }
+                        currentIndex++;
+                    }
+                }
+            }
+        }
+
+        outputEditor.setValue(results.join('\n'));
+        updateLineInfo();
+        updateBlockInfo(uniqueBlocks.size);
+        generateStatistics(results, uniqueBlocks);
+
+        const sentMessages = [];
+        let currentMessage = '';
+        let currentTimestamp = '';
+        let currentThread = '';
+        let messageComplete = false;
+
+        for (const line of lines) {
+            if (line.includes("Sent message content:")) {
+                if (currentMessage !== '') {
+                    sentMessages.push(currentTimestamp + ' ' + currentMessage);
+                    if (!messageComplete) {
+                        sentMessages.push('');
+                    }
+                    currentMessage = '';
+                    currentTimestamp = '';
+                    currentThread = '';
+                }
+                messageComplete = false;
+                currentTimestamp = line.substring(0, 23);
+                const messageStart = line.indexOf('message:') + 8;
+                currentMessage = line.substring(messageStart).trim();
+
+                const threadMatch = line.match(/\(EJB default - \d+\)/);
+                if (threadMatch) {
+                    currentThread = threadMatch[0];
+                } else {
+                    currentThread = '';
+                }
+                sentMessages.push(currentTimestamp + ' ' + currentMessage);
+            } else if (line.includes(currentThread)) {
+                let result = '';
+                if (line.includes("Send successful")) {
+                    result = line.substring(line.indexOf("Send successful")).trim();
+                } else if (line.includes("Can not send message")) {
+                    result = line.substring(line.indexOf("Can not send message")).trim();
+                } else if (line.includes("Send failed")) {
+                    result = line.substring(line.indexOf("Send failed")).trim();
+                }
+
+                if (result !== '' && !messageComplete) {
+                    sentMessages.push(line.substring(0, 23) + ' ' + result);
+                    sentMessages.push('');
+                    currentMessage = '';
+                    currentTimestamp = '';
+                    currentThread = '';
+                    messageComplete = true;
+                } else if (currentMessage !== '' && !messageComplete) {
+                    currentMessage += ' ' + line.trim();
+                }
+            }
+        }
+
+        if (currentMessage !== '' && !messageComplete) {
+            sentMessages.push(currentTimestamp + ' ' + currentMessage);
+            sentMessages.push('');
+        }
+
+        sentMessagesEditor.setValue(sentMessages.join('\n'));
+
+        const receiptMap = new Map();
+        const duplicates = new Set();
+
+        const sentMessagesText = sentMessagesEditor.getValue();
+        const messageLines = sentMessagesText.split('\n');
+
+        for (const line of messageLines) {
+            if (line.includes('{')) {
+                const jsonString = line.substring(line.indexOf('{'));
+
+                const regex = /"receiptNumber":(\d+)/g;
+                let match;
+
+                while ((match = regex.exec(jsonString)) !== null) {
+                    const receiptNumber = match[1];
+
+                    if (receiptMap.has(receiptNumber)) {
+                        const existingJson = receiptMap.get(receiptNumber);
+                        if (existingJson !== jsonString) {
+                            duplicates.add(receiptNumber);
+                        }
+                    } else {
+                        receiptMap.set(receiptNumber, jsonString);
+                    }
+                }
+            }
+        }
+
+        const duplicateArray = Array.from(duplicates);
+        document.getElementById('duplicatesInfo').textContent =
+            duplicateArray.length > 0 ?
+                'Duplicitné receiptNumber: ' + duplicateArray.join(', ') :
+                'Žiadne duplicitné receiptNumber neboli nájdené.';
+
+        const cutoverMessages = [];
+        for (const line of lines) {
+            if (line.includes("Sending transactionSales to Cutover service")) {
+                const timestamp = line.substring(0, 23);
+                const urlMatch = line.match(/"http:\/\/localhost:8080\/q8-cutover\/api\/transactions" : (.*)/);
+                if (urlMatch) {
+                    const url = urlMatch[1];
+
+                    for (let i = lines.indexOf(line); i < lines.length; i++) {
+                        if (lines[i].includes(url)) {
+                            cutoverMessages.push(line.substring(0, 23) + " " + url);
+
+                            const startOfJson = lines[i].indexOf("{", lines[i].indexOf("Content-Type: application/json"));
+                            if (startOfJson !== -1) {
+                                cutoverMessages.push(lines[i].substring(startOfJson));
+                            }
+                            break;
+                        }
+                    }
+
+                    for (let i = lines.indexOf(line); i < lines.length; i++) {
+                        if (lines[i].includes("Sending transactionSales to Cutover service successful")) {
+                            cutoverMessages.push(lines[i].substring(0, 23) + " Send successful");
+                            cutoverMessages.push('');
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        cutoverMessagesEditor.setValue(cutoverMessages.join('\n'));
+
+        Visualizer.render();
+    }
+
+</script>
+</body>
+</html>

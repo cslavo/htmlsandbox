@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Data Array Visualizer</title>
+    <style>
+        table, th, td {
+            border: 1px solid black;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 5px;
+            text-align: left;
+        }
+        th {
+            cursor: pointer;
+        }
+        #columnToggles {
+            margin-bottom: 10px;
+            /* Zmena: Zúženie oblasti prepínačov */
+            max-width: 900px;
+            line-height: 1.5;
+        }
+        #columnToggles label {
+            margin-right: 10px;
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body>
+
+<h2>Data Array Visualizer</h2>
+<h3>Array Data</h3>
+<p>Input an array of objects of the same class followed by a set of attributes in the format: 	<br>
+    [ObjectName(attribute1=value1, attribute2=value2), ObjectName(attribute1=value3, attribute2=value4), ...]</p>
+
+<!-- Zmena: Pridané onclick="this.select()" pre automatické označenie textu -->
+<textarea id="textInput" rows="4" cols="50" onclick="this.select()"></textarea><br>
+
+<!-- Zmena: Odstránená sekcia "Shown columns preset" -->
+
+<br>
+<button onclick="processText()">Parse data</button>
+<h2 id="tableName"></h2>
+<h3>Columns show/hide toggles</h3>
+<div id="columnToggles">
+</div>
+<button onclick="hideAllColumns()">Hide All Columns</button>
+<button onclick="showAllColumns()">Show All Columns</button>
+<h3>Objects Array in Table</h3>
+<p>Columns can be sorted</p>
+<table id="outputTable">
+    <thead></thead>
+    <tbody></tbody>
+</table>
+
+<script>
+    // Zmena: Upravený zoznam predvolených stĺpcov podľa požiadavky (vrátane artAttribut)
+    var presetColumns = "block, amount, saleFlag, artRef, artClassRef, text, artAttribut";
+    var sortDirection = {};
+
+    // Odstránené volanie setPresetColumns, keďže input už neexistuje
+
+    function processText() {
+        var text = document.getElementById('textInput').value;
+
+        // Zmena: Namiesto čítania z inputu používame priamo premennú presetColumns
+        var columnsText = presetColumns;
+
+        var columnList = columnsText.split(',').map(function(column) {
+            return column.trim();
+        }).filter(function(column) { return column.length > 0; });
+
+        var tableName = text.match(/(\w+)\s*\(/);
+        if (tableName) {
+            document.getElementById('tableName').innerText = tableName[1];
+        } else {
+            document.getElementById('tableName').innerText = "Table Name: Unknown";
+        }
+
+        var objects = text.match(/\(([^)]+)\)/g);
+        if (!objects) return;
+
+        var table = document.getElementById('outputTable');
+        var thead = table.querySelector('thead');
+        var tbody = table.querySelector('tbody');
+        thead.innerHTML = "";
+        tbody.innerHTML = "";
+
+        // Detekcia názvov stĺpcov z prvého objektu
+        var columns = objects[0].slice(1, -1).split(", ").map(function(attr) { return attr.split("=")[0]; });
+
+        var columnsHTML = columns.map(function(attr, i) {
+            sortDirection[i] = 'asc';
+            return "<th onclick='sortTable(" + i + ")'>" + attr + "</th>";
+        }).join("");
+
+        thead.innerHTML = "<tr>" + columnsHTML + "</tr>";
+
+        objects.forEach(function(obj) {
+            tbody.innerHTML += "<tr>" + obj.slice(1, -1).split(", ").map(function(value, i) {
+                // Logika pre zobrazenie/skrytie na základe predvoleného zoznamu
+                var colName = columns[i];
+                var displayStyle = (columnList.length === 0 || columnList.includes(colName)) ? "" : "none";
+                return "<td style='display: " + displayStyle + "'>" + value.split("=")[1] + "</td>";
+            }).join("") + "</tr>";
+        });
+
+        createColumnToggles();
+        updateColumnToggles(columnList);
+    }
+
+    function updateColumnToggles(columnList) {
+        var checkboxes = document.querySelectorAll('#columnToggles input[type="checkbox"]');
+        checkboxes.forEach(function(checkbox, index) {
+            var header = checkbox.nextSibling.innerText;
+            // Checkbox bude zaškrtnutý len ak je v zozname predvolených stĺpcov
+            checkbox.checked = columnList.length === 0 || columnList.includes(header);
+            toggleColumn(index, checkbox.checked);
+        });
+    }
+
+    function toggleColumn(columnIndex) {
+        var table = document.getElementById('outputTable');
+        var rows = table.querySelectorAll('tr');
+        var checkbox = document.getElementById('toggleColumn' + columnIndex);
+
+        rows.forEach(function(row) {
+            var cell = row.cells[columnIndex];
+            if (cell) {
+                cell.style.display = checkbox.checked ? '' : 'none';
+            }
+        });
+    }
+
+    function createColumnToggles() {
+        var table = document.getElementById('outputTable');
+        var headers = table.querySelectorAll('th');
+        var container = document.getElementById('columnToggles');
+        container.innerHTML = '';
+
+        headers.forEach(function(header, index) {
+            var checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = 'toggleColumn' + index;
+            // Defaultne true pri vytvorení, ale updateColumnToggles to hneď prepíše podľa presetu
+            checkbox.checked = true;
+            checkbox.onchange = function() { toggleColumn(index); };
+            container.appendChild(checkbox);
+
+            var label = document.createElement('label');
+            label.htmlFor = 'toggleColumn' + index;
+            label.innerText = header.innerText;
+            container.appendChild(label);
+        });
+    }
+
+    function sortTable(column) {
+        var table = document.getElementById("outputTable");
+        var tbody = table.querySelector('tbody');
+        var rows = Array.from(tbody.rows);
+        var numeric = isNumeric(column);
+
+        rows.sort(function(a, b) {
+            var x = a.cells[column].innerHTML, y = b.cells[column].innerHTML;
+            if (numeric) {
+                x = parseFloat(x); y = parseFloat(y);
+            }
+
+            if (x < y) return sortDirection[column] == "asc" ? -1 : 1;
+            if (x > y) return sortDirection[column] == "asc" ? 1 : -1;
+            return 0;
+        }).forEach(function(row) { tbody.appendChild(row); });
+
+        sortDirection[column] = sortDirection[column] == "asc" ? "desc" : "asc";
+    }
+
+    function isNumeric(column) {
+        return [...document.getElementById("outputTable").rows].slice(1).every(function(row) {
+            var cell = row.cells[column];
+            return cell && /^[\d.]+$/.test(cell.innerHTML);
+        });
+    }
+
+    function hideAllColumns() {
+        var table = document.getElementById('outputTable');
+        var checkboxes = document.querySelectorAll('#columnToggles input[type="checkbox"]');
+
+        checkboxes.forEach(function(checkbox, index) {
+            checkbox.checked = false;
+            toggleColumnVisibility(table, index, 'none');
+        });
+    }
+
+    function showAllColumns() {
+        var table = document.getElementById('outputTable');
+        var checkboxes = document.querySelectorAll('#columnToggles input[type="checkbox"]');
+
+        checkboxes.forEach(function(checkbox, index) {
+            checkbox.checked = true;
+            toggleColumnVisibility(table, index, '');
+        });
+    }
+
+    function toggleColumnVisibility(table, columnIndex, displayStyle) {
+        var rows = table.querySelectorAll('tr');
+
+        rows.forEach(function(row) {
+            var cell = row.cells[columnIndex];
+            if (cell) {
+                cell.style.display = displayStyle;
+            }
+        });
+    }
+
+</script>
+
+</body>
+</html>

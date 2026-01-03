@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vyhľadávanie MP3 a M3U linkov</title>
+    <style>
+        body {
+            font-family: sans-serif;
+        }
+        textarea {
+            width: 80%;
+            height: 200px;
+            margin-bottom: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            opacity: 0.8;
+        }
+        #output {
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Vyhľadávanie MP3 a M3U linkov</h1>
+
+<label for="sourceCode">Vložte zdrojový kód webovej stránky:</label><br>
+<textarea id="sourceCode"></textarea><br>
+
+<button onclick="findLinks()">Vyhľadať linky</button><br>
+
+<label for="output">Nájdené linky (MP3 a M3U):</label><br>
+<textarea id="output" readonly onclick="copyToClipboard()"></textarea>
+
+<script>
+function findLinks() {
+    const sourceCode = document.getElementById("sourceCode").value;
+    const outputTextArea = document.getElementById("output");
+    outputTextArea.value = "";
+
+    const mp3Regex = /https?:\/\/[^\s'"]+(\.mp3)/gi;
+    const m3uRegex = /https?:\/\/[^\s'"]+(\.m3u)/gi;
+
+    let mp3Matches = sourceCode.match(mp3Regex);
+    let m3uMatches = sourceCode.match(m3uRegex);
+
+    let allMatches = [];
+    if (mp3Matches) {
+        allMatches = allMatches.concat(mp3Matches);
+    }
+    if (m3uMatches) {
+        allMatches = allMatches.concat(m3uMatches);
+    }
+
+    if (allMatches.length > 0) {
+        allMatches.forEach(link => {
+            outputTextArea.value += link + "\n";
+        });
+    } else {
+        outputTextArea.value = "Žiadne MP3 ani M3U linky neboli nájdené.";
+    }
+}
+
+function copyToClipboard() {
+    const outputTextArea = document.getElementById("output");
+    outputTextArea.select();
+    document.execCommand("copy");
+    alert("Linky boli skopírované do schránky!");
+}
+</script>
+
+</body>
+</html>

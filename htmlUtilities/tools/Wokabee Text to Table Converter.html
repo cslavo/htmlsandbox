@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Wokabee Text to Table Converter</title>
+    <style>
+        body {
+            background-color: black;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+
+        #container {
+            display: flex;
+            height: 90vh;
+            justify-content: center;
+            align-items: flex-start;
+            padding-top: 20px;
+        }
+
+        .input-section {
+            display: flex;
+            flex-direction: column;
+            width: 20%;
+            margin: 0 2%;
+            height: 100%;
+        }
+
+        .input-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        #inputData {
+            flex: 1;
+            width: 100%;
+            resize: none;
+            border: 1px solid #ccc;
+            padding: 10px;
+            background-color: #333;
+            color: white;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        button {
+            padding: 10px;
+            margin: 5px;
+            color: black;
+            background-color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #ddd;
+        }
+
+        .table-section {
+            display: flex;
+            flex-direction: column;
+            width: 60%;
+            margin: 0 2%;
+        }
+
+        .table-title-input {
+            margin-bottom: 10px;
+            background-color: #333;
+            color: white;
+            border: 1px solid #666;
+            padding: 5px;
+            width: 100%;
+        }
+
+        #tableContainer {
+            width: 100%;
+            overflow-y: auto;
+            background-color: #333;
+            padding: 10px;
+            border: 1px solid #ccc;
+            flex: 1;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            color: white;
+        }
+
+        .row-height-control {
+            margin-top: 10px;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .row-height-control input {
+            background-color: #333;
+            color: white;
+            border: 1px solid #666;
+            padding: 5px;
+            width: 60px;
+            margin-left: 5px;
+        }
+
+        td {
+            border: 1px solid #666;
+            padding: 8px;
+            box-sizing: border-box;
+            vertical-align: top;
+        }
+
+        @media print {
+            body {
+                background-color: white;
+                color: black;
+                margin: 0;
+                padding: 0;
+            }
+
+            #container > *:not(.table-section) {
+                display: none;
+            }
+
+            .table-section {
+                width: 100%;
+            }
+
+            .table-title-input {
+                display: none;
+            }
+
+            #tableTitle {
+                color: black;
+                text-align: center;
+                margin-bottom: 10px;
+                font-size: 14pt;
+            }
+
+            h1 {
+                display: none;
+            }
+
+            #tableContainer {
+                width: 100%;
+                background-color: white;
+                border: none;
+                margin: 0;
+                padding: 0;
+            }
+
+            table {
+                color: black;
+            }
+
+            td {
+                border-color: #000;
+            }
+        }
+    </style>
+</head>
+<body>
+<h1>Wokabee Text to Table Converter</h1>
+<div id="container">
+    <div class="input-section">
+        <div class="input-header">
+            <span>Vstup</span>
+            <button id="sampleButton">Vlož vzor</button>
+        </div>
+        <textarea id="inputData"></textarea>
+    </div>
+    <div class="controls">
+        <button id="processButton">Spracuj</button>
+        <button id="printButton">Tlačiť</button>
+        <div class="row-height-control">
+            <label for="rowHeight">Výška riadku (mm):</label>
+            <input type="number" id="rowHeight" value="8" min="1" max="50">
+        </div>
+    </div>
+    <div class="table-section">
+        <input type="text" class="table-title-input" placeholder="Názov tabuľky">
+        <div id="tableContainer">
+            <div id="tableTitle"></div>
+            <table id="outputTable"></table>
+        </div>
+    </div>
+</div>
+<script>
+    document.getElementById('processButton').addEventListener('click', processText);
+    document.getElementById('printButton').addEventListener('click', () => {
+        window.print();
+    });
+
+    // Function to update table title for printing
+    function updateTableTitle() {
+        const titleInput = document.querySelector('.table-title-input');
+        const tableTitle = document.getElementById('tableTitle');
+        tableTitle.textContent = titleInput.value;
+
+        // Update document title
+        document.title = titleInput.value ? titleInput.value : 'Wokabee Text to Table Converter';
+    }
+
+    function updateRowHeight() {
+        const height = document.getElementById('rowHeight').value;
+        const fontSize = Math.floor(height * 0.6); // Font size will be 60% of row height
+        const table = document.getElementById('outputTable');
+        const rows = table.getElementsByTagName('tr');
+
+        for (let row of rows) {
+            const cells = row.getElementsByTagName('td');
+            for (let cell of cells) {
+                cell.style.minHeight = height + 'mm';
+                cell.style.height = height + 'mm';
+                cell.style.fontSize = fontSize + 'mm';
+            }
+        }
+    }
+
+    function processText() {
+        const input = document.getElementById('inputData').value;
+        const lines = input.split('\n');
+        const table = document.getElementById('outputTable');
+        table.innerHTML = '';
+
+        for (let i = 0; i < lines.length; i += 3) {
+            const firstLine = lines[i];
+            const secondLine = (i + 1 < lines.length) ? lines[i + 1] : "";
+
+            const row = table.insertRow();
+            const cell1 = row.insertCell(0);
+            const cell2 = row.insertCell(1);
+
+            cell1.textContent = firstLine;
+            cell2.textContent = secondLine;
+        }
+        updateRowHeight();
+    }
+
+    // Add input event listener for immediate updates
+    document.getElementById('rowHeight').addEventListener('input', updateRowHeight);
+
+    document.querySelector('.table-title-input').addEventListener('input', updateTableTitle);
+
+    // Sample text functionality
+    const sampleText = `jojo
+das Jo-Jo
+2
+pomáhať
+helfen
+3
+klavír
+das Klavier
+4
+kilometer
+der Kilometer
+5
+ísť na túru
+wandern
+6
+no jasné
+na klar
+7
+priateľský
+freundlich
+8
+inteligentný
+intelligent
+9
+hlúpy
+dumm
+10
+maľovať
+malen`;
+
+    document.getElementById('sampleButton').addEventListener('click', () => {
+        document.getElementById('inputData').value = sampleText;
+    });
+</script>
+</body>
+</html>

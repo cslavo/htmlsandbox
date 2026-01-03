@@ -1,0 +1,379 @@
+<html><head><base href="https://websim.ai/evolutionary-playground" /><title>Evolutionary Playground: Micro-organism Evolution Simulator</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f0f8ff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+  }
+  #canvas {
+    border: 2px solid #4a90e2;
+    background-color: #e6f3ff;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  }
+  .controls {
+    margin-top: 20px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  button {
+    padding: 10px 15px;
+    font-size: 16px;
+    cursor: pointer;
+    background-color: #4a90e2;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    transition: background-color 0.3s;
+  }
+  button:hover {
+    background-color: #357abd;
+  }
+  h1 {
+    color: #4a90e2;
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  .info-panel {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #ffffff;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    max-width: 600px;
+    text-align: center;
+  }
+  #organism-info {
+    position: absolute;
+    background-color: rgba(255, 255, 255, 0.9);
+    border: 1px solid #4a90e2;
+    padding: 10px;
+    border-radius: 5px;
+    display: none;
+    max-width: 300px;
+  }
+  .footer {
+    margin-top: 20px;
+    text-align: center;
+    font-size: 14px;
+    color: #666;
+  }
+  .stats {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #ffffff;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    max-width: 600px;
+    text-align: left;
+  }
+</style>
+</head>
+<body>
+  <h1>Evolutionary Playground: Micro-organism Evolution Simulator</h1>
+  <canvas id="canvas" width="800" height="600"></canvas>
+  <div class="controls">
+    <button id="add-bacteria">Add Bacteria</button>
+    <button id="add-virus">Add Virus</button>
+    <button id="add-algae">Add Algae</button>
+    <button id="clear">Clear Playground</button>
+    <button id="pause">Pause</button>
+  </div>
+  <div class="info-panel">
+    <h3>Welcome to the Evolutionary Playground!</h3>
+    <p>Watch as bacteria (green) search for food (blue) and duplicate instantly when they eat, viruses (red) hunt bacteria, and algae (teal) compete for resources.</p>
+    <p>Food spawns automatically. Organisms evolve to better survive in their environment.</p>
+    <p>Use the Pause button to freeze the simulation. While paused, hover over organisms to learn about their characteristics.</p>
+    <p>Observe how different traits emerge and spread through the population over time!</p>
+  </div>
+  <div id="organism-info"></div>
+  <div class="stats">
+    <h3>Simulation Statistics</h3>
+    <p>Bacteria Population: <span id="bacteria-count">0</span></p>
+    <p>Virus Population: <span id="virus-count">0</span></p>
+    <p>Algae Population: <span id="algae-count">0</span></p>
+    <p>Food Available: <span id="food-count">0</span></p>
+    <p>Generations Passed: <span id="generation-count">0</span></p>
+  </div>
+  <div class="footer">
+    <p>Explore more scientific simulations at <a href="https://websim.ai">WebSim.ai</a></p>
+    <p><a href="https://websim.ai/about">About</a> | <a href="https://websim.ai/contact">Contact</a> | <a href="https://websim.ai/privacy">Privacy Policy</a></p>
+  </div>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const organismInfo = document.getElementById('organism-info');
+
+let organisms = [];
+let food = [];
+let isPaused = false;
+let generationCount = 0;
+
+class Organism {
+  constructor(type, x, y) {
+    this.type = type;
+    this.x = x;
+    this.y = y;
+    this.vx = (Math.random() - 0.5) * 2;
+    this.vy = (Math.random() - 0.5) * 2;
+    this.radius = type === 'bacteria' ? 10 : (type === 'algae' ? 8 : 5);
+    this.energy = 100;
+    this.lifespan = 0;
+    this.generation = 0;
+    this.traits = {
+      speed: Math.random() * 0.5 + 0.5,
+      size: Math.random() * 0.5 + 0.5,
+      efficiency: Math.random() * 0.5 + 0.5,
+      senseRange: Math.random() * 50 + 50
+    };
+  }
+
+  draw() {
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.radius * this.traits.size, 0, Math.PI * 2);
+    ctx.fillStyle = this.type === 'bacteria' ? '#00aa00' : (this.type === 'virus' ? '#ff0000' : '#00ffff');
+    ctx.fill();
+  }
+
+  move() {
+    if (isPaused) return;
+    
+    let target = this.findTarget();
+    if (target) {
+      let dx = target.x - this.x;
+      let dy = target.y - this.y;
+      let distance = Math.sqrt(dx * dx + dy * dy);
+      this.vx = (dx / distance) * this.traits.speed;
+      this.vy = (dy / distance) * this.traits.speed;
+    }
+
+    this.x += this.vx;
+    this.y += this.vy;
+
+    if (this.x < this.radius || this.x > canvas.width - this.radius) {
+      this.vx *= -1;
+    }
+    if (this.y < this.radius || this.y > canvas.height - this.radius) {
+      this.vy *= -1;
+    }
+
+    this.energy -= 0.1 / this.traits.efficiency;
+    this.lifespan += 1;
+
+    if (this.energy <= 0) {
+      organisms = organisms.filter(org => org !== this);
+    }
+  }
+
+  findTarget() {
+    let closest = null;
+    let closestDistance = Infinity;
+    let targets;
+    
+    if (this.type === 'bacteria') {
+      targets = food;
+    } else if (this.type === 'virus') {
+      targets = organisms.filter(org => org.type === 'bacteria');
+    } else if (this.type === 'algae') {
+      targets = food;
+    }
+
+    for (let target of targets) {
+      let dx = target.x - this.x;
+      let dy = target.y - this.y;
+      let distance = Math.sqrt(dx * dx + dy * dy);
+      if (distance < this.traits.senseRange && distance < closestDistance) {
+        closest = target;
+        closestDistance = distance;
+      }
+    }
+
+    return closest;
+  }
+
+  reproduce() {
+    if (this.type === 'bacteria') return; // Bacteria now reproduce when they eat
+
+    if (this.energy > 150) {
+      let reproductionChance = 0.01;
+      if (Math.random() < reproductionChance) {
+        let childOrganism = new Organism(this.type, this.x, this.y);
+        childOrganism.generation = this.generation + 1;
+        childOrganism.traits = {
+          speed: this.traits.speed + (Math.random() - 0.5) * 0.1,
+          size: this.traits.size + (Math.random() - 0.5) * 0.1,
+          efficiency: this.traits.efficiency + (Math.random() - 0.5) * 0.1,
+          senseRange: this.traits.senseRange + (Math.random() - 0.5) * 10
+        };
+        organisms.push(childOrganism);
+        this.energy -= 50;
+        generationCount = Math.max(generationCount, childOrganism.generation);
+      }
+    }
+  }
+}
+
+class Food {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.radius = 3;
+  }
+
+  draw() {
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+    ctx.fillStyle = '#0000ff';
+    ctx.fill();
+  }
+}
+
+function addOrganism(type) {
+  const x = Math.random() * (canvas.width - 40) + 20;
+  const y = Math.random() * (canvas.height - 40) + 20;
+  organisms.push(new Organism(type, x, y));
+}
+
+function addFood() {
+  const x = Math.random() * (canvas.width - 10) + 5;
+  const y = Math.random() * (canvas.height - 10) + 5;
+  food.push(new Food(x, y));
+}
+
+function clearPlayground() {
+  organisms = [];
+  food = [];
+  generationCount = 0;
+}
+
+function update() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  if (Math.random() < 0.1 && food.length < 50) {
+    addFood();
+  }
+
+  for (let organism of organisms) {
+    organism.move();
+    organism.draw();
+    organism.reproduce();
+
+    if (organism.type === 'bacteria' || organism.type === 'algae') {
+      for (let i = food.length - 1; i >= 0; i--) {
+        const dx = organism.x - food[i].x;
+        const dy = organism.y - food[i].y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance < organism.radius + food[i].radius) {
+          organism.energy += organism.type === 'bacteria' ? 25 : 20;
+          food.splice(i, 1);
+          
+          if (organism.type === 'bacteria') {
+            // Bacteria duplicate when they eat
+            let childOrganism = new Organism('bacteria', organism.x, organism.y);
+            childOrganism.generation = organism.generation + 1;
+            childOrganism.traits = {
+              speed: organism.traits.speed + (Math.random() - 0.5) * 0.1,
+              size: organism.traits.size + (Math.random() - 0.5) * 0.1,
+              efficiency: organism.traits.efficiency + (Math.random() - 0.5) * 0.1,
+              senseRange: organism.traits.senseRange + (Math.random() - 0.5) * 10
+            };
+            organisms.push(childOrganism);
+            generationCount = Math.max(generationCount, childOrganism.generation);
+          }
+        }
+      }
+    } else if (organism.type === 'virus') {
+      for (let i = organisms.length - 1; i >= 0; i--) {
+        if (organisms[i].type === 'bacteria') {
+          const dx = organism.x - organisms[i].x;
+          const dy = organism.y - organisms[i].y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+
+          if (distance < organism.radius + organisms[i].radius) {
+            organism.energy += 50;
+            organisms.splice(i, 1);
+          }
+        }
+      }
+    }
+  }
+
+  for (let foodItem of food) {
+    foodItem.draw();
+  }
+
+  updateStats();
+  requestAnimationFrame(update);
+}
+
+function togglePause() {
+  isPaused = !isPaused;
+  document.getElementById('pause').textContent = isPaused ? 'Resume' : 'Pause';
+}
+
+function updateStats() {
+  document.getElementById('bacteria-count').textContent = organisms.filter(org => org.type === 'bacteria').length;
+  document.getElementById('virus-count').textContent = organisms.filter(org => org.type === 'virus').length;
+  document.getElementById('algae-count').textContent = organisms.filter(org => org.type === 'algae').length;
+  document.getElementById('food-count').textContent = food.length;
+  document.getElementById('generation-count').textContent = generationCount;
+}
+
+function getOrganismInfo(organism) {
+  return `Type: ${organism.type}
+Energy: ${organism.energy.toFixed(2)}
+Lifespan: ${organism.lifespan}
+Generation: ${organism.generation}
+Speed: ${organism.traits.speed.toFixed(2)}
+Size: ${organism.traits.size.toFixed(2)}
+Efficiency: ${organism.traits.efficiency.toFixed(2)}
+Sense Range: ${organism.traits.senseRange.toFixed(2)}`;
+}
+
+canvas.addEventListener('mousemove', (event) => {
+  if (!isPaused) return;
+
+  const rect = canvas.getBoundingClientRect();
+  const x = event.clientX - rect.left;
+  const y = event.clientY - rect.top;
+
+  for (let organism of organisms) {
+    const distance = Math.sqrt((x - organism.x) ** 2 + (y - organism.y) ** 2);
+    if (distance <= organism.radius) {
+      const info = getOrganismInfo(organism);
+      organismInfo.style.display = 'block';
+      organismInfo.style.left = `${event.clientX}px`;
+      organismInfo.style.top = `${event.clientY}px`;
+      organismInfo.textContent = info;
+      return;
+    }
+  }
+
+  organismInfo.style.display = 'none';
+});
+
+document.getElementById('add-bacteria').addEventListener('click', () => addOrganism('bacteria'));
+document.getElementById('add-virus').addEventListener('click', () => addOrganism('virus'));
+document.getElementById('add-algae').addEventListener('click', () => addOrganism('algae'));
+document.getElementById('clear').addEventListener('click', clearPlayground);
+document.getElementById('pause').addEventListener('click', togglePause);
+
+// Start with some initial organisms and food
+for (let i = 0; i < 10; i++) {
+  addOrganism('bacteria');
+  addOrganism('virus');
+  addOrganism('algae');
+  addFood();
+}
+
+update();
+</script>
+</body></html>

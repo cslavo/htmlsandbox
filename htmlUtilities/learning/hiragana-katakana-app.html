@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hiragana a Katakana</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .dark-mode {
+            background-color: #1a202c;
+            color: #f7fafc;
+        }
+        .dark-mode button {
+            background-color: #2d3748;
+            color: #f7fafc;
+        }
+        .dark-mode .bg-white {
+            background-color: #2d3748;
+        }
+        .dark-mode .text-gray-800 {
+            color: #f7fafc;
+        }
+        .dark-mode .text-gray-700 {
+            color: #e2e8f0;
+        }
+        .dark-mode .bg-gray-200 {
+            background-color: #4a5568;
+        }
+        .dark-mode input[type="checkbox"] {
+            accent-color: #f7fafc;
+        }
+        .toggle-switch {
+            cursor: pointer;
+        }
+        .max-w-4xl {
+            max-width: 56rem;
+        }
+        @media (max-width: 768px) {
+            .max-w-4xl {
+                max-width: 100%;
+                margin: 0 1rem;
+            }
+        }
+        #charactersDisplay {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(3rem, 1fr));
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+        .character-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.25rem;
+        }
+        .character {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-right: 0.25rem;
+        }
+        .numbers-container {
+            display: flex;
+            flex-direction: column;
+            font-size: 0.7rem;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen" id="body">
+    <div class="bg-white shadow-md rounded p-6 w-full max-w-4xl mx-auto">
+        <div class="flex justify-between items-center mb-4">
+            <h1 class="text-2xl font-bold">Hiragana a Katakana</h1>
+            <div class="flex items-center space-x-2">
+                <button id="toggleDarkMode" class="toggle-switch text-gray-700">
+                    🌙
+                </button>
+            </div>
+        </div>
+        <div id="settings" class="mb-4">
+            <label class="block text-gray-700 font-semibold mb-2">Vyberte sady znakov:</label>
+            <div class="flex items-center mb-2">
+                <input type="checkbox" id="hiraganaCheckbox" class="mr-2" checked>
+                <label for="hiraganaCheckbox">Hiragana</label>
+            </div>
+            <div class="flex items-center mb-2">
+                <input type="checkbox" id="hiraganaDakuonCheckbox" class="mr-2">
+                <label for="hiraganaDakuonCheckbox">Hiragana Dakuon</label>
+            </div>
+            <div class="flex items-center mb-2">
+                <input type="checkbox" id="katakanaCheckbox" class="mr-2" checked>
+                <label for="katakanaCheckbox">Katakana</label>
+            </div>
+            <div class="flex items-center mb-2">
+                <input type="checkbox" id="katakanaDakuonCheckbox" class="mr-2">
+                <label for="katakanaDakuonCheckbox">Katakana Dakuon</label>
+            </div>
+            <div class="flex space-x-2">
+                <button id="startButton" class="bg-blue-500 text-white px-4 py-2 rounded w-full">Začať učenie</button>
+                <button id="infoButton" class="bg-gray-200 text-gray-800 px-4 py-2 rounded w-full">Informácie</button>
+            </div>
+        </div>
+        <div id="infoSection" class="hidden mb-4">
+            <h2 class="text-xl font-semibold mb-2">Informácie</h2>
+            <p class="text-gray-700 mb-2">
+                Táto aplikácia vám pomôže naučiť sa japonské znaky Hiragany a Katakany, vrátane ich Dakuon variantov. Môžete si vybrať, ktoré sady znakov chcete trénovať.
+            </p>
+            <p class="text-gray-700 mb-2">
+                <strong>Hodnotenie známych znakov:</strong> Znak sa považuje za "známy", ak máte úspešnosť aspoň 75% a odpovedali ste naň aspoň 4-krát. V procese učenia sa vám bude zobrazovať percento známych znakov z celkového počtu aktívnych znakov.
+            </p>
+            <p class="text-gray-700 mb-2">
+                <strong>Vylúčenie znakov:</strong> Kliknutím na znak v prehľade na spodnej časti obrazovky ho môžete vylúčiť z učenia alebo znova zaradiť. Vylúčené znaky sa nezapočítavajú do štatistiky "Poznáte..." a nebudú sa zobrazovať počas učenia. Vylúčené znaky sú vizuálne označené prečiarknutím.
+            </p>
+            <button id="backToSettings" class="bg-blue-500 text-white px-4 py-2 rounded w-full mt-2">Späť</button>
+        </div>
+        <div id="learningSection" class="hidden">
+            <div id="progressBar" class="mb-4">
+                <div class="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+                    <div id="progressFill" class="bg-blue-500 h-2.5 rounded-full" style="width: 0%"></div>
+                </div>
+                <div class="text-sm text-gray-700 mt-1 text-right" id="progressText">0% správne</div>
+                <div class="text-sm text-gray-700 mt-1 text-left" id="knownCharacters">Poznáte 0% znakov.</div>
+            </div>
+            <div id="characterDisplay" class="text-6xl text-center mb-6 cursor-default"></div>
+            <div id="options" class="grid grid-cols-2 gap-4 mb-6">
+                <!-- Tu sa dynamicky vložia možnosti -->
+            </div>
+            <div id="result" class="text-center text-xl font-semibold mb-4"></div>
+            <div class="flex justify-between items-center mb-4">
+                <button id="nextButton" class="bg-blue-500 text-white px-4 py-2 rounded">Ďalší znak</button>
+                <button id="backToSettingsFromLearning" class="bg-gray-200 text-gray-800 px-4 py-2 rounded">Späť na úvodnú stránku</button>
+            </div>
+            <div id="charactersDisplay" class="grid grid-cols-8 gap-2">
+                <!-- Tu sa dynamicky zobrazia všetky znaky -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+const hiraganaData = [
+    { character: 'あ', romaji: 'a', mnemonic: 'Vyzerá ako otvorené ústa vydávajúce zvuk "áá".' },
+    { character: 'い', romaji: 'i', mnemonic: 'Dva tenké stĺpy pripomínajú písmeno "I".' },
+    { character: 'う', romaji: 'u', mnemonic: 'Pripomína strechu domu, kde "útočí" dážď.' },
+    { character: 'え', romaji: 'e', mnemonic: 'Vyzerá ako človek rozpažujúci ruky hovoriac "ešte".' },
+    { character: 'お', romaji: 'o', mnemonic: 'Pripomína kruh alebo "oko".' },
+    { character: 'か', romaji: 'ka', mnemonic: 'Vyzerá ako človek s "kapucňou" na hlave.' },
+    { character: 'き', romaji: 'ki', mnemonic: 'Pripomína "kľúč" s dvoma zubami.' },
+    { character: 'く', romaji: 'ku', mnemonic: 'Vyzerá ako "kút" miestnosti.' },
+    { character: 'け', romaji: 'ke', mnemonic: 'Pripomína písmeno "K" napísané rýchlo.' },
+    { character: 'こ', romaji: 'ko', mnemonic: 'Dve línie ako "kopije" skrížené spolu.' },
+    { character: 'さ', romaji: 'sa', mnemonic: 'Vyzerá ako "samuraj" s mečom.' },
+    { character: 'し', romaji: 'shi', mnemonic: 'Pripomína "šišku" padajúcu z stromu.' },
+    { character: 'す', romaji: 'su', mnemonic: 'Tvar slučky ako "suši" zvinuté do rolky.' },
+    { character: 'せ', romaji: 'se', mnemonic: 'Vyzerá ako "sejba" semien na poli.' },
+    { character: 'そ', romaji: 'so', mnemonic: 'Pripomína "sokola" letiaceho v oblúku.' },
+    { character: 'た', romaji: 'ta', mnemonic: 'Vyzerá ako "tanier" s jedlom.' },
+    { character: 'ち', romaji: 'chi', mnemonic: 'Pripomína "činky" používané pri cvičení.' },
+    { character: 'つ', romaji: 'tsu', mnemonic: 'Vyzerá ako "cunami" vlna blížiaca sa k brehu.' },
+    { character: 'て', romaji: 'te', mnemonic: 'Pripomína ruku ukazujúcu "tým" smerom.' },
+    { character: 'と', romaji: 'to', mnemonic: 'Vyzerá ako "topánka" so šnúrkou.' },
+    { character: 'な', romaji: 'na', mnemonic: 'Pripomína "náčinie" zavesené na stene.' },
+    { character: 'に', romaji: 'ni', mnemonic: 'Dve línie ako "nity" držia niečo pohromade.' },
+    { character: 'ぬ', romaji: 'nu', mnemonic: 'Vyzerá ako "nudle" zamotané spolu.' },
+    { character: 'ね', romaji: 'ne', mnemonic: 'Pripomína "necht" s lakom.' },
+    { character: 'の', romaji: 'no', mnemonic: 'Vyzerá ako "nos" v profile.' },
+    { character: 'は', romaji: 'ha', mnemonic: 'Pripomína "háčik" na ryby.' },
+    { character: 'ひ', romaji: 'hi', mnemonic: 'Vyzerá ako "horiaca" sviečka.' },
+    { character: 'ふ', romaji: 'fu', mnemonic: 'Pripomína "fúzy" na tvári.' },
+    { character: 'へ', romaji: 'he', mnemonic: 'Vyzerá ako šípka smerujúca "hen", teda tam.' },
+    { character: 'ほ', romaji: 'ho', mnemonic: 'Pripomína "holubicu" letiacu na oblohe.' },
+    { character: 'ま', romaji: 'ma', mnemonic: 'Vyzerá ako "mamuta" s dlhými klami.' },
+    { character: 'み', romaji: 'mi', mnemonic: 'Pripomína "mlyn" s otáčajúcimi sa lopatkami.' },
+    { character: 'む', romaji: 'mu', mnemonic: 'Vyzerá ako "muchotrávka" s klobúkom.' },
+    { character: 'め', romaji: 'me', mnemonic: 'Pripomína "meč" zasunutý v pošve.' },
+    { character: 'も', romaji: 'mo', mnemonic: 'Vyzerá ako "most" ponad rieku.' },
+    { character: 'や', romaji: 'ya', mnemonic: 'Pripomína "jatagan" - zahnutý meč.' },
+    { character: 'ゆ', romaji: 'yu', mnemonic: 'Vyzerá ako "jurta" postavená v stepi.' },
+    { character: 'よ', romaji: 'yo', mnemonic: 'Pripomína "jojo" visiace na šnúrke.' },
+    { character: 'ら', romaji: 'ra', mnemonic: 'Vyzerá ako "raketa" stúpajúca k oblohe.' },
+    { character: 'り', romaji: 'ri', mnemonic: 'Dve čiary ako "rieky" tečúce vedľa seba.' },
+    { character: 'る', romaji: 'ru', mnemonic: 'Pripomína "rúčku" na šálke.' },
+    { character: 'れ', romaji: 're', mnemonic: 'Vyzerá ako "reťaz" visiaca dolu.' },
+    { character: 'ろ', romaji: 'ro', mnemonic: 'Pripomína "robotníka" nesúceho náradie.' },
+    { character: 'わ', romaji: 'wa', mnemonic: 'Vyzerá ako "váha" s miskami.' },
+    { character: 'を', romaji: 'wo', mnemonic: 'Pripomína "volant" auta.' },
+    { character: 'ん', romaji: 'n', mnemonic: 'Vyzerá ako posledné písmeno "n" v abecede.' },
+];
+
+const hiraganaDakuonData = [
+    { character: 'が', romaji: 'ga', mnemonic: 'Ako "か" (ka), ale s dvoma bodkami - "GA" ako garáž.' },
+    { character: 'ぎ', romaji: 'gi', mnemonic: 'Ako "き" (ki), ale s dvoma bodkami - "GI" ako gitara.' },
+    { character: 'ぐ', romaji: 'gu', mnemonic: 'Ako "く" (ku), ale s dvoma bodkami - "GU" ako guľa.' },
+    { character: 'げ', romaji: 'ge', mnemonic: 'Ako "け" (ke), ale s dvoma bodkami - "GE" ako generátor.' },
+    { character: 'ご', romaji: 'go', mnemonic: 'Ako "こ" (ko), ale s dvoma bodkami - "GO" ako gól.' },
+    { character: 'ざ', romaji: 'za', mnemonic: 'Ako "さ" (sa), ale s dvoma bodkami - "ZA" ako zámok.' },
+    { character: 'じ', romaji: 'ji', mnemonic: 'Ako "し" (shi), ale s dvoma bodkami - "JI" ako jing a jang.' },
+    { character: 'ず', romaji: 'zu', mnemonic: 'Ako "す" (su), ale s dvoma bodkami - "ZU" ako zub.' },
+    { character: 'ぜ', romaji: 'ze', mnemonic: 'Ako "せ" (se), ale s dvoma bodkami - "ZE" ako zebra.' },
+    { character: 'ぞ', romaji: 'zo', mnemonic: 'Ako "そ" (so), ale s dvoma bodkami - "ZO" ako zoo.' },
+    { character: 'だ', romaji: 'da', mnemonic: 'Ako "た" (ta), ale s dvoma bodkami - "DA" ako dáždnik.' },
+    { character: 'ぢ', romaji: 'ji', mnemonic: 'Ako "ち" (chi), ale s dvoma bodkami - druhý znak pre "JI" ako jing.' },
+    { character: 'づ', romaji: 'zu', mnemonic: 'Ako "つ" (tsu), ale s dvoma bodkami - druhý znak pre "ZU" ako zubná kefka.' },
+    { character: 'で', romaji: 'de', mnemonic: 'Ako "て" (te), ale s dvoma bodkami - "DE" ako detektív.' },
+    { character: 'ど', romaji: 'do', mnemonic: 'Ako "と" (to), ale s dvoma bodkami - "DO" ako dom.' },
+    { character: 'ば', romaji: 'ba', mnemonic: 'Ako "は" (ha), ale s dvoma bodkami - "BA" ako balón.' },
+    { character: 'び', romaji: 'bi', mnemonic: 'Ako "ひ" (hi), ale s dvoma bodkami - "BI" ako bicykel.' },
+    { character: 'ぶ', romaji: 'bu', mnemonic: 'Ako "ふ" (fu), ale s dvoma bodkami - "BU" ako bublina.' },
+    { character: 'べ', romaji: 'be', mnemonic: 'Ako "へ" (he), ale s dvoma bodkami - "BE" ako bežec.' },
+    { character: 'ぼ', romaji: 'bo', mnemonic: 'Ako "ほ" (ho), ale s dvoma bodkami - "BO" ako box.' },
+    { character: 'ぱ', romaji: 'pa', mnemonic: 'Ako "は" (ha), ale s krúžkom - "PA" ako paprika.' },
+    { character: 'ぴ', romaji: 'pi', mnemonic: 'Ako "ひ" (hi), ale s krúžkom - "PI" ako pilot.' },
+    { character: 'ぷ', romaji: 'pu', mnemonic: 'Ako "ふ" (fu), ale s krúžkom - "PU" ako pusa.' },
+    { character: 'ぺ', romaji: 'pe', mnemonic: 'Ako "へ" (he), ale s krúžkom - "PE" ako pero.' },
+    { character: 'ぽ', romaji: 'po', mnemonic: 'Ako "ほ" (ho), ale s krúžkom - "PO" ako pohár.' },
+];
+
+const katakanaData = [
+    { character: 'ア', romaji: 'a', mnemonic: 'Vyzerá ako šikmé "A" bez priečky.' },
+    { character: 'イ', romaji: 'i', mnemonic: 'Pripomína dva zvislé ťahy - "I" ako ihla.' },
+    { character: 'ウ', romaji: 'u', mnemonic: 'Vyzerá ako úzky pohár - "U" ako ústie pohára.' },
+    { character: 'エ', romaji: 'e', mnemonic: 'Pripomína znak eura - "E" ako euro.' },
+    { character: 'オ', romaji: 'o', mnemonic: 'Vyzerá ako otvorené ústa - "O" ako otvor.' },
+    { character: 'カ', romaji: 'ka', mnemonic: 'Pripomína káru - "KA" ako kára.' },
+    { character: 'キ', romaji: 'ki', mnemonic: 'Vyzerá ako kľúč - "KI" ako kľúč.' },
+    { character: 'ク', romaji: 'ku', mnemonic: 'Pripomína kuchynský hák - "KU" ako kuchyňa.' },
+    { character: 'ケ', romaji: 'ke', mnemonic: 'Vyzerá ako kefka - "KE" ako kefka.' },
+    { character: 'コ', romaji: 'ko', mnemonic: 'Pripomína kocku z profilu - "KO" ako kocka.' },
+    { character: 'サ', romaji: 'sa', mnemonic: 'Vyzerá ako sandále - "SA" ako sandále.' },
+    { character: 'シ', romaji: 'shi', mnemonic: 'Pripomína šišku - "SHI" ako šiška.' },
+    { character: 'ス', romaji: 'su', mnemonic: 'Vyzerá ako slučka - "SU" ako slučka.' },
+    { character: 'セ', romaji: 'se', mnemonic: 'Pripomína sekeru - "SE" ako sekera.' },
+    { character: 'ソ', romaji: 'so', mnemonic: 'Vyzerá ako soľnička - "SO" ako soľ.' },
+    { character: 'タ', romaji: 'ta', mnemonic: 'Pripomína tanier - "TA" ako tanier.' },
+    { character: 'チ', romaji: 'chi', mnemonic: 'Vyzerá ako čiara s bodkou - "CHI" ako čiara.' },
+    { character: 'ツ', romaji: 'tsu', mnemonic: 'Pripomína tsunami vlny - "TSU" ako tsunami.' },
+    { character: 'テ', romaji: 'te', mnemonic: 'Vyzerá ako telefón - "TE" ako telefón.' },
+    { character: 'ト', romaji: 'to', mnemonic: 'Pripomína topánku - "TO" ako topánka.' },
+    { character: 'ナ', romaji: 'na', mnemonic: 'Vyzerá ako nákupný vozík z profilu - "NA" ako nákup.' },
+    { character: 'ニ', romaji: 'ni', mnemonic: 'Pripomína nite - "NI" ako nite.' },
+    { character: 'ヌ', romaji: 'nu', mnemonic: 'Vyzerá ako nôž - "NU" ako nôž.' },
+    { character: 'ネ', romaji: 'ne', mnemonic: 'Pripomína neónový oblúk - "NE" ako neón.' },
+    { character: 'ノ', romaji: 'no', mnemonic: 'Vyzerá ako nos z profilu - "NO" ako nos.' },
+    { character: 'ハ', romaji: 'ha', mnemonic: 'Pripomína haciendu - "HA" ako hacienda.' },
+    { character: 'ヒ', romaji: 'hi', mnemonic: 'Vyzerá ako hifi veža - "HI" ako hifi.' },
+    { character: 'フ', romaji: 'fu', mnemonic: 'Pripomína futbalové ihrisko - "FU" ako futbal.' },
+    { character: 'ヘ', romaji: 'he', mnemonic: 'Vyzerá ako helikoptéra zhora - "HE" ako helikoptéra.' },
+    { character: 'ホ', romaji: 'ho', mnemonic: 'Pripomína hodiny - "HO" ako hodiny.' },
+    { character: 'マ', romaji: 'ma', mnemonic: 'Vyzerá ako mapa - "MA" ako mapa.' },
+    { character: 'ミ', romaji: 'mi', mnemonic: 'Pripomína mikrofón - "MI" ako mikrofón.' },
+    { character: 'ム', romaji: 'mu', mnemonic: 'Vyzerá ako mušľa - "MU" ako mušľa.' },
+    { character: 'メ', romaji: 'me', mnemonic: 'Pripomína meč - "ME" ako meč.' },
+    { character: 'モ', romaji: 'mo', mnemonic: 'Vyzerá ako most - "MO" ako most.' },
+    { character: 'ヤ', romaji: 'ya', mnemonic: 'Pripomína yak - "YA" ako yak.' },
+    { character: 'ユ', romaji: 'yu', mnemonic: 'Vyzerá ako yucca - "YU" ako yucca.' },
+    { character: 'ヨ', romaji: 'yo', mnemonic: 'Pripomína yoyo - "YO" ako yoyo.' },
+    { character: 'ラ', romaji: 'ra', mnemonic: 'Vyzerá ako rádio - "RA" ako rádio.' },
+    { character: 'リ', romaji: 'ri', mnemonic: 'Pripomína rieku - "RI" ako rieka.' },
+    { character: 'ル', romaji: 'ru', mnemonic: 'Vyzerá ako ruleta - "RU" ako ruleta.' },
+    { character: 'レ', romaji: 're', mnemonic: 'Pripomína rebrík - "RE" ako rebrík.' },
+    { character: 'ロ', romaji: 'ro', mnemonic: 'Vyzerá ako robot - "RO" ako robot.' },
+    { character: 'ワ', romaji: 'wa', mnemonic: 'Pripomína wafle - "WA" ako wafle.' },
+    { character: 'ヲ', romaji: 'wo', mnemonic: 'Vyzerá ako whisky fľaša - "WO" ako whisky.' },
+    { character: 'ン', romaji: 'n', mnemonic: 'Pripomína vlnu - "N" ako vlna.' },
+];
+
+const katakanaDakuonData = [  
+    { character: 'ガ', romaji: 'ga', mnemonic: 'Ako "カ" (ka), ale s dvoma bodkami - "GA" ako garáž.' },  
+    { character: 'ギ', romaji: 'gi', mnemonic: 'Ako "キ" (ki), ale s dvoma bodkami - "GI" ako gitara.' },  
+    { character: 'グ', romaji: 'gu', mnemonic: 'Ako "ク" (ku), ale s dvoma bodkami - "GU" ako guľa.' },  
+    { character: 'ゲ', romaji: 'ge', mnemonic: 'Ako "ケ" (ke), ale s dvoma bodkami - "GE" ako generátor.' },  
+    { character: 'ゴ', romaji: 'go', mnemonic: 'Ako "コ" (ko), ale s dvoma bodkami - "GO" ako gól.' },  
+    { character: 'ザ', romaji: 'za', mnemonic: 'Ako "サ" (sa), ale s dvoma bodkami - "ZA" ako zámok.' },  
+    { character: 'ジ', romaji: 'ji', mnemonic: 'Ako "シ" (shi), ale s dvoma bodkami - "JI" ako jing a jang.' },  
+    { character: 'ズ', romaji: 'zu', mnemonic: 'Ako "ス" (su), ale s dvoma bodkami - "ZU" ako zub.' },  
+    { character: 'ゼ', romaji: 'ze', mnemonic: 'Ako "セ" (se), ale s dvoma bodkami - "ZE" ako zebra.' },  
+    { character: 'ゾ', romaji: 'zo', mnemonic: 'Ako "ソ" (so), ale s dvoma bodkami - "ZO" ako zoo.' },  
+    { character: 'ダ', romaji: 'da', mnemonic: 'Ako "タ" (ta), ale s dvoma bodkami - "DA" ako dáždnik.' },  
+    { character: 'ヂ', romaji: 'ji', mnemonic: 'Ako "チ" (chi), ale s dvoma bodkami - druhý znak pre "JI" ako jing.' },  
+    { character: 'ヅ', romaji: 'zu', mnemonic: 'Ako "ツ" (tsu), ale s dvoma bodkami - druhý znak pre "ZU" ako zubná kefka.' },  
+    { character: 'デ', romaji: 'de', mnemonic: 'Ako "テ" (te), ale s dvoma bodkami - "DE" ako detektív.' },  
+    { character: 'ド', romaji: 'do', mnemonic: 'Ako "ト" (to), ale s dvoma bodkami - "DO" ako dom.' },  
+    { character: 'バ', romaji: 'ba', mnemonic: 'Ako "ハ" (ha), ale s dvoma bodkami - "BA" ako balón.' },  
+    { character: 'ビ', romaji: 'bi', mnemonic: 'Ako "ヒ" (hi), ale s dvoma bodkami - "BI" ako bicykel.' },  
+    { character: 'ブ', romaji: 'bu', mnemonic: 'Ako "フ" (fu), ale s dvoma bodkami - "BU" ako bublina.' },  
+    { character: 'ベ', romaji: 'be', mnemonic: 'Ako "ヘ" (he), ale s dvoma bodkami - "BE" ako bežec.' },  
+    { character: 'ボ', romaji: 'bo', mnemonic: 'Ako "ホ" (ho), ale s dvoma bodkami - "BO" ako box.' },  
+    { character: 'パ', romaji: 'pa', mnemonic: 'Ako "ハ" (ha), ale s krúžkom - "PA" ako paprika.' },  
+    { character: 'ピ', romaji: 'pi', mnemonic: 'Ako "ヒ" (hi), ale s krúžkom - "PI" ako pilot.' },  
+    { character: 'プ', romaji: 'pu', mnemonic: 'Ako "フ" (fu), ale s krúžkom - "PU" ako pusa.' },  
+    { character: 'ペ', romaji: 'pe', mnemonic: 'Ako "ヘ" (he), ale s krúžkom - "PE" ako pero.' },  
+    { character: 'ポ', romaji: 'po', mnemonic: 'Ako "ホ" (ho), ale s krúžkom - "PO" ako pohár.' },  
+];   
+
+let allCharacters = [];
+let stats = [];
+let savedStats = JSON.parse(localStorage.getItem('hiraganaKatakanaStats') || '[]');
+let darkMode = false;
+let totalQuestions = 0;
+let correctAnswers = 0;
+let currentChar;
+let selectedSets = [];
+let excludedCharacters = [];
+
+const bodyElement = document.getElementById('body');
+const characterDisplay = document.getElementById('characterDisplay');
+const optionsContainer = document.getElementById('options');
+const resultDisplay = document.getElementById('result');
+const nextButton = document.getElementById('nextButton');
+const toggleDarkMode = document.getElementById('toggleDarkMode');
+const progressBar = document.getElementById('progressBar');
+const progressFill = document.getElementById('progressFill');
+const progressText = document.getElementById('progressText');
+const knownCharactersDisplay = document.getElementById('knownCharacters');
+const settingsSection = document.getElementById('settings');
+const learningSection = document.getElementById('learningSection');
+const startButton = document.getElementById('startButton');
+const hiraganaCheckbox = document.getElementById('hiraganaCheckbox');
+const hiraganaDakuonCheckbox = document.getElementById('hiraganaDakuonCheckbox');
+const katakanaCheckbox = document.getElementById('katakanaCheckbox');
+const katakanaDakuonCheckbox = document.getElementById('katakanaDakuonCheckbox');
+const infoButton = document.getElementById('infoButton');
+const infoSection = document.getElementById('infoSection');
+const backToSettings = document.getElementById('backToSettings');
+const backToSettingsFromLearning = document.getElementById('backToSettingsFromLearning');
+const charactersDisplay = document.getElementById('charactersDisplay');
+
+function initApp() {
+    loadExcludedCharacters();
+    selectedSets = [];
+    if (hiraganaCheckbox.checked) selectedSets = selectedSets.concat(hiraganaData);
+    if (hiraganaDakuonCheckbox.checked) selectedSets = selectedSets.concat(hiraganaDakuonData);
+    if (katakanaCheckbox.checked) selectedSets = selectedSets.concat(katakanaData);
+    if (katakanaDakuonCheckbox.checked) selectedSets = selectedSets.concat(katakanaDakuonData);
+    if (selectedSets.length === 0) {
+        alert('Prosím, vyberte aspoň jednu sadu znakov.');
+        return;
+    }
+    allCharacters = selectedSets;
+    stats = allCharacters.map(item => {
+        const savedItem = savedStats.find(s => s.character === item.character);
+        return savedItem ? savedItem : { ...item, correct: 0, incorrect: 0 };
+    });
+    totalQuestions = 0;
+    correctAnswers = 0;
+    updateProgress();
+    updateKnownCharacters();
+    settingsSection.classList.add('hidden');
+    infoSection.classList.add('hidden');
+    learningSection.classList.remove('hidden');
+    updateCharactersDisplay();
+    updateDisplay();
+}
+
+function showInfo() {
+    settingsSection.classList.add('hidden');
+    infoSection.classList.remove('hidden');
+}
+
+function backToSettingsFunction() {
+    infoSection.classList.add('hidden');
+    settingsSection.classList.remove('hidden');
+}
+
+function backToSettingsFromLearningFunction() {
+    learningSection.classList.add('hidden');
+    settingsSection.classList.remove('hidden');
+}
+
+function getWeightedRandomCharacter() {
+    const activeStats = stats.filter(item => !excludedCharacters.includes(item.character));
+    let totalWeight = 0;
+    const weights = activeStats.map(item => {
+        const weight = Math.pow(2, item.incorrect + 1) / Math.pow(2, item.correct + 1);
+        totalWeight += weight;
+        return weight;
+    });
+
+    let random = Math.random() * totalWeight;
+    for (let i = 0; i < activeStats.length; i++) {
+        if (random < weights[i]) {
+            return activeStats[i];
+        }
+        random -= weights[i];
+    }
+    return activeStats[activeStats.length - 1];
+}
+
+function generateOptions(correctRomaji) {
+    const options = new Set();
+    options.add(correctRomaji);
+    while (options.size < 8) {
+        const randomRomaji = allCharacters[Math.floor(Math.random() * allCharacters.length)].romaji;
+        if (randomRomaji !== correctRomaji) {
+            options.add(randomRomaji);
+        }
+    }
+    return Array.from(options);
+}
+
+function updateDisplay() {
+    resultDisplay.textContent = '';
+    resultDisplay.className = '';
+    optionsContainer.innerHTML = '';
+    currentChar = getWeightedRandomCharacter();
+    characterDisplay.textContent = currentChar.character;
+
+    const options = generateOptions(currentChar.romaji);
+    const shuffledOptions = shuffleArray(options);
+
+    shuffledOptions.forEach(option => {
+        const button = document.createElement('button');
+        button.textContent = option;
+        button.className = 'bg-gray-200 text-gray-800 px-4 py-2 rounded m-1';
+        button.addEventListener('click', () => checkAnswer(button, option));
+        optionsContainer.appendChild(button);
+    });
+
+    nextButton.disabled = true;
+}
+
+function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+}
+
+function checkAnswer(buttonClicked, selectedOption) {
+    Array.from(optionsContainer.children).forEach(button => button.disabled = true);
+
+    totalQuestions++;
+
+    if (selectedOption === currentChar.romaji) {
+        resultDisplay.textContent = 'Správne!';
+        resultDisplay.className = 'text-center text-green-500 text-xl font-semibold mb-4';
+        buttonClicked.classList.add('bg-green-200');
+        currentChar.correct++;
+        correctAnswers++;
+    } else {
+        resultDisplay.textContent = `Nesprávne. Správna odpoveď je "${currentChar.romaji}".`;
+        resultDisplay.className = 'text-center text-red-500 text-xl font-semibold mb-4';
+        buttonClicked.classList.add('bg-red-200');
+        Array.from(optionsContainer.children).forEach(button => {
+            if (button.textContent === currentChar.romaji) {
+                button.classList.add('bg-green-200');
+            }
+        });
+        currentChar.incorrect++;
+
+        // Pridáme zobrazenie mnemotechnickej pomôcky
+        if (currentChar.mnemonic) {
+            const mnemonicDisplay = document.createElement('div');
+            mnemonicDisplay.textContent = `Pomôcka: ${currentChar.mnemonic}`;
+            mnemonicDisplay.className = 'text-center text-gray-600 mt-2 italic';
+            resultDisplay.appendChild(mnemonicDisplay);
+        }
+    }
+
+    const correctAttempts = currentChar.correct;
+    const incorrectAttempts = currentChar.incorrect;
+    const statsMessage = `Tento znak si určil správne ${correctAttempts}x a nesprávne ${incorrectAttempts}x.`;
+    const statsDisplay = document.createElement('div');
+    statsDisplay.textContent = statsMessage;
+    statsDisplay.className = 'text-center text-gray-700 mt-2';
+    resultDisplay.appendChild(statsDisplay);
+
+    savedStats = stats;
+    localStorage.setItem('hiraganaKatakanaStats', JSON.stringify(savedStats));
+
+    updateProgress();
+    updateKnownCharacters();
+    updateCharactersDisplay();
+
+    nextButton.disabled = false;
+}
+
+function updateProgress() {
+    const percentage = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
+    progressFill.style.width = `${percentage}%`;
+    progressText.textContent = `${percentage}% správne`;
+}
+
+function updateKnownCharacters() {
+    const activeCharacters = stats.filter(item => !excludedCharacters.includes(item.character));
+    const knownCharacters = activeCharacters.filter(item => (item.correct / (item.correct + item.incorrect)) >= 0.75 && (item.correct + item.incorrect) >= 4);
+    const totalActiveCharacters = activeCharacters.length;
+    const knownPercentage = totalActiveCharacters > 0 ? Math.round((knownCharacters.length / totalActiveCharacters) * 100) : 0;
+    knownCharactersDisplay.textContent = `Poznáte ${knownPercentage}% aktívnych znakov.`;
+}
+
+function toggleCharacterExclusion(character) {
+    const index = excludedCharacters.indexOf(character);
+    if (index > -1) {
+        excludedCharacters.splice(index, 1);
+    } else {
+        excludedCharacters.push(character);
+    }
+    updateCharactersDisplay();
+    updateKnownCharacters();
+    saveExcludedCharacters();
+}
+
+function saveExcludedCharacters() {
+    localStorage.setItem('excludedCharacters', JSON.stringify(excludedCharacters));
+}
+
+function loadExcludedCharacters() {
+    const saved = localStorage.getItem('excludedCharacters');
+    if (saved) {
+        excludedCharacters = JSON.parse(saved);
+    }
+}
+
+function updateCharactersDisplay() {
+    charactersDisplay.innerHTML = '';
+
+    stats.forEach(item => {
+        const charContainer = document.createElement('div');
+        charContainer.className = 'character-container';
+
+        const charElement = document.createElement('span');
+        charElement.textContent = item.character;
+        charElement.className = 'character';
+
+        const numbersContainer = document.createElement('div');
+        numbersContainer.className = 'numbers-container';
+
+        const correctIndex = document.createElement('span');
+        correctIndex.textContent = item.correct.toString().padStart(2, '0');
+        correctIndex.style.color = 'green';
+
+        const incorrectIndex = document.createElement('span');
+        incorrectIndex.textContent = item.incorrect.toString().padStart(2, '0');
+        incorrectIndex.style.color = 'red';
+
+        numbersContainer.appendChild(correctIndex);
+        numbersContainer.appendChild(incorrectIndex);
+
+        charContainer.appendChild(charElement);
+        charContainer.appendChild(numbersContainer);
+
+        charContainer.addEventListener('click', () => toggleCharacterExclusion(item.character));
+
+        if (excludedCharacters.includes(item.character)) {
+            charContainer.style.opacity = '0.3';
+            charElement.style.color = '#888';
+        } else {
+            const totalAttempts = item.correct + item.incorrect;
+
+            if (totalAttempts === 0) {
+                charElement.style.color = 'gray';
+            } else {
+                const correctness = item.correct - item.incorrect;
+                let colorValue = 0;
+
+                if (correctness > 0) {
+                    colorValue = Math.min(100 + correctness * 30, 255);
+                    charElement.style.color = `rgb(0, ${colorValue}, 0)`;
+                } else {
+                    colorValue = Math.min(100 + Math.abs(correctness) * 30, 255);
+                    charElement.style.color = `rgb(${colorValue}, 0, 0)`;
+                }
+            }
+        }
+
+        charactersDisplay.appendChild(charContainer);
+    });
+}
+
+function toggleDarkModeFunction() {
+    darkMode = !darkMode;
+    if (darkMode) {
+        bodyElement.classList.add('dark-mode');
+    } else {
+        bodyElement.classList.remove('dark-mode');
+    }
+}
+
+startButton.addEventListener('click', initApp);
+nextButton.addEventListener('click', updateDisplay);
+toggleDarkMode.addEventListener('click', toggleDarkModeFunction);
+infoButton.addEventListener('click', showInfo);
+backToSettings.addEventListener('click', backToSettingsFunction);
+backToSettingsFromLearning.addEventListener('click', backToSettingsFromLearningFunction);
+
+document.addEventListener('keydown', function(event) {
+    if (event.code === 'Space' && !nextButton.disabled) {
+        updateDisplay();
+    }
+});
+</script>
+</body>
+</html>
+</antArtifact>

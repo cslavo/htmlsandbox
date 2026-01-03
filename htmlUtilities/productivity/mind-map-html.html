@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Myšlienková mapa</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+        }
+        #canvas {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            overflow: hidden;
+        }
+        .node {
+            position: absolute;
+            background-color: white;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 10px;
+            cursor: move;
+            user-select: none;
+        }
+        .node input {
+            border: none;
+            outline: none;
+            font-size: 14px;
+        }
+        .add-button, .delete-button {
+            margin-left: 5px;
+            cursor: pointer;
+            font-size: 18px;
+        }
+        .add-button {
+            color: blue;
+        }
+        .delete-button {
+            color: red;
+        }
+        #controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+        }
+        button {
+            margin-right: 10px;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <button onclick="saveToFile()">Uložiť</button>
+        <input type="file" id="loadFile" style="display:none;" onchange="loadFromFile(event)">
+        <button onclick="document.getElementById('loadFile').click()">Načítať</button>
+    </div>
+    <div id="canvas"></div>
+
+    <script>
+        let nodes = [{ id: 1, text: 'Hlavná myšlienka test', x: 300, y: 200, parentId: null }];
+        let nextId = 2;
+
+        function createNode(node) {
+            const div = document.createElement('div');
+            div.className = 'node';
+            div.id = `node-${node.id}`;
+            div.style.left = `${node.x}px`;
+            div.style.top = `${node.y}px`;
+            div.innerHTML = `
+                <input type="text" value="${node.text}" onchange="updateNodeText(${node.id}, this.value)">
+                <span class="add-button" onclick="addNode(${node.id})">➜</span>
+                <span class="delete-button" onclick="deleteNode(${node.id})">×</span>
+            `;
+            div.onmousedown = (e) => startDragging(e, node.id);
+            document.getElementById('canvas').appendChild(div);
+        }
+
+        function addNode(parentId) {
+            const parent = nodes.find(n => n.id === parentId);
+            const newNode = {
+                id: nextId++,
+                text: 'Nová myšlienka',
+                x: parent.x + 150,
+                y: parent.y + 50,
+                parentId: parentId
+            };
+            nodes.push(newNode);
+            createNode(newNode);
+            drawLines();
+        }
+
+        function deleteNode(id) {
+            const nodesToDelete = getNodeAndDescendants(id);
+            nodes = nodes.filter(n => !nodesToDelete.includes(n.id));
+            nodesToDelete.forEach(nodeId => {
+                const element = document.getElementById(`node-${nodeId}`);
+                if (element) element.remove();
+            });
+            drawLines();
+        }
+
+        function getNodeAndDescendants(id) {
+            const result = [id];
+            nodes.forEach(node => {
+                if (node.parentId === id) {
+                    result.push(...getNodeAndDescendants(node.id));
+                }
+            });
+            return result;
+        }
+
+        function updateNodeText(id, newText) {
+            const node = nodes.find(n => n.id === id);
+            if (node) node.text = newText;
+        }
+
+        function startDragging(e, id) {
+            const node = document.getElementById(`node-${id}`);
+            let startX = e.clientX - node.offsetLeft;
+            let startY = e.clientY - node.offsetTop;
+
+            function drag(e) {
+                node.style.left = `${e.clientX - startX}px`;
+                node.style.top = `${e.clientY - startY}px`;
+            }
+
+            function stopDragging() {
+                document.removeEventListener('mousemove', drag);
+                document.removeEventListener('mouseup', stopDragging);
+                const nodeData = nodes.find(n => n.id === id);
+                nodeData.x = parseInt(node.style.left);
+                nodeData.y = parseInt(node.style.top);
+                drawLines();
+            }
+
+            document.addEventListener('mousemove', drag);
+            document.addEventListener('mouseup', stopDragging);
+        }
+
+        function drawLines() {
+            const svgNS = "http://www.w3.org/2000/svg";
+            const canvas = document.getElementById('canvas');
+            const oldSvg = canvas.querySelector('svg');
+            if (oldSvg) oldSvg.remove();
+
+            const svg = document.createElementNS(svgNS, "svg");
+            svg.setAttribute("width", "100%");
+            svg.setAttribute("height", "100%");
+            svg.style.position = "absolute";
+            svg.style.top = "0";
+            svg.style.left = "0";
+            svg.style.pointerEvents = "none";
+
+            // Group children by parent
+            const childrenByParent = {};
+            nodes.forEach(node => {
+                if (node.parentId) {
+                    if (!childrenByParent[node.parentId]) {
+                        childrenByParent[node.parentId] = [];
+                    }
+                    childrenByParent[node.parentId].push(node);
+                }
+            });
+
+            nodes.forEach(parent => {
+                const children = childrenByParent[parent.id] || [];
+                const parentEl = document.getElementById(`node-${parent.id}`);
+                if (!parentEl) return;
+
+                const parentRect = parentEl.getBoundingClientRect();
+
+                children.forEach((child, index) => {
+                    const childEl = document.getElementById(`node-${child.id}`);
+                    if (!childEl) return;
+
+                    const childRect = childEl.getBoundingClientRect();
+
+                    let startX, startY, endX, endY;
+
+                    // Determine which sides to connect
+                    if (childRect.left > parentRect.right) {
+                        // Child is to the right
+                        startX = parentRect.right;
+                        startY = parentRect.top + parentRect.height * (index + 1) / (children.length + 1);
+                        endX = childRect.left;
+                        endY = childRect.top + childRect.height / 2;
+                    } else if (childRect.right < parentRect.left) {
+                        // Child is to the left
+                        startX = parentRect.left;
+                        startY = parentRect.top + parentRect.height * (index + 1) / (children.length + 1);
+                        endX = childRect.right;
+                        endY = childRect.top + childRect.height / 2;
+                    } else if (childRect.top > parentRect.bottom) {
+                        // Child is below
+                        startX = parentRect.left + parentRect.width * (index + 1) / (children.length + 1);
+                        startY = parentRect.bottom;
+                        endX = childRect.left + childRect.width / 2;
+                        endY = childRect.top;
+                    } else {
+                        // Child is above
+                        startX = parentRect.left + parentRect.width * (index + 1) / (children.length + 1);
+                        startY = parentRect.top;
+                        endX = childRect.left + childRect.width / 2;
+                        endY = childRect.bottom;
+                    }
+
+                    const line = document.createElementNS(svgNS, "line");
+                    line.setAttribute("x1", startX);
+                    line.setAttribute("y1", startY);
+                    line.setAttribute("x2", endX);
+                    line.setAttribute("y2", endY);
+                    line.setAttribute("stroke", "black");
+                    svg.appendChild(line);
+                });
+            });
+
+            canvas.appendChild(svg);
+        }
+
+        function saveToFile() {
+            const data = JSON.stringify(nodes);
+            const blob = new Blob([data], {type: 'text/plain'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'myslienkovamapa.txt';
+            a.click();
+        }
+
+        function loadFromFile(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        nodes = JSON.parse(e.target.result);
+                        nextId = Math.max(...nodes.map(n => n.id)) + 1;
+                        redrawAll();
+                    } catch (error) {
+                        alert('Neplatný súbor');
+                    }
+                };
+                reader.readAsText(file);
+            }
+        }
+
+        function redrawAll() {
+            document.getElementById('canvas').innerHTML = '';
+            nodes.forEach(createNode);
+            drawLines();
+        }
+
+        // Inicializácia
+        createNode(nodes[0]);
+    </script>
+</body>
+</html>

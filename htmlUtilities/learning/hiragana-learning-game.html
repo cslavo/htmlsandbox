@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hiragana Learning Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        .container {
+            text-align: center;
+            background-color: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+        #hiraganaChar {
+            font-size: 200px;
+            line-height: 1;
+            margin-bottom: 0.5rem;
+        }
+        #learningScore {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+        }
+        .options {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        button {
+            font-size: 1.2rem;
+            padding: 0.5rem 1rem;
+            border: none;
+            background-color: #3498db;
+            color: white;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        button:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+        }
+        #feedback {
+            font-size: 1.2rem;
+            font-weight: bold;
+            height: 1.5em;
+        }
+        #correctAnswer {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #e74c3c;
+            margin-top: 0.5rem;
+            height: 2.5em;
+        }
+        #score, #progress, #remainingMoves {
+            font-size: 1.2rem;
+            margin-top: 0.5rem;
+        }
+        #resetButton {
+            margin-top: 1rem;
+            background-color: #e74c3c;
+        }
+        #resetButton:hover {
+            background-color: #c0392b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Hiragana</h1>
+        <div id="hiraganaChar"></div>
+        <div id="learningScore"></div>
+        <div class="options" id="options"></div>
+        <div id="feedback"></div>
+        <div id="correctAnswer"></div>
+        <div id="score"></div>
+        <div id="progress"></div>
+        <div id="remainingMoves"></div>
+        <button id="resetButton" onclick="resetGame()">Resetovať hru</button>
+    </div>
+
+    <script>
+        const hiraganaData = [
+            { char: 'あ', romaji: 'a' }, { char: 'い', romaji: 'i' }, { char: 'う', romaji: 'u' },
+            { char: 'え', romaji: 'e' }, { char: 'お', romaji: 'o' }, { char: 'か', romaji: 'ka' },
+            { char: 'き', romaji: 'ki' }, { char: 'く', romaji: 'ku' }, { char: 'け', romaji: 'ke' },
+            { char: 'こ', romaji: 'ko' }, { char: 'さ', romaji: 'sa' }, { char: 'し', romaji: 'shi' },
+            { char: 'す', romaji: 'su' }, { char: 'せ', romaji: 'se' }, { char: 'そ', romaji: 'so' },
+            { char: 'た', romaji: 'ta' }, { char: 'ち', romaji: 'chi' }, { char: 'つ', romaji: 'tsu' },
+            { char: 'て', romaji: 'te' }, { char: 'と', romaji: 'to' }, { char: 'な', romaji: 'na' },
+            { char: 'に', romaji: 'ni' }, { char: 'ぬ', romaji: 'nu' }, { char: 'ね', romaji: 'ne' },
+            { char: 'の', romaji: 'no' }, { char: 'は', romaji: 'ha' }, { char: 'ひ', romaji: 'hi' },
+            { char: 'ふ', romaji: 'fu' }, { char: 'へ', romaji: 'he' }, { char: 'ほ', romaji: 'ho' },
+            { char: 'ま', romaji: 'ma' }, { char: 'み', romaji: 'mi' }, { char: 'む', romaji: 'mu' },
+            { char: 'め', romaji: 'me' }, { char: 'も', romaji: 'mo' }, { char: 'や', romaji: 'ya' },
+            { char: 'ゆ', romaji: 'yu' }, { char: 'よ', romaji: 'yo' }, { char: 'ら', romaji: 'ra' },
+            { char: 'り', romaji: 'ri' }, { char: 'る', romaji: 'ru' }, { char: 'れ', romaji: 're' },
+            { char: 'ろ', romaji: 'ro' }, { char: 'わ', romaji: 'wa' }, { char: 'を', romaji: 'wo' },
+            { char: 'ん', romaji: 'n' }
+        ];
+
+        let characters, currentChar, score, totalAttempts, remainingMoves;
+        const totalCharacters = hiraganaData.length;
+
+        function initializeGame() {
+            const savedState = JSON.parse(localStorage.getItem('hiraganaGameState'));
+            if (savedState) {
+                characters = savedState.characters;
+                score = savedState.score;
+                totalAttempts = savedState.totalAttempts;
+                remainingMoves = savedState.remainingMoves;
+            } else {
+                characters = hiraganaData.map(char => ({ ...char, n: 3 }));
+                score = 0;
+                totalAttempts = 0;
+                remainingMoves = hiraganaData.length * 3;
+            }
+            selectNewCharacter();
+            updateStats();
+        }
+
+        function saveGameState() {
+            const gameState = {
+                characters: characters,
+                score: score,
+                totalAttempts: totalAttempts,
+                remainingMoves: remainingMoves
+            };
+            localStorage.setItem('hiraganaGameState', JSON.stringify(gameState));
+        }
+
+        function resetGame() {
+            localStorage.removeItem('hiraganaGameState');
+            initializeGame();
+        }
+
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function selectNewCharacter() {
+            const availableChars = characters.filter(char => char.n > 0);
+            if (availableChars.length === 0) {
+                document.getElementById('hiraganaChar').textContent = '';
+                document.getElementById('learningScore').textContent = '';
+                document.getElementById('feedback').textContent = 'Gratulujeme! Naučili ste sa všetky znaky.';
+                document.getElementById('options').innerHTML = '';
+                return;
+            }
+            currentChar = availableChars[Math.floor(Math.random() * availableChars.length)];
+            document.getElementById('hiraganaChar').textContent = currentChar.char;
+            document.getElementById('learningScore').textContent = `Skóre naučenia: ${3 - currentChar.n}/3`;
+            document.getElementById('correctAnswer').textContent = '';
+            generateOptions();
+        }
+
+        function generateOptions() {
+            const correctOption = currentChar.romaji;
+            const otherOptions = shuffle(hiraganaData.filter(c => c.romaji !== correctOption))
+                .slice(0, 6)
+                .map(c => c.romaji);
+            const options = shuffle([...otherOptions, correctOption]);
+            
+            const optionsContainer = document.getElementById('options');
+            optionsContainer.innerHTML = '';
+            options.forEach(option => {
+                const button = document.createElement('button');
+                button.textContent = option;
+                button.onclick = () => handleGuess(option);
+                optionsContainer.appendChild(button);
+            });
+        }
+
+        function handleGuess(guess) {
+            totalAttempts++;
+            const buttons = document.querySelectorAll('#options button');
+            buttons.forEach(button => button.disabled = true);
+
+            const charIndex = characters.findIndex(c => c.char === currentChar.char);
+
+            if (guess === currentChar.romaji) {
+                score++;
+                characters[charIndex].n--;
+                remainingMoves--;
+                document.getElementById('feedback').textContent = 'Správne!';
+                document.getElementById('correctAnswer').textContent = '';
+                setTimeout(() => {
+                    document.getElementById('feedback').textContent = '';
+                    updateStats();
+                    selectNewCharacter();
+                }, 1500);
+            } else {
+                characters[charIndex].n++;
+                remainingMoves++;
+                document.getElementById('feedback').textContent = 'Nesprávne.';
+                document.getElementById('correctAnswer').textContent = `Správna odpoveď: ${currentChar.romaji}`;
+                setTimeout(() => {
+                    document.getElementById('feedback').textContent = '';
+                    document.getElementById('correctAnswer').textContent = '';
+                    updateStats();
+                    selectNewCharacter();
+                }, 3000);
+            }
+
+            saveGameState();
+        }
+
+        function updateStats() {
+            const learnedCharacters = characters.filter(char => char.n === 0).length;
+            const progress = (learnedCharacters / totalCharacters) * 100;
+
+            document.getElementById('score').textContent = `Skóre: ${score} / ${totalAttempts}`;
+            document.getElementById('progress').textContent = `Progres: ${progress.toFixed(2)}%`;
+            document.getElementById('remainingMoves').textContent = `Zostávajúce pokusy: ${remainingMoves}`;
+        }
+
+        // Inicializácia hry
+        initializeGame();
+    </script>
+</body>
+</html>

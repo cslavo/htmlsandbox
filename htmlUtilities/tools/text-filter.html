@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text Filter</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px auto;
+            max-width: 1200px;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .editor-container {
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .CodeMirror {
+            height: 400px;
+            font-family: 'Consolas', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .info-text {
+            color: #666;
+            font-size: 14px;
+            margin: 5px 0;
+        }
+
+        .filter-container {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            background-color: white;
+            padding: 15px;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .filter-input {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .filter-type {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            white-space: nowrap;
+        }
+
+        button {
+            padding: 8px 16px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s;
+            min-width: 100px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+
+        .action-button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            box-sizing: border-box;
+        }
+
+        .progress-container {
+            width: 100%;
+            height: 20px;
+            background-color: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            display: none;
+        }
+
+        .progress-bar {
+            width: 0%;
+            height: 100%;
+            background-color: #4CAF50;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h3>Vstupný text</h3>
+        <div class="editor-container">
+            <div id="inputEditor"></div>
+        </div>
+        <div id="inputInfo" class="info-text">Počet riadkov: 0</div>
+
+        <div class="filter-container">
+            <input type="text" id="filterInput" class="filter-input" placeholder="Zadajte text na filtrovanie...">
+            <div class="filter-type">
+                <label>
+                    <input type="radio" name="filterType" value="include" checked>
+                    Obsahuje
+                </label>
+                <label>
+                    <input type="radio" name="filterType" value="exclude">
+                    Neobsahuje
+                </label>
+            </div>
+            <button id="filterButton" onclick="filterText()">Filtruj</button>
+        </div>
+
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-bar" id="progressBar"></div>
+            <div class="progress-text" id="progressText">0%</div>
+        </div>
+
+        <h3>Filtrovaný text</h3>
+        <div class="editor-container">
+            <div id="outputEditor"></div>
+        </div>
+        <div id="outputInfo" class="info-text">Počet riadkov: 0</div>
+        <button class="action-button" onclick="moveFilteredToInput()">Filtrovaný text na vstup</button>
+    </div>
+
+    <script>
+        // Inicializácia CodeMirror editorov
+        const inputEditor = CodeMirror(document.getElementById('inputEditor'), {
+            lineNumbers: true,
+            lineWrapping: false,
+            mode: 'text',
+            value: '',
+            viewportMargin: 10,
+            matchBrackets: true,
+            electricChars: false,
+            fixedGutter: true,
+            gutters: ["CodeMirror-linenumbers"],
+            extraKeys: {
+                "Ctrl-F": "findPersistent"
+            }
+        });
+
+        const outputEditor = CodeMirror(document.getElementById('outputEditor'), {
+            lineNumbers: true,
+            lineWrapping: false,
+            mode: 'text',
+            readOnly: true,
+            value: '',
+            viewportMargin: 10,
+            electricChars: false,
+            fixedGutter: true,
+            gutters: ["CodeMirror-linenumbers"]
+        });
+
+        let filterInProgress = false;
+
+        // Aktualizácia počtu riadkov
+        function updateLineInfo() {
+            requestAnimationFrame(() => {
+                const inputLines = inputEditor.lineCount();
+                const outputLines = outputEditor.lineCount();
+                document.getElementById('inputInfo').textContent = `Počet riadkov: ${inputLines}`;
+                document.getElementById('outputInfo').textContent = `Počet riadkov: ${outputLines}`;
+            });
+        }
+
+        // Event listener pre zmeny v editore
+        inputEditor.on('change', updateLineInfo);
+        outputEditor.on('change', updateLineInfo);
+
+        // Filtrovanie textu
+        async function filterText() {
+            if (filterInProgress) return;
+            
+            const filterButton = document.getElementById('filterButton');
+            filterButton.disabled = true;
+            filterInProgress = true;
+
+            const filterValue = document.getElementById('filterInput').value;
+            const filterType = document.querySelector('input[name="filterType"]:checked').value;
+            const text = inputEditor.getValue();
+            
+            const progressContainer = document.getElementById('progressContainer');
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+            
+            progressContainer.style.display = 'block';
+            progressBar.style.width = '0%';
+            progressText.textContent = '0%';
+
+            const blob = new Blob([`
+                self.onmessage = function(e) {
+                    const { text, filterValue, filterType } = e.data;
+                    const lines = text.split('\\n');
+                    const totalLines = lines.length;
+                    const filteredLines = [];
+                    const batchSize = 10000;
+                    
+                    for (let i = 0; i < totalLines; i += batchSize) {
+                        const batch = lines.slice(i, Math.min(i + batchSize, totalLines));
+                        const batchFiltered = batch.filter(line => {
+                            return filterType === 'include' ? line.includes(filterValue) : !line.includes(filterValue);
+                        });
+                        filteredLines.push(...batchFiltered);
+                        
+                        const progress = Math.round((i + batch.length) / totalLines * 100);
+                        self.postMessage({ type: 'progress', progress });
+                    }
+                    
+                    self.postMessage({ type: 'result', filteredLines });
+                };
+            `], { type: 'application/javascript' });
+
+            const worker = new Worker(URL.createObjectURL(blob));
+
+            worker.onmessage = function(e) {
+                if (e.data.type === 'progress') {
+                    progressBar.style.width = `${e.data.progress}%`;
+                    progressText.textContent = `${e.data.progress}%`;
+                } else if (e.data.type === 'result') {
+                    outputEditor.setValue(e.data.filteredLines.join('\n'));
+                    progressContainer.style.display = 'none';
+                    filterButton.disabled = false;
+                    filterInProgress = false;
+                    worker.terminate();
+                }
+            };
+
+            worker.postMessage({ text, filterValue, filterType });
+        }
+
+        // Presun filtrovaného textu do vstupu
+        function moveFilteredToInput() {
+            const filteredText = outputEditor.getValue();
+            // Nastavíme nový text do vstupného editora
+            inputEditor.setValue(filteredText);
+            // Vyčistíme výstupný editor
+            outputEditor.setValue('');
+            
+            // Refresh editorov pre správne zobrazenie a posun na koniec
+            setTimeout(() => {
+                inputEditor.refresh();
+                outputEditor.refresh();
+                updateLineInfo();
+                // Posun na koniec textu
+                const lastLine = inputEditor.lastLine();
+                const lastChar = inputEditor.getLine(lastLine).length;
+                inputEditor.setCursor(lastLine, lastChar);
+                inputEditor.scrollIntoView({line: lastLine, ch: 0}, 100);
+            }, 0);
+        }
+
+        // Automatický výber a kopírovanie pri kliknutí do výstupného poľa
+        outputEditor.on('mousedown', (cm, e) => {
+            // Zabránime štandardnému správaniu
+            e.preventDefault();
+            // Vyberieme celý text
+            cm.execCommand('selectAll');
+            // Skopírujeme do schránky
+            const text = cm.getValue();
+            navigator.clipboard.writeText(text).catch(err => {
+                console.error('Nepodarilo sa kopírovať do schránky:', err);
+            });
+        });
+
+        // Event listenery pre input pole a editor
+        const filterInput = document.getElementById('filterInput');
+        
+        filterInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !filterInProgress) {
+                filterText();
+            }
+        });
+
+        filterInput.addEventListener('focus', function() {
+            this.select();
+        });
+
+        // Posun na koniec textu pri každej zmene vo vstupnom editore
+        inputEditor.on('change', (cm, change) => {
+            if (change.origin !== 'setValue') {
+                const lastLine = cm.lastLine();
+                const lastChar = cm.getLine(lastLine).length;
+                cm.setCursor(lastLine, lastChar);
+                cm.scrollIntoView({line: lastLine, ch: 0}, 100);
+            }
+        });
+    </script>
+</body>
+</html>

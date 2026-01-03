@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RSS čítačka</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        #inputContainer, #settingsContainer {
+            margin-bottom: 20px;
+        }
+        #rssUrls {
+            width: 100%;
+            height: 100px;
+            padding: 10px;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+        #daysHistory {
+            width: 60px;
+            padding: 5px;
+            font-size: 16px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        #copyButton {
+            display: none;
+        }
+        #savedUrlsContainer {
+            display: flex;
+            flex-wrap: wrap;
+            margin-top: 10px;
+            margin-bottom: 20px;
+        }
+        #savedUrlsContainer button {
+            margin-right: 5px;
+            margin-bottom: 5px;
+        }
+        #outputContent {
+            white-space: pre-wrap;
+            font-family: monospace;
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            border: 1px solid #dee2e6;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>RSS čítačka</h1>
+    <div id="inputContainer">
+        <textarea id="rssUrls" placeholder="Zadajte URL adresy RSS kanálov, každú na nový riadok"></textarea>
+    </div>
+    <div id="settingsContainer">
+        <label for="daysHistory">Počet dní histórie:</label>
+        <input type="number" id="daysHistory" min="1" value="30">
+        <button onclick="loadRSS()">Načítať RSS</button>
+        <button onclick="saveRssUrls()">Uložiť RSS URL</button>
+        <button id="copyButton" onclick="copyToClipboard()">Kopírovať text správ</button>
+    </div>
+    <div id="savedUrlsContainer"></div>
+    <div id="outputContent"></div>
+
+    <script>
+        let allItems = [];
+
+        window.onload = function() {
+            const savedUrls = localStorage.getItem('rssUrls');
+            if (savedUrls) {
+                document.getElementById('rssUrls').value = savedUrls;
+            }
+            const savedDays = localStorage.getItem('daysHistory');
+            if (savedDays) {
+                document.getElementById('daysHistory').value = savedDays;
+            }
+            loadSavedUrlSets();
+        }
+
+        function loadRSS() {
+            const rssUrlsText = document.getElementById('rssUrls').value;
+            const rssUrls = rssUrlsText.split('\n').filter(url => url.trim() !== '');
+            const daysHistory = parseInt(document.getElementById('daysHistory').value);
+
+            localStorage.setItem('rssUrls', rssUrlsText);
+            localStorage.setItem('daysHistory', daysHistory);
+
+            allItems = [];
+            document.getElementById('outputContent').textContent = 'Načítavam RSS...';
+            
+            Promise.all(rssUrls.map(url => fetchRSS(url)))
+                .then(results => {
+                    results.forEach((items, index) => {
+                        items.forEach(item => {
+                            item.source = new URL(rssUrls[index]).hostname;
+                            allItems.push(item);
+                        });
+                    });
+                    document.getElementById('copyButton').style.display = 'inline-block';
+                    copyToClipboard(); // Automaticky zobrazíme a skopírujeme text
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.getElementById('outputContent').textContent = 'Chyba pri načítaní RSS kanálov.';
+                });
+        }
+
+        function fetchRSS(rssUrl) {
+            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`;
+            return fetch(proxyUrl)
+                .then(response => response.json())
+                .then(data => {
+                    const parser = new DOMParser();
+                    const xmlDoc = parser.parseFromString(data.contents, "text/xml");
+                    return Array.from(xmlDoc.getElementsByTagName("item")).map(item => ({
+                        pubDate: new Date(getElementTextContent(item, "pubDate")),
+                        title: getElementTextContent(item, "title"),
+                        description: getElementTextContent(item, "description")
+                            .replace(/<[^>]*>/g, '')
+                            .replace(/\s+/g, ' ')
+                            .trim(),
+                        link: getElementTextContent(item, "link")
+                    }));
+                });
+        }
+
+        function getElementTextContent(parent, tagName) {
+            const element = parent.getElementsByTagName(tagName)[0];
+            return element ? element.textContent : "";
+        }
+
+        function copyToClipboard() {
+            const daysHistory = parseInt(document.getElementById('daysHistory').value);
+            const cutoffDate = new Date();
+            cutoffDate.setDate(cutoffDate.getDate() - daysHistory);
+            
+            // Filter and sort items
+            const filteredItems = allItems
+                .filter(item => item.pubDate >= cutoffDate)
+                .sort((a, b) => b.pubDate - a.pubDate);
+
+            // Group by date
+            const groupedByDate = {};
+            filteredItems.forEach(item => {
+                const dateStr = formatDate(item.pubDate);
+                if (!groupedByDate[dateStr]) {
+                    groupedByDate[dateStr] = [];
+                }
+                groupedByDate[dateStr].push(item);
+            });
+
+            // Generate text
+            let text = "";
+            Object.entries(groupedByDate).forEach(([date, items]) => {
+                text += `date: ${date}\n\n`;
+                items.forEach(item => {
+                    const timeStr = item.pubDate.toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' });
+                    text += `time: ${timeStr}\n`;
+                    text += `title: ${item.title}\n`;
+                    text += `description: ${item.description}\n`;
+                    text += `link: ${item.link}\n\n`;
+                });
+                text += "\n";
+            });
+
+            // Show text on page
+            document.getElementById('outputContent').textContent = text;
+
+            navigator.clipboard.writeText(text).then(() => {
+                alert("Text správ bol skopírovaný do schránky.");
+            }).catch(err => {
+                console.error('Chyba pri kopírovaní textu: ', err);
+                alert("Nastala chyba pri kopírovaní textu do schránky.");
+            });
+        }
+
+        function formatDate(date) {
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            return date.toLocaleDateString('sk-SK', options);
+        }
+
+        function saveRssUrls() {
+            const name = prompt("Zadajte názov pre uloženie RSS URL:");
+            if (name) {
+                const urls = document.getElementById('rssUrls').value;
+                const savedSets = JSON.parse(localStorage.getItem('savedRssUrlSets') || '{}');
+                savedSets[name] = urls;
+                localStorage.setItem('savedRssUrlSets', JSON.stringify(savedSets));
+                loadSavedUrlSets();
+            }
+        }
+
+        function loadSavedUrlSets() {
+            const savedSets = JSON.parse(localStorage.getItem('savedRssUrlSets') || '{}');
+            const container = document.getElementById('savedUrlsContainer');
+            container.innerHTML = '';
+            for (const [name, urls] of Object.entries(savedSets)) {
+                const button = document.createElement('button');
+                button.textContent = name;
+                button.onclick = () => loadSavedSet(name, urls);
+                button.ondblclick = () => deleteSavedSet(name);
+                container.appendChild(button);
+            }
+        }
+
+        function loadSavedSet(name, urls) {
+            document.getElementById('rssUrls').value = urls;
+        }
+
+        function deleteSavedSet(name) {
+            const savedSets = JSON.parse(localStorage.getItem('savedRssUrlSets') || '{}');
+            delete savedSets[name];
+            localStorage.setItem('savedRssUrlSets', JSON.stringify(savedSets));
+            loadSavedUrlSets();
+        }
+    </script>
+</body>
+</html>

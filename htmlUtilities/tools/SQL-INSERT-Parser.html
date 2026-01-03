@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQL INSERT Parser</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.js"></script>
+    <style>
+        table, th, td {
+            border: 1px solid black;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 5px;
+        }
+        .width-80 {
+            width: 80%;
+            margin: 0 auto;
+        }
+        .spacer {
+            height: 50px;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-8">
+<div class="max-w-full mx-auto">
+    <h1 class="text-3xl font-bold mb-4">SQL INSERT Parser</h1>
+    <textarea id="sqlInput" rows="10" class="width-80 p-2 border rounded mb-4" placeholder="Vložte SQL INSERT príkazy sem..."></textarea>
+    <div class="mb-4">
+        <button id="parseButton" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Parsovať a zobraziť</button>
+    </div>
+    <div class="spacer"></div>
+    <div id="tableName" class="text-xl font-bold mb-2"></div>
+    <div id="resultTable" class="mt-2 overflow-x-auto"></div>
+</div>
+
+<script>
+    document.getElementById('parseButton').addEventListener('click', function() {
+        const sqlInput = document.getElementById('sqlInput').value;
+        const parsedData = parseInserts(sqlInput);
+        displayTable(parsedData);
+    });
+
+    function parseInserts(sql) {
+        const regex = /INSERT\s+INTO\s+(\w+(?:\.\w+)?)\s*\(([\s\S]*?)\)\s*VALUES\s*\(([\s\S]*?)\)(?:;|\n|$)/gi;
+        const data = [];
+        let columns = [];
+        let tableName = '';
+        let match;
+
+        while ((match = regex.exec(sql)) !== null) {
+            const [, tName, cols, values] = match;
+            if (!tableName) {
+                tableName = tName;
+            }
+            if (!columns.length) {
+                columns = cols.split(',').map(col => col.trim().replace(/^"|"$/g, '').replace(/\n/g, ''));
+            }
+            const rowValues = splitValues(values);
+            const row = {};
+            columns.forEach((col, index) => {
+                row[col] = formatValue(rowValues[index]);
+            });
+            data.push(row);
+        }
+
+        return { tableName, columns, data };
+    }
+
+    function splitValues(valuesString) {
+        const values = [];
+        let currentValue = '';
+        let inQuotes = false;
+        let inParentheses = 0;
+
+        for (let i = 0; i < valuesString.length; i++) {
+            const char = valuesString[i];
+            if (char === ',' && !inQuotes && inParentheses === 0) {
+                values.push(currentValue.trim());
+                currentValue = '';
+            } else {
+                if (char === "'" && valuesString[i - 1] !== '\\') inQuotes = !inQuotes;
+                if (char === '(') inParentheses++;
+                if (char === ')') inParentheses--;
+                currentValue += char;
+            }
+        }
+        values.push(currentValue.trim());
+
+        return values.map(v => v.replace(/\n/g, ' ').trim());
+    }
+
+    function formatValue(value) {
+        if (value === undefined || value === null || value.toLowerCase() === 'null') {
+            return 'null';
+        }
+        if (value.toUpperCase().startsWith("TO_DATE(")) {
+            const dateMatch = value.match(/'([^']+)'/);
+            if (dateMatch) {
+                return dateMatch[1];
+            }
+        }
+        return value.replace(/^'|'$/g, '').trim();
+    }
+
+    function displayTable({ tableName, columns, data }) {
+        const tableNameDiv = document.getElementById('tableName');
+        const tableDiv = document.getElementById('resultTable');
+
+        if (!columns.length || !data.length) {
+            tableNameDiv.innerHTML = '';
+            tableDiv.innerHTML = '<p class="text-red-500">Žiadne platné INSERT príkazy neboli nájdené.</p>';
+            return;
+        }
+
+        tableNameDiv.innerHTML = `<strong>Tabuľka: ${tableName}</strong>`;
+
+        let tableHtml = '<table class="w-full"><thead><tr>';
+
+        columns.forEach(col => {
+            tableHtml += `<th>${col}</th>`;
+        });
+
+        tableHtml += '</tr></thead><tbody>';
+
+        data.forEach(row => {
+            tableHtml += '<tr>';
+            columns.forEach(col => {
+                tableHtml += `<td>${row[col]}</td>`;
+            });
+            tableHtml += '</tr>';
+        });
+
+        tableHtml += '</tbody></table>';
+        tableDiv.innerHTML = tableHtml;
+    }
+</script>
+</body>
+</html>

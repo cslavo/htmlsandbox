@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-book Katalóg</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #1a1a2e;
+            color: #eee;
+            min-height: 100vh;
+        }
+        h1 {
+            text-align: center;
+            color: #00d4ff;
+            margin-bottom: 30px;
+        }
+        .file-section {
+            background: #16213e;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .file-section label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: bold;
+            color: #00d4ff;
+        }
+        #fileInput {
+            padding: 10px;
+            border: 2px dashed #00d4ff;
+            border-radius: 5px;
+            background: #0f3460;
+            color: #eee;
+            cursor: pointer;
+            width: 100%;
+        }
+        #fileStatus {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            display: none;
+        }
+        #fileStatus.loading {
+            display: block;
+            background: #e94560;
+            color: white;
+        }
+        #fileStatus.loaded {
+            display: block;
+            background: #00d4ff;
+            color: #1a1a2e;
+        }
+        .filter-section {
+            background: #16213e;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .filter-section.active {
+            display: block;
+        }
+        .filter-section h2 {
+            margin-top: 0;
+            color: #00d4ff;
+        }
+        .filter-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        .filter-item {
+            position: relative;
+        }
+        .filter-item label {
+            display: block;
+            margin-bottom: 5px;
+            color: #aaa;
+        }
+        .filter-item input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #0f3460;
+            border-radius: 5px;
+            background: #0f3460;
+            color: #eee;
+            font-size: 14px;
+        }
+        .filter-item input:focus {
+            outline: none;
+            border-color: #00d4ff;
+        }
+        .autocomplete-list {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            max-height: 200px;
+            overflow-y: auto;
+            background: #0f3460;
+            border: 1px solid #00d4ff;
+            border-top: none;
+            border-radius: 0 0 5px 5px;
+            z-index: 100;
+            display: none;
+        }
+        .autocomplete-list.active {
+            display: block;
+        }
+        .autocomplete-item {
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #16213e;
+        }
+        .autocomplete-item:hover, .autocomplete-item.selected {
+            background: #00d4ff;
+            color: #1a1a2e;
+        }
+        .autocomplete-item:last-child {
+            border-bottom: none;
+        }
+        .progress-section {
+            background: #16213e;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .progress-section.active {
+            display: block;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #0f3460;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00d4ff, #e94560);
+            width: 0%;
+            transition: width 0.1s ease;
+        }
+        .progress-text {
+            text-align: center;
+            margin-top: 5px;
+            color: #aaa;
+            font-size: 14px;
+        }
+        .results-section {
+            background: #16213e;
+            padding: 20px;
+            border-radius: 10px;
+            display: none;
+        }
+        .results-section.active {
+            display: block;
+        }
+        .results-section h2 {
+            margin-top: 0;
+            color: #00d4ff;
+        }
+        .results-count {
+            margin-bottom: 15px;
+            color: #aaa;
+        }
+        .results-container {
+            height: calc(100vh - 120px);
+            overflow-y: auto;
+        }
+        .book-card {
+            background: #0f3460;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-left: 4px solid #00d4ff;
+        }
+        .book-card h3 {
+            margin: 0 0 10px 0;
+            color: #00d4ff;
+        }
+        .book-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .book-info-item {
+            font-size: 14px;
+        }
+        .book-info-item .label {
+            color: #aaa;
+            display: block;
+        }
+        .book-info-item .value {
+            color: #eee;
+        }
+        .book-files {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #16213e;
+        }
+        .book-files .formats-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+        .book-files .formats-label {
+            color: #aaa;
+            font-size: 14px;
+            margin-right: 5px;
+        }
+        .book-files .formats {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+        .format-tag {
+            background: #e94560;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+        .file-paths-toggle {
+            color: #00d4ff;
+            cursor: pointer;
+            font-size: 14px;
+            user-select: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .file-paths-toggle:hover {
+            text-decoration: underline;
+        }
+        .file-paths-toggle .arrow {
+            transition: transform 0.2s;
+        }
+        .file-paths-toggle.expanded .arrow {
+            transform: rotate(90deg);
+        }
+        .file-paths-container {
+            display: none;
+            margin-top: 5px;
+        }
+        .file-paths-container.expanded {
+            display: block;
+        }
+        .file-paths-header {
+            color: #aaa;
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+        .file-paths {
+            font-size: 12px;
+            color: #888;
+        }
+        .file-path {
+            padding: 2px 0;
+            word-break: break-all;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .file-path:hover {
+            color: #00d4ff;
+        }
+        .file-path.copied {
+            color: #4ade80;
+        }
+        .copy-toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #4ade80;
+            color: #1a1a2e;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-weight: bold;
+            z-index: 1000;
+            animation: fadeInOut 2s ease;
+        }
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateY(20px); }
+            15% { opacity: 1; transform: translateY(0); }
+            85% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-20px); }
+        }
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            color: #aaa;
+        }
+        .load-more-container {
+            text-align: center;
+            padding: 20px;
+            margin-top: 10px;
+        }
+        .results-status {
+            color: #aaa;
+            margin-bottom: 10px;
+        }
+        .load-more-btn {
+            background: #00d4ff;
+            color: #1a1a2e;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .load-more-btn:hover {
+            background: #00b4d8;
+        }
+        .hint {
+            font-size: 12px;
+            color: #888;
+            margin-top: 5px;
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f3460;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #00d4ff;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #00b4d8;
+        }
+    </style>
+</head>
+<body>
+    <h1>E-book Katalóg</h1>
+
+    <div class="file-section">
+        <label for="fileInput">Vyber JSON súbor s katalógom:</label>
+        <input type="file" id="fileInput" accept=".json">
+        <div id="fileStatus"></div>
+    </div>
+
+    <div class="filter-section" id="filterSection">
+        <h2>Vyhľadávanie</h2>
+        <p class="hint">Zadaj minimálne 3 znaky do aspoň jedného poľa. Môžeš použiť '*' (hocijaké znaky) alebo '.' (jeden znak).</p>
+        <div class="filter-grid">
+            <div class="filter-item" style="grid-column: 1 / -1;">
+                <label for="filterGlobal">Všeobecné vyhľadávanie (autor, názov, séria):</label>
+                <input type="text" id="filterGlobal" placeholder="Hľadaj v autorovi, názve knihy alebo sérii...">
+                <div class="autocomplete-list" id="autocompleteGlobal"></div>
+            </div>
+            <div class="filter-item">
+                <label for="filterAutor">Autor:</label>
+                <input type="text" id="filterAutor" placeholder="Zadaj meno autora...">
+                <div class="autocomplete-list" id="autocompleteAutor"></div>
+            </div>
+            <div class="filter-item">
+                <label for="filterNazov">Názov knihy:</label>
+                <input type="text" id="filterNazov" placeholder="Zadaj názov knihy...">
+                <div class="autocomplete-list" id="autocompleteNazov"></div>
+            </div>
+            <div class="filter-item">
+                <label for="filterSeria">Názov série:</label>
+                <input type="text" id="filterSeria" placeholder="Zadaj názov série...">
+                <div class="autocomplete-list" id="autocompleteSeria"></div>
+            </div>
+            <div class="filter-item">
+                <label for="filterZaner">Žáner:</label>
+                <input type="text" id="filterZaner" placeholder="Zadaj žáner...">
+                <div class="autocomplete-list" id="autocompleteZaner"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="progress-section" id="progressSection">
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <div class="progress-text" id="progressText">Vyhľadávanie: 0%</div>
+    </div>
+
+    <div class="results-section" id="resultsSection">
+        <h2>Výsledky vyhľadávania</h2>
+        <div class="results-count" id="resultsCount"></div>
+        <div class="results-container" id="resultsContainer"></div>
+    </div>
+
+    <script>
+        let catalogData = [];
+        let uniqueValues = {
+            autor: new Set(),
+            nazov_knihy: new Set(),
+            nazov_serie: new Set(),
+            zaner: new Set()
+        };
+        let searchTimeout = null;
+        let currentAutocompleteIndex = -1;
+        let activeAutocomplete = null;
+        let currentResults = [];
+        let displayedCount = 0;
+        const displayBatchSize = 100;
+
+        const fileInput = document.getElementById('fileInput');
+        const fileStatus = document.getElementById('fileStatus');
+        const filterSection = document.getElementById('filterSection');
+        const progressSection = document.getElementById('progressSection');
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        const resultsSection = document.getElementById('resultsSection');
+        const resultsCount = document.getElementById('resultsCount');
+        const resultsContainer = document.getElementById('resultsContainer');
+
+        const filters = {
+            global: document.getElementById('filterGlobal'),
+            autor: document.getElementById('filterAutor'),
+            nazov_knihy: document.getElementById('filterNazov'),
+            nazov_serie: document.getElementById('filterSeria'),
+            zaner: document.getElementById('filterZaner')
+        };
+
+        const autocompleteLists = {
+            global: document.getElementById('autocompleteGlobal'),
+            autor: document.getElementById('autocompleteAutor'),
+            nazov_knihy: document.getElementById('autocompleteNazov'),
+            nazov_serie: document.getElementById('autocompleteSeria'),
+            zaner: document.getElementById('autocompleteZaner')
+        };
+
+        fileInput.addEventListener('change', handleFileSelect);
+
+        async function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            fileStatus.textContent = 'Načítavam súbor...';
+            fileStatus.className = 'loading';
+
+            try {
+                const text = await readFileInChunks(file);
+                catalogData = JSON.parse(text);
+
+                fileStatus.textContent = `Načítané: ${catalogData.length.toLocaleString()} kníh`;
+                fileStatus.className = 'loaded';
+
+                buildUniqueValues();
+                filterSection.classList.add('active');
+
+            } catch (error) {
+                fileStatus.textContent = 'Chyba pri načítaní súboru: ' + error.message;
+                fileStatus.className = 'loading';
+            }
+        }
+
+        function readFileInChunks(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.onerror = (e) => reject(new Error('Chyba pri čítaní súboru'));
+                reader.readAsText(file);
+            });
+        }
+
+        function buildUniqueValues() {
+            uniqueValues = {
+                autor: new Set(),
+                nazov_knihy: new Set(),
+                nazov_serie: new Set(),
+                zaner: new Set()
+            };
+
+            for (const book of catalogData) {
+                if (book.autor) uniqueValues.autor.add(book.autor);
+                if (book.nazov_knihy) uniqueValues.nazov_knihy.add(book.nazov_knihy);
+                if (book.nazov_serie) uniqueValues.nazov_serie.add(book.nazov_serie);
+                if (book.zaner) uniqueValues.zaner.add(book.zaner);
+            }
+        }
+
+        function patternToRegex(pattern) {
+            let escaped = pattern.replace(/[-\/\\^$+?{}|[\]()]/g, '\\$&');
+            escaped = escaped.replace(/\*/g, '.*');
+            return new RegExp(escaped, 'i');
+        }
+
+        function matchesPattern(value, pattern) {
+            if (!value || !pattern) return false;
+            const regex = patternToRegex(pattern);
+            return regex.test(value);
+        }
+
+        function getAutocompleteMatches(field, pattern, limit = 20) {
+            if (pattern.length < 3) return [];
+
+            const filterValues = {
+                global: filters.global.value.trim(),
+                autor: filters.autor.value.trim(),
+                nazov_knihy: filters.nazov_knihy.value.trim(),
+                nazov_serie: filters.nazov_serie.value.trim(),
+                zaner: filters.zaner.value.trim()
+            };
+
+            // Get values from books that match other filters
+            const matchingValues = new Set();
+            const regex = patternToRegex(pattern);
+
+            for (const book of catalogData) {
+                // Check if book matches all OTHER filters (not the current field)
+                let matchesOtherFilters = true;
+
+                for (const [filterField, filterValue] of Object.entries(filterValues)) {
+                    if (filterField === field) continue; // Skip current field
+                    if (filterField === 'global') continue; // Global is handled separately
+                    if (filterValue.length >= 3) {
+                        if (!matchesPattern(book[filterField], filterValue)) {
+                            matchesOtherFilters = false;
+                            break;
+                        }
+                    }
+                }
+
+                // Check global filter (unless we're autocompleting global field)
+                if (matchesOtherFilters && field !== 'global' && filterValues.global.length >= 3) {
+                    const globalMatches = matchesPattern(book.autor, filterValues.global) ||
+                                         matchesPattern(book.nazov_knihy, filterValues.global) ||
+                                         matchesPattern(book.nazov_serie, filterValues.global);
+                    if (!globalMatches) {
+                        matchesOtherFilters = false;
+                    }
+                }
+
+                if (matchesOtherFilters) {
+                    if (field === 'global') {
+                        // For global field, collect values from all three fields
+                        if (book.autor && regex.test(book.autor)) matchingValues.add(book.autor);
+                        if (book.nazov_knihy && regex.test(book.nazov_knihy)) matchingValues.add(book.nazov_knihy);
+                        if (book.nazov_serie && regex.test(book.nazov_serie)) matchingValues.add(book.nazov_serie);
+                    } else {
+                        const value = book[field];
+                        if (value && regex.test(value)) {
+                            matchingValues.add(value);
+                        }
+                    }
+                }
+            }
+
+            const matches = Array.from(matchingValues).slice(0, limit);
+            return matches.sort((a, b) => a.localeCompare(b, 'sk'));
+        }
+
+        function showAutocomplete(field, matches) {
+            const list = autocompleteLists[field];
+
+            if (matches.length === 0) {
+                list.classList.remove('active');
+                return;
+            }
+
+            list.innerHTML = matches.map((match, index) =>
+                `<div class="autocomplete-item" data-index="${index}" data-value="${escapeHtml(match)}">${escapeHtml(match)}</div>`
+            ).join('');
+
+            list.classList.add('active');
+            activeAutocomplete = field;
+            currentAutocompleteIndex = -1;
+        }
+
+        function hideAutocomplete(field) {
+            autocompleteLists[field].classList.remove('active');
+            if (activeAutocomplete === field) {
+                activeAutocomplete = null;
+                currentAutocompleteIndex = -1;
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        async function performSearch() {
+            const filterValues = {
+                global: filters.global.value.trim(),
+                autor: filters.autor.value.trim(),
+                nazov_knihy: filters.nazov_knihy.value.trim(),
+                nazov_serie: filters.nazov_serie.value.trim(),
+                zaner: filters.zaner.value.trim()
+            };
+
+            const hasValidFilter = Object.values(filterValues).some(v => v.length >= 3);
+
+            if (!hasValidFilter) {
+                resultsSection.classList.remove('active');
+                progressSection.classList.remove('active');
+                return;
+            }
+
+            progressSection.classList.add('active');
+            resultsSection.classList.add('active');
+
+            const results = [];
+            const total = catalogData.length;
+            const chunkSize = 1000;
+
+            for (let i = 0; i < total; i += chunkSize) {
+                const chunk = catalogData.slice(i, Math.min(i + chunkSize, total));
+
+                for (const book of chunk) {
+                    let matches = true;
+
+                    // Global search - matches if pattern found in autor, nazov_knihy, or nazov_serie
+                    if (filterValues.global.length >= 3) {
+                        const globalMatches = matchesPattern(book.autor, filterValues.global) ||
+                                             matchesPattern(book.nazov_knihy, filterValues.global) ||
+                                             matchesPattern(book.nazov_serie, filterValues.global);
+                        if (!globalMatches) {
+                            matches = false;
+                        }
+                    }
+
+                    if (matches && filterValues.autor.length >= 3) {
+                        if (!matchesPattern(book.autor, filterValues.autor)) {
+                            matches = false;
+                        }
+                    }
+
+                    if (matches && filterValues.nazov_knihy.length >= 3) {
+                        if (!matchesPattern(book.nazov_knihy, filterValues.nazov_knihy)) {
+                            matches = false;
+                        }
+                    }
+
+                    if (matches && filterValues.nazov_serie.length >= 3) {
+                        if (!matchesPattern(book.nazov_serie, filterValues.nazov_serie)) {
+                            matches = false;
+                        }
+                    }
+
+                    if (matches && filterValues.zaner.length >= 3) {
+                        if (!matchesPattern(book.zaner, filterValues.zaner)) {
+                            matches = false;
+                        }
+                    }
+
+                    if (matches) {
+                        results.push(book);
+                    }
+                }
+
+                const progress = Math.min(100, Math.round(((i + chunkSize) / total) * 100));
+                progressFill.style.width = progress + '%';
+                progressText.textContent = `Vyhľadávanie: ${progress}% (nájdených: ${results.length.toLocaleString()})`;
+
+                await new Promise(resolve => setTimeout(resolve, 0));
+            }
+
+            progressFill.style.width = '100%';
+            progressText.textContent = `Dokončené: nájdených ${results.length.toLocaleString()} kníh`;
+
+            currentResults = results;
+            displayedCount = 0;
+            resultsContainer.innerHTML = '';
+            displayMoreResults();
+        }
+
+        function renderBookCard(book) {
+            return `
+                <div class="book-card">
+                    <h3>${escapeHtml(book.nazov_knihy || 'Bez názvu')}</h3>
+                    <div class="book-info">
+                        <div class="book-info-item">
+                            <span class="label">Autor:</span>
+                            <span class="value">${escapeHtml(book.autor || '-')}</span>
+                        </div>
+                        <div class="book-info-item">
+                            <span class="label">Jazyk:</span>
+                            <span class="value">${escapeHtml(book.jazyk || '-')}</span>
+                        </div>
+                        <div class="book-info-item">
+                            <span class="label">Séria:</span>
+                            <span class="value">${escapeHtml(book.nazov_serie || '-')}${book.poradie_v_serii ? ` (#${book.poradie_v_serii})` : ''}</span>
+                        </div>
+                        <div class="book-info-item">
+                            <span class="label">Žáner:</span>
+                            <span class="value">${escapeHtml(book.zaner || '-')}</span>
+                        </div>
+                        <div class="book-info-item">
+                            <span class="label">Rok vydania:</span>
+                            <span class="value">${book.rok_vydania || '-'}</span>
+                        </div>
+                    </div>
+                    <div class="book-files">
+                        <div class="formats-row">
+                            <span class="formats-label">Dostupné formáty:</span>
+                            <div class="formats">
+                                ${(book.formaty_suborov || []).map(f => `<span class="format-tag">${escapeHtml(f)}</span>`).join('')}
+                            </div>
+                        </div>
+                        <div class="file-paths-toggle" onclick="toggleFilePaths(this)">
+                            <span class="arrow">▶</span> Cesty k súborom (${(book.cesty_k_suborom || []).length})
+                        </div>
+                        <div class="file-paths-container">
+                            <div class="file-paths-header">Klikni na cestu pre kopírovanie:</div>
+                            <div class="file-paths">
+                                ${(book.cesty_k_suborom || []).map(p => `<div class="file-path" data-path="${escapeHtml(p)}" onclick="copyToClipboard(this)">${escapeHtml(p)}</div>`).join('')}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function displayMoreResults() {
+            resultsCount.textContent = `Nájdených: ${currentResults.length.toLocaleString()} kníh`;
+
+            if (currentResults.length === 0) {
+                resultsContainer.innerHTML = '<div class="no-results">Žiadne výsledky</div>';
+                return;
+            }
+
+            // Remove existing "load more" button if present
+            const existingLoadMore = resultsContainer.querySelector('.load-more-container');
+            if (existingLoadMore) {
+                existingLoadMore.remove();
+            }
+
+            const nextBatch = currentResults.slice(displayedCount, displayedCount + displayBatchSize);
+            displayedCount += nextBatch.length;
+
+            resultsContainer.innerHTML += nextBatch.map(book => renderBookCard(book)).join('');
+
+            // Add status and load more button if there are more results
+            if (displayedCount < currentResults.length) {
+                const remaining = currentResults.length - displayedCount;
+                resultsContainer.innerHTML += `
+                    <div class="load-more-container">
+                        <div class="results-status">Zobrazených ${displayedCount.toLocaleString()} z ${currentResults.length.toLocaleString()} výsledkov</div>
+                        <button class="load-more-btn" onclick="displayMoreResults()">
+                            Zobraziť ďalších ${Math.min(displayBatchSize, remaining).toLocaleString()} výsledkov
+                        </button>
+                    </div>
+                `;
+            } else if (currentResults.length > displayBatchSize) {
+                resultsContainer.innerHTML += `
+                    <div class="load-more-container">
+                        <div class="results-status">Zobrazených všetkých ${currentResults.length.toLocaleString()} výsledkov</div>
+                    </div>
+                `;
+            }
+        }
+
+        Object.keys(filters).forEach(field => {
+            const input = filters[field];
+            const list = autocompleteLists[field];
+
+            input.addEventListener('input', () => {
+                const value = input.value.trim();
+
+                if (value.length >= 3) {
+                    const matches = getAutocompleteMatches(field, value);
+                    showAutocomplete(field, matches);
+                } else {
+                    hideAutocomplete(field);
+                }
+
+                if (searchTimeout) {
+                    clearTimeout(searchTimeout);
+                }
+                searchTimeout = setTimeout(performSearch, 300);
+            });
+
+            input.addEventListener('keydown', (e) => {
+                if (!list.classList.contains('active')) return;
+
+                const items = list.querySelectorAll('.autocomplete-item');
+
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    currentAutocompleteIndex = Math.min(currentAutocompleteIndex + 1, items.length - 1);
+                    updateAutocompleteSelection(items);
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    currentAutocompleteIndex = Math.max(currentAutocompleteIndex - 1, -1);
+                    updateAutocompleteSelection(items);
+                } else if (e.key === 'Enter' && currentAutocompleteIndex >= 0) {
+                    e.preventDefault();
+                    const selected = items[currentAutocompleteIndex];
+                    if (selected) {
+                        input.value = selected.dataset.value;
+                        hideAutocomplete(field);
+                        performSearch();
+                    }
+                } else if (e.key === 'Escape') {
+                    hideAutocomplete(field);
+                }
+            });
+
+            list.addEventListener('click', (e) => {
+                if (e.target.classList.contains('autocomplete-item')) {
+                    input.value = e.target.dataset.value;
+                    hideAutocomplete(field);
+                    performSearch();
+                }
+            });
+
+            input.addEventListener('blur', () => {
+                setTimeout(() => hideAutocomplete(field), 200);
+            });
+        });
+
+        function updateAutocompleteSelection(items) {
+            items.forEach((item, index) => {
+                if (index === currentAutocompleteIndex) {
+                    item.classList.add('selected');
+                    item.scrollIntoView({ block: 'nearest' });
+                } else {
+                    item.classList.remove('selected');
+                }
+            });
+        }
+
+        function copyToClipboard(element) {
+            event.stopPropagation();
+
+            // Get the path from the data attribute and decode HTML entities
+            const textarea = document.createElement('textarea');
+            textarea.innerHTML = element.dataset.path;
+            const text = textarea.value;
+
+            navigator.clipboard.writeText(text).then(() => {
+                element.classList.add('copied');
+
+                // Show toast
+                const toast = document.createElement('div');
+                toast.className = 'copy-toast';
+                toast.textContent = 'Cesta skopírovaná do schránky!';
+                document.body.appendChild(toast);
+
+                setTimeout(() => {
+                    element.classList.remove('copied');
+                    toast.remove();
+                }, 2000);
+            }).catch(err => {
+                console.error('Chyba pri kopírovaní:', err);
+            });
+        }
+
+        function toggleFilePaths(element) {
+            element.classList.toggle('expanded');
+            const container = element.nextElementSibling;
+            container.classList.toggle('expanded');
+        }
+    </script>
+</body>
+</html>

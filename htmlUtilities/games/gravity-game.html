@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gravity - 2D Hra s Novým Farebným Schémou</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+        }
+        #gameContainer {
+            position: relative;
+            overflow: hidden;
+        }
+        canvas {
+            border: 2px solid #000;
+        }
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+            margin-top: 20px;
+        }
+        .control {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 300px;
+        }
+        input[type="range"] {
+            width: 200px;
+        }
+        .buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        button {
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+        #infoPanel {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: rgba(255, 255, 255, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+            display: none;
+        }
+        #objectCount {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(255, 255, 255, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        <div id="infoPanel"></div>
+        <div id="objectCount">Počet objektov: 5</div>
+    </div>
+    <div class="controls">
+        <div class="control">
+            <label for="gravitySlider">Gravitačná konštanta:</label>
+            <input type="range" id="gravitySlider" min="0" max="2" step="0.01" value="0.1">
+            <span id="gravityValue">0.1</span>
+        </div>
+        <div class="control">
+            <label for="objectsSlider">Počet objektov:</label>
+            <input type="range" id="objectsSlider" min="2" max="100" step="1" value="5">
+            <span id="objectsValue">5</span>
+        </div>
+        <div class="control">
+            <label for="scaleSlider">Mierka zobrazenia:</label>
+            <input type="range" id="scaleSlider" min="0.1" max="2" step="0.1" value="1">
+            <span id="scaleValue">1x</span>
+        </div>
+        <div class="buttons">
+            <button id="resetButton">Reset</button>
+            <button id="newButton">New</button>
+            <button id="pauseButton">Pause</button>
+            <button id="showVectorsButton">Show Vectors</button>
+            <button id="centerButton">Vycentrovať</button>
+        </div>
+    </div>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const infoPanel = document.getElementById('infoPanel');
+        const objectCountDisplay = document.getElementById('objectCount');
+
+        canvas.width = 800;
+        canvas.height = 600;
+
+        let G = 0.1; // Gravitačná konštanta
+        let objectCount = 5; // Počiatočný počet objektov
+        let isPaused = false;
+        let showVectors = false;
+        let offsetX = 0;
+        let offsetY = 0;
+        let scale = 1;
+
+        const gravitySlider = document.getElementById('gravitySlider');
+        const gravityValue = document.getElementById('gravityValue');
+        const objectsSlider = document.getElementById('objectsSlider');
+        const objectsValue = document.getElementById('objectsValue');
+        const scaleSlider = document.getElementById('scaleSlider');
+        const scaleValue = document.getElementById('scaleValue');
+        const resetButton = document.getElementById('resetButton');
+        const newButton = document.getElementById('newButton');
+        const pauseButton = document.getElementById('pauseButton');
+        const showVectorsButton = document.getElementById('showVectorsButton');
+        const centerButton = document.getElementById('centerButton');
+
+        gravitySlider.addEventListener('input', function() {
+            G = parseFloat(this.value);
+            gravityValue.textContent = G.toFixed(2);
+        });
+
+        objectsSlider.addEventListener('input', function() {
+            objectCount = parseInt(this.value);
+            objectsValue.textContent = objectCount;
+            resetViewAndCreateObjects();
+        });
+
+        scaleSlider.addEventListener('input', function() {
+            scale = parseFloat(this.value);
+            scaleValue.textContent = scale.toFixed(1) + 'x';
+        });
+
+        pauseButton.addEventListener('click', function() {
+            isPaused = !isPaused;
+            this.textContent = isPaused ? 'Resume' : 'Pause';
+        });
+
+        showVectorsButton.addEventListener('click', function() {
+            showVectors = !showVectors;
+            this.textContent = showVectors ? 'Hide Vectors' : 'Show Vectors';
+        });
+
+        centerButton.addEventListener('click', centerOnHeaviestObject);
+
+        function resetViewAndCreateObjects() {
+            resetScale();
+            centerView();
+            createObjects();
+        }
+
+        function resetScale() {
+            scale = 1;
+            scaleSlider.value = scale;
+            scaleValue.textContent = '1x';
+        }
+
+        function centerView() {
+            offsetX = canvas.width / 2;
+            offsetY = canvas.height / 2;
+        }
+
+        class Object {
+            constructor(x, y, mass, vx, vy) {
+                this.x = x;
+                this.y = y;
+                this.mass = mass;
+                this.vx = vx;
+                this.vy = vy;
+                this.radius = Math.sqrt(mass);
+                this.isDragging = false;
+            }
+
+            draw() {
+                const screenX = (this.x - offsetX) * scale + canvas.width / 2;
+                const screenY = (this.y - offsetY) * scale + canvas.height / 2;
+                
+                if (this.isVisible(screenX, screenY)) {
+                    ctx.beginPath();
+                    const displayRadius = Math.max(this.radius * scale, 2);
+                    ctx.arc(screenX, screenY, displayRadius, 0, Math.PI * 2);
+                    ctx.fillStyle = this.getColor();
+                    ctx.fill();
+                    ctx.closePath();
+
+                    if (showVectors) {
+                        this.drawVector(screenX, screenY);
+                    }
+                }
+            }
+
+            isVisible(screenX, screenY) {
+                const displayRadius = Math.max(this.radius * scale, 2);
+                return screenX + displayRadius > 0 && screenX - displayRadius < canvas.width &&
+                       screenY + displayRadius > 0 && screenY - displayRadius < canvas.height;
+            }
+
+            getColor() {
+                const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+                const maxSpeed = 5; // Môžete upraviť túto hodnotu podľa potreby
+                const normalizedSpeed = Math.min(speed / maxSpeed, 1);
+                const hue = 60 - normalizedSpeed * 60; // 60 je žltá, 0 je červená
+                return `hsl(${hue}, 100%, 50%)`;
+            }
+
+            drawVector(screenX, screenY) {
+                const scale = 10;
+                ctx.beginPath();
+                ctx.moveTo(screenX, screenY);
+                ctx.lineTo(screenX + this.vx * scale, screenY + this.vy * scale);
+                ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+
+            update(objects) {
+                if (!this.isDragging && !isPaused) {
+                    for (let obj of objects) {
+                        if (obj !== this) {
+                            let dx = obj.x - this.x;
+                            let dy = obj.y - this.y;
+                            let distance = Math.sqrt(dx * dx + dy * dy);
+                            let force = G * (obj.mass * this.mass) / (distance * distance);
+                            let ax = force * dx / distance;
+                            let ay = force * dy / distance;
+                            this.vx += ax / this.mass;
+                            this.vy += ay / this.mass;
+                        }
+                    }
+
+                    this.x += this.vx;
+                    this.y += this.vy;
+                }
+            }
+
+            isPointInside(x, y) {
+                const screenX = (this.x - offsetX) * scale + canvas.width / 2;
+                const screenY = (this.y - offsetY) * scale + canvas.height / 2;
+                const dx = screenX - x;
+                const dy = screenY - y;
+                return Math.sqrt(dx * dx + dy * dy) <= Math.max(this.radius * scale, 2);
+            }
+        }
+
+        let objects = [];
+        let draggedObject = null;
+
+        function createObjects() {
+            objects = [];
+            for (let i = 0; i < objectCount; i++) {
+                objects.push(new Object(
+                    Math.random() * canvas.width,
+                    Math.random() * canvas.height,
+                    Math.random() * 50 + 10,
+                    (Math.random() - 0.5) * 2,
+                    (Math.random() - 0.5) * 2
+                ));
+            }
+            updateObjectCount();
+        }
+
+        function mergeObjects() {
+            for (let i = 0; i < objects.length; i++) {
+                for (let j = i + 1; j < objects.length; j++) {
+                    const dx = objects[i].x - objects[j].x;
+                    const dy = objects[i].y - objects[j].y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < objects[i].radius + objects[j].radius) {
+                        const newMass = objects[i].mass + objects[j].mass;
+                        const newX = (objects[i].x * objects[i].mass + objects[j].x * objects[j].mass) / newMass;
+                        const newY = (objects[i].y * objects[i].mass + objects[j].y * objects[j].mass) / newMass;
+                        const newVx = (objects[i].vx * objects[i].mass + objects[j].vx * objects[j].mass) / newMass;
+                        const newVy = (objects[i].vy * objects[i].mass + objects[j].vy * objects[j].mass) / newMass;
+
+                        objects.splice(j, 1);
+                        objects[i] = new Object(newX, newY, newMass, newVx, newVy);
+                        j--; // Adjust index after removal
+                    }
+                }
+            }
+            updateObjectCount();
+        }
+
+        function updateObjectCount() {
+            objectCountDisplay.textContent = `Počet objektov: ${objects.length}`;
+        }
+
+        function updateInfoPanel(obj) {
+            if (obj) {
+                infoPanel.style.display = 'block';
+                infoPanel.innerHTML = `
+                    <strong>Object Info:</strong><br>
+                    Mass: ${obj.mass.toFixed(2)}<br>
+                    Position: (${obj.x.toFixed(2)}, ${obj.y.toFixed(2)})<br>
+                    Velocity: (${obj.vx.toFixed(2)}, ${obj.vy.toFixed(2)})
+                `;
+            } else {
+                infoPanel.style.display = 'none';
+            }
+        }
+
+        function findHeaviestObject() {
+            return objects.reduce((heaviest, current) => 
+                current.mass > heaviest.mass ? current : heaviest
+            , objects[0]);
+        }
+
+        function centerOnHeaviestObject() {
+            const heaviest = findHeaviestObject();
+            offsetX = heaviest.x;
+            offsetY = heaviest.y;
+        }
+
+        resetViewAndCreateObjects();
+
+        function gameLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            for (let obj of objects) {
+                obj.update(objects);
+                obj.draw();
+            }
+
+            if (!isPaused) {
+                mergeObjects();
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        resetButton.addEventListener('click', function() {
+            G = 0.1;
+            objectCount = 5;
+            gravitySlider.value = G;
+            objectsSlider.value = objectCount;
+            gravityValue.textContent = G.toFixed(2);
+            objectsValue.textContent = objectCount;
+            resetViewAndCreateObjects();
+        });
+
+        newButton.addEventListener('click', resetViewAndCreateObjects);
+
+        canvas.addEventListener('mousedown', function(e) {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            for (let obj of objects) {
+                if (obj.isPointInside(mouseX, mouseY)) {
+                    draggedObject = obj;
+                    draggedObject.isDragging = true;
+                    updateInfoPanel(obj);
+                    break;
+                }
+            }
+        });
+
+        canvas.addEventListener('mousemove', function(e) {
+            if (draggedObject) {
+                const rect = canvas.getBoundingClientRect();
+                const mouseX = (e.clientX - rect.left - canvas.width / 2) / scale + offsetX;
+                const mouseY = (e.clientY - rect.top - canvas.height / 2) / scale + offsetY;
+
+                draggedObject.x = mouseX;
+                draggedObject.y = mouseY;
+                draggedObject.vx = 0;
+                draggedObject.vy = 0;
+                updateInfoPanel(draggedObject);
+            }
+        });
+
+        canvas.addEventListener('mouseup', function() {
+            if (draggedObject) {
+                draggedObject.isDragging = false;
+                draggedObject = null;
+                updateInfoPanel(null);
+            }
+        });
+
+        gameLoop();
+    </script>
+</body>
+</html

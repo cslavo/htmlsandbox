@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Kód Generátor</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            align-items: center;
+        }
+        .text-container {
+            width: 100%;
+            position: relative;
+        }
+        textarea {
+            width: 100%;
+            min-height: 100px;
+            padding: 10px;
+            margin-bottom: 5px;
+        }
+        .char-counter {
+            text-align: right;
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+        }
+        .char-counter.limit-reached {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        #qrCanvas {
+            margin-top: 20px;
+            border: 1px solid #ccc;
+            padding: 10px;
+        }
+        #qrCanvas img {
+            cursor: pointer;
+        }
+        #qrCanvas img:hover {
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>QR Kód Generátor</h1>
+        <div class="text-container">
+            <textarea id="text" placeholder="Zadajte text pre QR kód..." oninput="updateCharCount()"></textarea>
+            <div id="charCounter" class="char-counter">0/2953</div>
+        </div>
+        <button id="generateButton" onclick="generateQR()">Generovať QR kód</button>
+        <div id="qrCanvas"></div>
+    </div>
+
+    <script>
+        const MAX_CHARS = 2953; // Maximálny počet znakov pre QR kód s úrovňou L
+
+        function updateCharCount() {
+            const text = document.getElementById('text').value;
+            const counter = document.getElementById('charCounter');
+            const generateButton = document.getElementById('generateButton');
+            const currentLength = text.length;
+            
+            counter.textContent = `${currentLength}/${MAX_CHARS}`;
+            
+            if (currentLength > MAX_CHARS) {
+                counter.classList.add('limit-reached');
+                generateButton.disabled = true;
+            } else {
+                counter.classList.remove('limit-reached');
+                generateButton.disabled = false;
+            }
+        }
+
+        function downloadQRCode(imgElement) {
+            // Vytvoríme canvas pre konverziu img na čistý obrázok
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            
+            // Nastavíme veľkosť canvasu podľa obrázka
+            canvas.width = imgElement.naturalWidth;
+            canvas.height = imgElement.naturalHeight;
+            
+            // Vykreslíme obrázok na canvas
+            context.drawImage(imgElement, 0, 0);
+            
+            // Vytvoríme a klikneme na neviditeľný download link
+            const link = document.createElement('a');
+            link.download = 'qr-kod.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
+        function generateQR() {
+            const text = document.getElementById('text').value;
+            if (!text) {
+                alert('Prosím, zadajte text');
+                return;
+            }
+
+            if (text.length > MAX_CHARS) {
+                alert('Text je príliš dlhý pre QR kód');
+                return;
+            }
+
+            // Vyčistíme predchádzajúci QR kód
+            const qrContainer = document.getElementById('qrCanvas');
+            qrContainer.innerHTML = '';
+
+            // Vytvoríme nový QR kód
+            const qr = qrcode(0, 'L');
+            try {
+                qr.addData(text);
+                qr.make();
+
+                // Vytvoríme img element s QR kódom
+                const qrImg = qr.createImgTag(5);  // 5 je cell size v pixeloch
+                qrContainer.innerHTML = qrImg;
+
+                // Pridáme event listener na kliknutie pre stiahnutie
+                const imgElement = qrContainer.querySelector('img');
+                imgElement.title = 'Kliknite pre stiahnutie QR kódu';
+                imgElement.addEventListener('click', () => downloadQRCode(imgElement));
+            } catch (e) {
+                alert('Chyba pri generovaní QR kódu: ' + e.message);
+            }
+        }
+
+        // Inicializácia počítadla pri načítaní stránky
+        updateCharCount();
+    </script>
+</body>
+</html>

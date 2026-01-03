@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>50 Common Kanji Learning Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        .container {
+            text-align: center;
+            background-color: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+        #kanjiChar {
+            font-size: 160px;
+            line-height: 1;
+            margin-bottom: 0.5rem;
+        }
+        #meaning {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        #learningScore {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+        }
+        .options {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        button {
+            font-size: 1.2rem;
+            padding: 0.5rem 1rem;
+            border: none;
+            background-color: #3498db;
+            color: white;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        button:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+        }
+        #feedback {
+            font-size: 1.2rem;
+            font-weight: bold;
+            height: 1.5em;
+        }
+        #correctAnswer {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #e74c3c;
+            margin-top: 0.5rem;
+            height: 2.5em;
+        }
+        #score, #progress, #remainingMoves {
+            font-size: 1.2rem;
+            margin-top: 0.5rem;
+        }
+        #resetButton {
+            margin-top: 1rem;
+            background-color: #e74c3c;
+        }
+        #resetButton:hover {
+            background-color: #c0392b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>50 Common Kanji</h1>
+        <div id="kanjiChar"></div>
+        <div id="meaning"></div>
+        <div id="learningScore"></div>
+        <div class="options" id="options"></div>
+        <div id="feedback"></div>
+        <div id="correctAnswer"></div>
+        <div id="score"></div>
+        <div id="progress"></div>
+        <div id="remainingMoves"></div>
+        <button id="resetButton" onclick="resetGame()">Resetovať hru</button>
+    </div>
+
+    <script>
+        const kanjiData = [
+            { char: '一', meaning: 'one', readings: ['ichi', 'itsu'] },
+            { char: '二', meaning: 'two', readings: ['ni'] },
+            { char: '三', meaning: 'three', readings: ['san'] },
+            { char: '四', meaning: 'four', readings: ['shi', 'yon'] },
+            { char: '五', meaning: 'five', readings: ['go'] },
+            { char: '十', meaning: 'ten', readings: ['juu'] },
+            { char: '百', meaning: 'hundred', readings: ['hyaku'] },
+            { char: '千', meaning: 'thousand', readings: ['sen'] },
+            { char: '万', meaning: 'ten thousand', readings: ['man'] },
+            { char: '円', meaning: 'circle, yen', readings: ['en'] },
+            { char: '年', meaning: 'year', readings: ['nen'] },
+            { char: '月', meaning: 'month, moon', readings: ['getsu', 'tsuki'] },
+            { char: '日', meaning: 'day, sun', readings: ['nichi', 'hi'] },
+            { char: '時', meaning: 'time, hour', readings: ['ji'] },
+            { char: '分', meaning: 'minute, part', readings: ['fun', 'bun'] },
+            { char: '週', meaning: 'week', readings: ['shuu'] },
+            { char: '曜', meaning: 'day of the week', readings: ['you'] },
+            { char: '本', meaning: 'book, origin', readings: ['hon'] },
+            { char: '人', meaning: 'person', readings: ['jin', 'nin', 'hito'] },
+            { char: '男', meaning: 'man', readings: ['dan', 'otoko'] },
+            { char: '女', meaning: 'woman', readings: ['jo', 'onna'] },
+            { char: '子', meaning: 'child', readings: ['shi', 'ko'] },
+            { char: '学', meaning: 'study, learning', readings: ['gaku'] },
+            { char: '生', meaning: 'life, birth', readings: ['sei', 'shou'] },
+            { char: '先', meaning: 'before, ahead', readings: ['sen'] },
+            { char: '私', meaning: 'I, private', readings: ['shi', 'watashi'] },
+            { char: '今', meaning: 'now', readings: ['kon', 'ima'] },
+            { char: '新', meaning: 'new', readings: ['shin'] },
+            { char: '古', meaning: 'old', readings: ['ko', 'furui'] },
+            { char: '高', meaning: 'high, tall', readings: ['kou', 'takai'] },
+            { char: '安', meaning: 'cheap, safe', readings: ['an', 'yasui'] },
+            { char: '山', meaning: 'mountain', readings: ['san', 'yama'] },
+            { char: '川', meaning: 'river', readings: ['sen', 'kawa'] },
+            { char: '田', meaning: 'rice field', readings: ['den', 'ta'] },
+            { char: '語', meaning: 'language, word', readings: ['go'] },
+            { char: '名', meaning: 'name', readings: ['mei', 'na'] },
+            { char: '東', meaning: 'east', readings: ['tou', 'higashi'] },
+            { char: '京', meaning: 'capital', readings: ['kyou', 'kei'] },
+            { char: '都', meaning: 'metropolis', readings: ['to', 'tsu'] },
+            { char: '大', meaning: 'big, large', readings: ['dai', 'oo'] },
+            { char: '小', meaning: 'small', readings: ['shou', 'chiisai'] },
+            { char: '水', meaning: 'water', readings: ['sui', 'mizu'] },
+            { char: '火', meaning: 'fire', readings: ['ka', 'hi'] },
+            { char: '木', meaning: 'tree, wood', readings: ['moku', 'ki'] },
+            { char: '土', meaning: 'earth, soil', readings: ['do', 'tsuchi'] },
+            { char: '金', meaning: 'gold, money', readings: ['kin', 'kane'] },
+            { char: '日', meaning: 'sun, day, Japan', readings: ['ni', 'nichi', 'hi'] },
+            { char: '本', meaning: 'book, origin, Japan', readings: ['hon', 'moto'] },
+            { char: '国', meaning: 'country', readings: ['koku', 'kuni'] },
+            { char: '何', meaning: 'what', readings: ['ka', 'nani'] }
+        ];
+
+        let characters, currentChar, score, totalAttempts, remainingMoves;
+        const totalCharacters = kanjiData.length;
+
+        function initializeGame() {
+            const savedState = JSON.parse(localStorage.getItem('kanjiGameState'));
+            if (savedState) {
+                characters = savedState.characters;
+                score = savedState.score;
+                totalAttempts = savedState.totalAttempts;
+                remainingMoves = savedState.remainingMoves;
+            } else {
+                characters = kanjiData.map(char => ({ ...char, n: 3 }));
+                score = 0;
+                totalAttempts = 0;
+                remainingMoves = kanjiData.length * 3;
+            }
+            selectNewCharacter();
+            updateStats();
+        }
+
+        function saveGameState() {
+            const gameState = {
+                characters: characters,
+                score: score,
+                totalAttempts: totalAttempts,
+                remainingMoves: remainingMoves
+            };
+            localStorage.setItem('kanjiGameState', JSON.stringify(gameState));
+        }
+
+        function resetGame() {
+            localStorage.removeItem('kanjiGameState');
+            initializeGame();
+        }
+
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function selectNewCharacter() {
+            const availableChars = characters.filter(char => char.n > 0);
+            if (availableChars.length === 0) {
+                document.getElementById('kanjiChar').textContent = '';
+                document.getElementById('meaning').textContent = '';
+                document.getElementById('learningScore').textContent = '';
+                document.getElementById('feedback').textContent = 'Gratulujeme! Naučili ste sa všetky znaky.';
+                document.getElementById('options').innerHTML = '';
+                return;
+            }
+            currentChar = availableChars[Math.floor(Math.random() * availableChars.length)];
+            document.getElementById('kanjiChar').textContent = currentChar.char;
+            document.getElementById('meaning').textContent = currentChar.meaning;
+            document.getElementById('learningScore').textContent = `Skóre naučenia: ${3 - currentChar.n}/3`;
+            document.getElementById('correctAnswer').textContent = '';
+            generateOptions();
+        }
+
+        function generateOptions() {
+            const correctOption = currentChar.readings[0];
+            const otherOptions = shuffle(kanjiData.filter(c => !c.readings.includes(correctOption)))
+                .slice(0, 6)
+                .map(c => c.readings[0]);
+            const options = shuffle([...otherOptions, correctOption]);
+            
+            const optionsContainer = document.getElementById('options');
+            optionsContainer.innerHTML = '';
+            options.forEach(option => {
+                const button = document.createElement('button');
+                button.textContent = option;
+                button.onclick = () => handleGuess(option);
+                optionsContainer.appendChild(button);
+            });
+        }
+
+        function handleGuess(guess) {
+            totalAttempts++;
+            const buttons = document.querySelectorAll('#options button');
+            buttons.forEach(button => button.disabled = true);
+
+            const charIndex = characters.findIndex(c => c.char === currentChar.char);
+
+            if (currentChar.readings.includes(guess)) {
+                score++;
+                characters[charIndex].n--;
+                remainingMoves--;
+                document.getElementById('feedback').textContent = 'Správne!';
+                document.getElementById('correctAnswer').textContent = '';
+                setTimeout(() => {
+                    document.getElementById('feedback').textContent = '';
+                    updateStats();
+                    selectNewCharacter();
+                }, 1500);
+            } else {
+                characters[charIndex].n++;
+                remainingMoves++;
+                document.getElementById('feedback').textContent = 'Nesprávne.';
+                document.getElementById('correctAnswer').textContent = `Správna odpoveď: ${currentChar.readings.join(', ')}`;
+                setTimeout(() => {
+                    document.getElementById('feedback').textContent = '';
+                    document.getElementById('correctAnswer').textContent = '';
+                    updateStats();
+                    selectNewCharacter();
+                }, 3000);
+            }
+
+            saveGameState();
+        }
+
+        function updateStats() {
+            const learnedCharacters = characters.filter(char => char.n === 0).length;
+            const progress = (learnedCharacters / totalCharacters) * 100;
+
+            document.getElementById('score').textContent = `Skóre: ${score} / ${totalAttempts}`;
+            document.getElementById('progress').textContent = `Progres: ${progress.toFixed(2)}%`;
+            document.getElementById('remainingMoves').textContent = `Zostávajúce pokusy: ${remainingMoves}`;
+        }
+
+        // Inicializácia hry
+        initializeGame();
+    </script>
+</body>
+</html>

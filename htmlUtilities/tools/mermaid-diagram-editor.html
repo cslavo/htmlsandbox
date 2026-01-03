@@ -1,0 +1,1366 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mermaid Diagram Editor & Viewer</title>
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+
+        // Black and white theme configuration
+        const bwThemeVariables = {
+            primaryColor: '#ffffff',
+            primaryTextColor: '#000000',
+            primaryBorderColor: '#000000',
+            lineColor: '#000000',
+            secondaryColor: '#ffffff',
+            tertiaryColor: '#ffffff',
+            background: '#ffffff',
+            mainBkg: '#ffffff',
+            secondBkg: '#ffffff',
+            mainContrastColor: '#000000',
+            darkMode: false,
+            nodeBorder: '#000000',
+            clusterBkg: '#ffffff',
+            clusterBorder: '#000000',
+            defaultLinkColor: '#000000',
+            titleColor: '#000000',
+            edgeLabelBackground: '#ffffff',
+            actorBorder: '#000000',
+            actorBkg: '#ffffff',
+            actorTextColor: '#000000',
+            actorLineColor: '#000000',
+            signalColor: '#000000',
+            signalTextColor: '#000000',
+            labelBoxBkgColor: '#ffffff',
+            labelBoxBorderColor: '#000000',
+            labelTextColor: '#000000',
+            loopTextColor: '#000000',
+            noteBorderColor: '#000000',
+            noteBkgColor: '#ffffff',
+            noteTextColor: '#000000',
+            activationBorderColor: '#000000',
+            activationBkgColor: '#ffffff',
+            sequenceNumberColor: '#000000',
+            sectionBkgColor: '#ffffff',
+            altSectionBkgColor: '#ffffff',
+            sectionBkgColor2: '#ffffff',
+            excludeBkgColor: '#ffffff',
+            taskBorderColor: '#000000',
+            taskBkgColor: '#ffffff',
+            taskTextColor: '#000000',
+            activeTaskBorderColor: '#000000',
+            activeTaskBkgColor: '#ffffff',
+            gridColor: '#000000',
+            doneTaskBkgColor: '#ffffff',
+            doneTaskBorderColor: '#000000',
+            critBorderColor: '#000000',
+            critBkgColor: '#ffffff',
+            todayLineColor: '#000000',
+            personBorder: '#000000',
+            personBkg: '#ffffff',
+            labelColor: '#000000',
+            errorBkgColor: '#ffffff',
+            errorTextColor: '#000000',
+            classText: '#000000',
+            fillType0: '#ffffff',
+            fillType1: '#ffffff',
+            fillType2: '#ffffff',
+            fillType3: '#ffffff',
+            fillType4: '#ffffff',
+            fillType5: '#ffffff',
+            fillType6: '#ffffff',
+            fillType7: '#ffffff',
+            pie1: '#ffffff',
+            pie2: '#ffffff',
+            pie3: '#ffffff',
+            pie4: '#ffffff',
+            pie5: '#ffffff',
+            pie6: '#ffffff',
+            pie7: '#ffffff',
+            pie8: '#ffffff',
+            pie9: '#ffffff',
+            pie10: '#ffffff',
+            pie11: '#ffffff',
+            pie12: '#ffffff',
+            pieTitleTextColor: '#000000',
+            pieSectionTextColor: '#000000',
+            pieOuterStrokeWidth: '2px',
+            pieInnerStrokeWidth: '1px',
+            pieOpacity: '1',
+            quadrant1Fill: '#ffffff',
+            quadrant2Fill: '#ffffff',
+            quadrant3Fill: '#ffffff',
+            quadrant4Fill: '#ffffff',
+            quadrant1TextFill: '#000000',
+            quadrant2TextFill: '#000000',
+            quadrant3TextFill: '#000000',
+            quadrant4TextFill: '#000000',
+            quadrantPointFill: '#000000',
+            quadrantPointTextFill: '#000000',
+            quadrantXAxisTextFill: '#000000',
+            quadrantYAxisTextFill: '#000000',
+            quadrantInternalBorderStrokeFill: '#000000',
+            quadrantExternalBorderStrokeFill: '#000000',
+            quadrantTitleFill: '#000000',
+            requirementBackground: '#ffffff',
+            requirementBorderColor: '#000000',
+            requirementTextColor: '#000000',
+            relationColor: '#000000',
+            relationLabelBackground: '#ffffff',
+            relationLabelColor: '#000000',
+            git0: '#ffffff',
+            git1: '#ffffff',
+            git2: '#ffffff',
+            git3: '#ffffff',
+            git4: '#ffffff',
+            git5: '#ffffff',
+            git6: '#ffffff',
+            git7: '#ffffff',
+            gitBranchLabel0: '#000000',
+            gitBranchLabel1: '#000000',
+            gitBranchLabel2: '#000000',
+            gitBranchLabel3: '#000000',
+            gitBranchLabel4: '#000000',
+            gitBranchLabel5: '#000000',
+            gitBranchLabel6: '#000000',
+            gitBranchLabel7: '#000000',
+            tagLabelColor: '#000000',
+            tagLabelBackground: '#ffffff',
+            tagLabelBorder: '#000000',
+            commitLabelColor: '#000000',
+            commitLabelBackground: '#ffffff'
+        };
+
+        let currentTheme = 'default';
+
+        function initializeMermaid(theme = 'default') {
+            const config = {
+                startOnLoad: false,
+                theme: theme === 'bw' ? 'base' : theme,
+                securityLevel: 'loose',
+                flowchart: { useMaxWidth: true },
+                themeVariables: theme === 'bw' ? bwThemeVariables : {}
+            };
+            mermaid.initialize(config);
+            currentTheme = theme;
+        }
+
+        initializeMermaid('default');
+        window.mermaid = mermaid;
+        window.initializeMermaid = initializeMermaid;
+        window.currentTheme = currentTheme;
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --text-primary: #333333;
+            --text-secondary: #666666;
+            --border-color: #dddddd;
+            --accent-color: #0066cc;
+            --toolbar-bg: #f8f9fa;
+            --button-hover: #e9ecef;
+        }
+
+        body.dark-mode {
+            --bg-primary: #1e1e1e;
+            --bg-secondary: #252525;
+            --text-primary: #e0e0e0;
+            --text-secondary: #a0a0a0;
+            --border-color: #404040;
+            --accent-color: #4a9eff;
+            --toolbar-bg: #2d2d2d;
+            --button-hover: #3a3a3a;
+        }
+
+        body.bw-mode {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --text-primary: #000000;
+            --text-secondary: #333333;
+            --border-color: #000000;
+            --accent-color: #000000;
+            --toolbar-bg: #ffffff;
+            --button-hover: #f0f0f0;
+        }
+
+        body.bw-mode #preview {
+            background: #ffffff !important;
+        }
+
+        /* Black and White mode for diagrams */
+        body.bw-mode #mermaid-diagram * {
+            color: black !important;
+        }
+
+        body.bw-mode #mermaid-diagram rect,
+        body.bw-mode #mermaid-diagram circle,
+        body.bw-mode #mermaid-diagram ellipse,
+        body.bw-mode #mermaid-diagram polygon,
+        body.bw-mode #mermaid-diagram path {
+            fill: white !important;
+            stroke: black !important;
+            stroke-width: 2px !important;
+        }
+
+        body.bw-mode #mermaid-diagram text,
+        body.bw-mode #mermaid-diagram .nodeLabel,
+        body.bw-mode #mermaid-diagram .edgeLabel,
+        body.bw-mode #mermaid-diagram .label {
+            fill: black !important;
+            stroke: none !important;
+            color: black !important;
+        }
+
+        body.bw-mode #mermaid-diagram line,
+        body.bw-mode #mermaid-diagram polyline {
+            stroke: black !important;
+            stroke-width: 2px !important;
+        }
+
+        body.bw-mode #mermaid-diagram marker path {
+            fill: black !important;
+            stroke: black !important;
+        }
+
+        body.bw-mode #mermaid-diagram .node rect,
+        body.bw-mode #mermaid-diagram .cluster rect {
+            fill: white !important;
+            stroke: black !important;
+            stroke-width: 2px !important;
+        }
+
+        body.bw-mode #mermaid-diagram .label-container rect {
+            fill: white !important;
+            stroke: black !important;
+        }
+
+        /* Additional BW mode styling for better visibility */
+        body.bw-mode #mermaid-diagram .flowchart-link {
+            stroke: black !important;
+            stroke-width: 2px !important;
+        }
+
+        body.bw-mode #mermaid-diagram .marker {
+            fill: black !important;
+            stroke: black !important;
+        }
+
+        body.bw-mode #mermaid-diagram g.classGroup rect {
+            fill: white !important;
+            stroke: black !important;
+            stroke-width: 2px !important;
+        }
+
+        body.bw-mode #mermaid-diagram g.classGroup line {
+            stroke: black !important;
+            stroke-width: 1px !important;
+        }
+
+        body.bw-mode #mermaid-diagram .actor {
+            fill: white !important;
+            stroke: black !important;
+            stroke-width: 2px !important;
+        }
+
+        body.bw-mode #mermaid-diagram .messageLine0,
+        body.bw-mode #mermaid-diagram .messageLine1 {
+            stroke: black !important;
+            stroke-width: 2px !important;
+        }
+
+        body.bw-mode #mermaid-diagram .note {
+            fill: white !important;
+            stroke: black !important;
+            stroke-width: 2px !important;
+        }
+
+        body.bw-mode #mermaid-diagram .loopText,
+        body.bw-mode #mermaid-diagram .loopLine {
+            stroke: black !important;
+            fill: black !important;
+        }
+
+        body.bw-mode #mermaid-diagram .activation0,
+        body.bw-mode #mermaid-diagram .activation1,
+        body.bw-mode #mermaid-diagram .activation2 {
+            fill: white !important;
+            stroke: black !important;
+            stroke-width: 2px !important;
+        }
+
+        body.bw-mode #mermaid-diagram .section {
+            fill: white !important;
+            stroke: black !important;
+        }
+
+        body.bw-mode #mermaid-diagram .task {
+            fill: white !important;
+            stroke: black !important;
+            stroke-width: 2px !important;
+        }
+
+        body.bw-mode #mermaid-diagram .taskText {
+            fill: black !important;
+            color: black !important;
+        }
+
+        body.bw-mode #mermaid-diagram .grid .tick line {
+            stroke: black !important;
+            stroke-width: 1px !important;
+        }
+
+        body.bw-mode #mermaid-diagram .commit-id,
+        body.bw-mode #mermaid-diagram .commit-msg {
+            fill: black !important;
+            color: black !important;
+        }
+
+        body.bw-mode #mermaid-diagram .branch-label {
+            fill: black !important;
+        }
+
+        body.bw-mode #mermaid-diagram path.er {
+            stroke: black !important;
+            stroke-width: 2px !important;
+            fill: none !important;
+        }
+
+        body.bw-mode #mermaid-diagram .er.relationshipLine {
+            stroke: black !important;
+        }
+
+        body.bw-mode #mermaid-diagram .er.attributeBoxEven,
+        body.bw-mode #mermaid-diagram .er.attributeBoxOdd {
+            fill: white !important;
+            stroke: black !important;
+        }
+
+        body.bw-mode #mermaid-diagram .er.entityBox {
+            fill: white !important;
+            stroke: black !important;
+            stroke-width: 2px !important;
+        }
+
+        body.bw-mode #mermaid-diagram .statediagram-state rect {
+            fill: white !important;
+            stroke: black !important;
+            stroke-width: 2px !important;
+        }
+
+        body.bw-mode #mermaid-diagram .stateGroup rect {
+            fill: white !important;
+            stroke: black !important;
+        }
+
+        body.bw-mode #mermaid-diagram .journey-section {
+            fill: white !important;
+            stroke: black !important;
+        }
+
+        body.bw-mode #mermaid-diagram .person {
+            fill: white !important;
+            stroke: black !important;
+            stroke-width: 2px !important;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .header {
+            background: var(--toolbar-bg);
+            border-bottom: 1px solid var(--border-color);
+            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .toolbar {
+            background: var(--toolbar-bg);
+            border-bottom: 1px solid var(--border-color);
+            padding: 8px 15px;
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .toolbar button, .header button {
+            padding: 6px 12px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .toolbar button:hover, .header button:hover {
+            background: var(--button-hover);
+        }
+
+        .toolbar button.active, .header button.active {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        body.bw-mode .header button.active {
+            background: #000000;
+            color: white;
+        }
+
+        .separator {
+            width: 1px;
+            height: 20px;
+            background: var(--border-color);
+            margin: 0 5px;
+        }
+
+        .main-container {
+            display: flex;
+            height: calc(100vh - 110px);
+        }
+
+        .main-container.vertical {
+            flex-direction: column;
+        }
+
+        .editor-panel, .preview-panel {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .editor-panel {
+            flex: 0 0 50%;
+            min-width: 200px;
+        }
+
+        .preview-panel {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .panel-header {
+            background: var(--bg-secondary);
+            padding: 8px 15px;
+            border-bottom: 1px solid var(--border-color);
+            font-weight: 600;
+            font-size: 13px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .zoom-controls {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+
+        .zoom-controls button {
+            padding: 2px 8px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .zoom-controls button:hover {
+            background: var(--button-hover);
+        }
+
+        .zoom-level {
+            font-size: 11px;
+            min-width: 45px;
+            text-align: center;
+        }
+
+        .editor-panel {
+            border-right: 1px solid var(--border-color);
+        }
+
+        .resizer {
+            position: absolute;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            width: 5px;
+            cursor: col-resize;
+            background: transparent;
+            z-index: 10;
+            transition: background 0.2s;
+        }
+
+        .resizer:hover,
+        .resizer.resizing {
+            background: var(--accent-color);
+        }
+
+        .main-container.vertical .resizer {
+            width: 100%;
+            height: 5px;
+            right: auto;
+            top: auto;
+            bottom: 0;
+            cursor: row-resize;
+        }
+
+        .main-container.vertical .editor-panel {
+            border-right: none;
+            border-bottom: 1px solid var(--border-color);
+            flex: 0 0 50%;
+            min-height: 100px;
+        }
+
+        .main-container.vertical .preview-panel {
+            flex: 1;
+            min-height: 100px;
+        }
+
+        #mermaid-input {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            resize: none;
+            outline: none;
+        }
+
+        #preview {
+            flex: 1;
+            padding: 20px;
+            overflow: auto;
+            background: var(--bg-primary);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #diagram-container {
+            transform-origin: center center;
+            transition: transform 0.2s ease;
+        }
+
+        #mermaid-diagram {
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+        .error-message {
+            color: #d32f2f;
+            padding: 20px;
+            background: #ffebee;
+            border-radius: 4px;
+            border-left: 4px solid #d32f2f;
+        }
+
+        .status-bar {
+            background: var(--toolbar-bg);
+            border-top: 1px solid var(--border-color);
+            padding: 5px 15px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* Print Styles - Black and White Optimization */
+        @media print {
+            body {
+                background: white !important;
+                color: black !important;
+            }
+
+            .header, .toolbar, .status-bar, .panel-header, .resizer, .zoom-controls {
+                display: none !important;
+            }
+
+            .main-container {
+                display: block !important;
+                height: auto !important;
+            }
+
+            .editor-panel {
+                display: none !important;
+            }
+
+            #diagram-container {
+                transform: none !important;
+            }
+
+            .preview-panel {
+                border: none !important;
+            }
+
+            #preview {
+                padding: 0 !important;
+                background: white !important;
+            }
+
+            /* Force black and white for Mermaid diagrams */
+            #mermaid-diagram * {
+                color: black !important;
+                fill: white !important;
+                stroke: black !important;
+            }
+
+            #mermaid-diagram rect,
+            #mermaid-diagram circle,
+            #mermaid-diagram ellipse,
+            #mermaid-diagram polygon,
+            #mermaid-diagram path {
+                fill: white !important;
+                stroke: black !important;
+                stroke-width: 2px !important;
+            }
+
+            #mermaid-diagram text {
+                fill: black !important;
+                stroke: none !important;
+            }
+
+            #mermaid-diagram line,
+            #mermaid-diagram polyline {
+                stroke: black !important;
+                stroke-width: 2px !important;
+            }
+
+            #mermaid-diagram marker path {
+                fill: black !important;
+                stroke: black !important;
+            }
+
+            /* Remove any background colors */
+            #mermaid-diagram .node rect,
+            #mermaid-diagram .cluster rect {
+                fill: white !important;
+            }
+
+            /* Ensure text is always black */
+            #mermaid-diagram .nodeLabel,
+            #mermaid-diagram .edgeLabel,
+            #mermaid-diagram .label {
+                color: black !important;
+            }
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Mermaid Diagram Editor & Viewer</h1>
+        <div class="header-controls">
+            <button onclick="toggleLayout()" title="Toggle Layout">⇅ Layout</button>
+            <button onclick="toggleTheme()" title="Toggle Theme">🌓 Theme</button>
+            <button onclick="toggleBWMode()" title="Toggle Black & White Mode" id="bwButton">⬛ B&W</button>
+            <button onclick="openFile()" title="Open File">📂 Open</button>
+            <button onclick="saveMermaid()" title="Save Mermaid (Ctrl+S)">💾 Save</button>
+            <button onclick="exportSVG()" title="Export SVG">📊 Export SVG</button>
+            <button onclick="exportPNG()" title="Export PNG">🖼️ Export PNG</button>
+            <button onclick="printDiagram()" title="Print (Ctrl+P)">🖨️ Print</button>
+        </div>
+    </div>
+
+    <div class="toolbar">
+        <button onclick="insertTemplate('flowchart')" title="Flowchart">📊 Flowchart</button>
+        <button onclick="insertTemplate('sequence')" title="Sequence Diagram">🔄 Sequence</button>
+        <button onclick="insertTemplate('class')" title="Class Diagram">📦 Class</button>
+        <button onclick="insertTemplate('state')" title="State Diagram">🔀 State</button>
+        <div class="separator"></div>
+        <button onclick="insertTemplate('gantt')" title="Gantt Chart">📅 Gantt</button>
+        <button onclick="insertTemplate('pie')" title="Pie Chart">🥧 Pie</button>
+        <button onclick="insertTemplate('er')" title="ER Diagram">🗂️ ER</button>
+        <button onclick="insertTemplate('journey')" title="User Journey">🚶 Journey</button>
+        <div class="separator"></div>
+        <button onclick="insertTemplate('git')" title="Git Graph">🌳 Git</button>
+        <button onclick="insertTemplate('mindmap')" title="Mindmap">🧠 Mindmap</button>
+        <button onclick="insertTemplate('timeline')" title="Timeline">📈 Timeline</button>
+    </div>
+
+    <div class="main-container" id="mainContainer">
+        <div class="editor-panel" id="editorPanel">
+            <div class="panel-header">Editor</div>
+            <textarea id="mermaid-input" placeholder="graph TD
+    A[Start] --> B{Decision}
+    B -->|Yes| C[OK]
+    B -->|No| D[End]
+    C --> D"></textarea>
+            <div class="resizer" id="resizer"></div>
+        </div>
+        <div class="preview-panel">
+            <div class="panel-header">
+                <span>Preview</span>
+                <div class="zoom-controls">
+                    <button onclick="zoomOut()" title="Zoom Out (Ctrl+-)">-</button>
+                    <span class="zoom-level" id="zoomLevel">100%</span>
+                    <button onclick="zoomIn()" title="Zoom In (Ctrl++)">+</button>
+                    <button onclick="zoomReset()" title="Reset Zoom (Ctrl+0)">Reset</button>
+                </div>
+            </div>
+            <div id="preview">
+                <div id="diagram-container">
+                    <div id="mermaid-diagram"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="status-bar">
+        <div>
+            <span id="lineCount">Lines: 0</span> |
+            <span id="charCount">Characters: 0</span>
+        </div>
+        <div id="saveStatus">Auto-save: enabled</div>
+    </div>
+
+    <input type="file" id="fileInput" accept=".mmd,.txt" onchange="loadFile(event)">
+
+    <script>
+        const editor = document.getElementById('mermaid-input');
+        const preview = document.getElementById('preview');
+        const diagramContainer = document.getElementById('mermaid-diagram');
+        const diagramWrapper = document.getElementById('diagram-container');
+        const editorPanel = document.getElementById('editorPanel');
+        const resizer = document.getElementById('resizer');
+        const mainContainer = document.getElementById('mainContainer');
+        let autoSaveInterval;
+        let renderTimeout;
+        let zoomLevel = 1.0;
+        let isResizing = false;
+
+        // Templates for different diagram types
+        const templates = {
+            flowchart: `graph TD
+    A[Start] --> B{Decision}
+    B -->|Yes| C[Process 1]
+    B -->|No| D[Process 2]
+    C --> E[End]
+    D --> E`,
+
+            sequence: `sequenceDiagram
+    participant A as Alice
+    participant B as Bob
+    A->>B: Hello Bob!
+    B->>A: Hello Alice!
+    A->>B: How are you?
+    B->>A: Fine, thanks!`,
+
+            class: `classDiagram
+    class Animal {
+        +String name
+        +int age
+        +makeSound()
+    }
+    class Dog {
+        +String breed
+        +bark()
+    }
+    Animal <|-- Dog`,
+
+            state: `stateDiagram-v2
+    [*] --> Idle
+    Idle --> Processing
+    Processing --> Success
+    Processing --> Error
+    Success --> [*]
+    Error --> Idle`,
+
+            gantt: `gantt
+    title Project Schedule
+    dateFormat  YYYY-MM-DD
+    section Planning
+    Task 1           :a1, 2024-01-01, 30d
+    Task 2           :after a1, 20d
+    section Development
+    Task 3           :2024-02-01, 45d
+    Task 4           :2024-03-01, 30d`,
+
+            pie: `pie title Sample Pie Chart
+    "Category A" : 45
+    "Category B" : 30
+    "Category C" : 15
+    "Category D" : 10`,
+
+            er: `erDiagram
+    CUSTOMER ||--o{ ORDER : places
+    ORDER ||--|{ LINE-ITEM : contains
+    CUSTOMER {
+        string name
+        string email
+    }
+    ORDER {
+        int orderID
+        date orderDate
+    }`,
+
+            journey: `journey
+    title User Journey
+    section Registration
+      Visit site: 5: User
+      Sign up: 3: User
+      Verify email: 4: User
+    section Usage
+      Login: 5: User
+      Use feature: 4: User`,
+
+            git: `gitGraph
+    commit
+    branch develop
+    checkout develop
+    commit
+    commit
+    checkout main
+    merge develop
+    commit`,
+
+            mindmap: `mindmap
+  root((Mindmap))
+    Origins
+      Long history
+      ::icon(fa fa-book)
+    Research
+      On effectiveness
+      On techniques
+    Applications
+      Project planning
+      Note taking`,
+
+            timeline: `timeline
+    title History of Technology
+    2000 : Internet boom
+    2007 : iPhone released
+    2010 : iPad introduced
+    2020 : AI revolution`
+        };
+
+        // Update diagram
+        async function updateDiagram() {
+            clearTimeout(renderTimeout);
+            renderTimeout = setTimeout(async () => {
+                const code = editor.value.trim();
+                if (!code) {
+                    diagramContainer.innerHTML = '<div style="color: var(--text-secondary);">Enter Mermaid code to see preview...</div>';
+                    return;
+                }
+
+                try {
+                    diagramContainer.innerHTML = '';
+                    const { svg } = await window.mermaid.render('mermaid-svg-' + Date.now(), code);
+                    diagramContainer.innerHTML = svg;
+                    updateStats();
+                } catch (error) {
+                    diagramContainer.innerHTML = `<div class="error-message">
+                        <strong>Error rendering diagram:</strong><br>
+                        ${error.message || error}
+                    </div>`;
+                }
+            }, 500);
+        }
+
+        // Update statistics
+        function updateStats() {
+            const text = editor.value;
+            document.getElementById('charCount').textContent = `Characters: ${text.length}`;
+            document.getElementById('lineCount').textContent = `Lines: ${text.split('\n').length}`;
+        }
+
+        // Auto-save to localStorage
+        function autoSave() {
+            localStorage.setItem('mermaid-content', editor.value);
+            document.getElementById('saveStatus').textContent = 'Auto-saved: ' + new Date().toLocaleTimeString();
+        }
+
+        // Load from localStorage
+        function loadAutoSave() {
+            const saved = localStorage.getItem('mermaid-content');
+            if (saved) {
+                editor.value = saved;
+                updateDiagram();
+            } else {
+                editor.value = templates.flowchart;
+                updateDiagram();
+            }
+        }
+
+        // Insert template
+        function insertTemplate(type) {
+            if (templates[type]) {
+                editor.value = templates[type];
+                updateDiagram();
+            }
+        }
+
+        // Toggle layout
+        function toggleLayout() {
+            document.getElementById('mainContainer').classList.toggle('vertical');
+        }
+
+        // Toggle theme
+        function toggleTheme() {
+            // Remove BW mode if active
+            if (document.body.classList.contains('bw-mode')) {
+                document.body.classList.remove('bw-mode');
+                localStorage.setItem('bw-mode', 'false');
+            }
+
+            document.body.classList.toggle('dark-mode');
+            const isDark = document.body.classList.contains('dark-mode');
+            localStorage.setItem('dark-mode', isDark);
+        }
+
+        // Toggle Black & White mode
+        function toggleBWMode() {
+            // Remove dark mode if active
+            if (document.body.classList.contains('dark-mode')) {
+                document.body.classList.remove('dark-mode');
+                localStorage.setItem('dark-mode', 'false');
+            }
+
+            document.body.classList.toggle('bw-mode');
+            const isBW = document.body.classList.contains('bw-mode');
+            localStorage.setItem('bw-mode', isBW);
+
+            // Toggle active state on button
+            const bwButton = document.getElementById('bwButton');
+            if (isBW) {
+                bwButton.classList.add('active');
+            } else {
+                bwButton.classList.remove('active');
+            }
+
+            // Reinitialize mermaid with appropriate theme
+            if (isBW) {
+                window.initializeMermaid('bw');
+            } else {
+                window.initializeMermaid('default');
+            }
+
+            // Re-render the diagram
+            updateDiagram();
+        }
+
+        // Open file
+        function openFile() {
+            document.getElementById('fileInput').click();
+        }
+
+        // Load file
+        function loadFile(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    editor.value = e.target.result;
+                    updateDiagram();
+                };
+                reader.readAsText(file);
+            }
+        }
+
+        // Save mermaid
+        function saveMermaid() {
+            const content = editor.value;
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'diagram.mmd';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Apply B&W styles to SVG for export
+        function applyBWStylesToSVG(svgElement) {
+            const svgClone = svgElement.cloneNode(true);
+
+            // Check if B&W mode is active
+            const isBWMode = document.body.classList.contains('bw-mode');
+            if (!isBWMode) {
+                return svgClone;
+            }
+
+            // Add B&W styles to the cloned SVG
+            const style = document.createElementNS('http://www.w3.org/2000/svg', 'style');
+            style.textContent = `
+                * {
+                    color: black !important;
+                }
+                rect, circle, ellipse, polygon, path {
+                    fill: white !important;
+                    stroke: black !important;
+                    stroke-width: 2px !important;
+                }
+                text, .nodeLabel, .edgeLabel, .label {
+                    fill: black !important;
+                    stroke: none !important;
+                    color: black !important;
+                }
+                line, polyline {
+                    stroke: black !important;
+                    stroke-width: 2px !important;
+                }
+                marker path {
+                    fill: black !important;
+                    stroke: black !important;
+                }
+                .node rect, .cluster rect {
+                    fill: white !important;
+                    stroke: black !important;
+                    stroke-width: 2px !important;
+                }
+                .label-container rect {
+                    fill: white !important;
+                    stroke: black !important;
+                }
+                .flowchart-link {
+                    stroke: black !important;
+                    stroke-width: 2px !important;
+                }
+                .marker {
+                    fill: black !important;
+                    stroke: black !important;
+                }
+                g.classGroup rect {
+                    fill: white !important;
+                    stroke: black !important;
+                    stroke-width: 2px !important;
+                }
+                g.classGroup line {
+                    stroke: black !important;
+                    stroke-width: 1px !important;
+                }
+                .actor {
+                    fill: white !important;
+                    stroke: black !important;
+                    stroke-width: 2px !important;
+                }
+                .messageLine0, .messageLine1 {
+                    stroke: black !important;
+                    stroke-width: 2px !important;
+                }
+                .note {
+                    fill: white !important;
+                    stroke: black !important;
+                    stroke-width: 2px !important;
+                }
+                .loopText, .loopLine {
+                    stroke: black !important;
+                    fill: black !important;
+                }
+                .activation0, .activation1, .activation2 {
+                    fill: white !important;
+                    stroke: black !important;
+                    stroke-width: 2px !important;
+                }
+                .section {
+                    fill: white !important;
+                    stroke: black !important;
+                }
+                .task {
+                    fill: white !important;
+                    stroke: black !important;
+                    stroke-width: 2px !important;
+                }
+                .taskText {
+                    fill: black !important;
+                    color: black !important;
+                }
+                .grid .tick line {
+                    stroke: black !important;
+                    stroke-width: 1px !important;
+                }
+                .commit-id, .commit-msg {
+                    fill: black !important;
+                    color: black !important;
+                }
+                .branch-label {
+                    fill: black !important;
+                }
+                path.er {
+                    stroke: black !important;
+                    stroke-width: 2px !important;
+                    fill: none !important;
+                }
+                .er.relationshipLine {
+                    stroke: black !important;
+                }
+                .er.attributeBoxEven, .er.attributeBoxOdd {
+                    fill: white !important;
+                    stroke: black !important;
+                }
+                .er.entityBox {
+                    fill: white !important;
+                    stroke: black !important;
+                    stroke-width: 2px !important;
+                }
+                .statediagram-state rect {
+                    fill: white !important;
+                    stroke: black !important;
+                    stroke-width: 2px !important;
+                }
+                .stateGroup rect {
+                    fill: white !important;
+                    stroke: black !important;
+                }
+                .journey-section {
+                    fill: white !important;
+                    stroke: black !important;
+                }
+                .person {
+                    fill: white !important;
+                    stroke: black !important;
+                    stroke-width: 2px !important;
+                }
+            `;
+
+            // Insert style as first child of SVG
+            svgClone.insertBefore(style, svgClone.firstChild);
+
+            return svgClone;
+        }
+
+        // Export SVG
+        function exportSVG() {
+            const svg = diagramContainer.querySelector('svg');
+            if (!svg) {
+                alert('No diagram to export!');
+                return;
+            }
+
+            const svgToExport = applyBWStylesToSVG(svg);
+            const svgData = svgToExport.outerHTML;
+            const blob = new Blob([svgData], { type: 'image/svg+xml' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'diagram.svg';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Export PNG
+        function exportPNG() {
+            const svg = diagramContainer.querySelector('svg');
+            if (!svg) {
+                alert('No diagram to export!');
+                return;
+            }
+
+            const svgToExport = applyBWStylesToSVG(svg);
+
+            // Get SVG dimensions
+            const svgRect = svg.getBoundingClientRect();
+            const svgWidth = svgRect.width || svg.width.baseVal.value || 800;
+            const svgHeight = svgRect.height || svg.height.baseVal.value || 600;
+
+            // Set high resolution scale factor (3x for better quality)
+            const scale = 3;
+
+            const svgData = new XMLSerializer().serializeToString(svgToExport);
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const img = new Image();
+
+            img.onload = function() {
+                // Set canvas size to high resolution
+                canvas.width = svgWidth * scale;
+                canvas.height = svgHeight * scale;
+
+                // Fill white background
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Scale context for high resolution
+                ctx.scale(scale, scale);
+
+                // Draw image at original size (context is scaled)
+                ctx.drawImage(img, 0, 0, svgWidth, svgHeight);
+
+                canvas.toBlob(function(blob) {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'diagram.png';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                }, 'image/png', 1.0); // Maximum quality
+            };
+
+            img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
+        }
+
+        // Print diagram
+        function printDiagram() {
+            window.print();
+        }
+
+        // Zoom functions
+        function updateZoom() {
+            diagramWrapper.style.transform = `scale(${zoomLevel})`;
+            document.getElementById('zoomLevel').textContent = `${Math.round(zoomLevel * 100)}%`;
+            localStorage.setItem('zoom-level', zoomLevel);
+        }
+
+        function zoomIn() {
+            zoomLevel = Math.min(zoomLevel + 0.1, 3.0);
+            updateZoom();
+        }
+
+        function zoomOut() {
+            zoomLevel = Math.max(zoomLevel - 0.1, 0.3);
+            updateZoom();
+        }
+
+        function zoomReset() {
+            zoomLevel = 1.0;
+            updateZoom();
+        }
+
+        // Resizer functionality
+        resizer.addEventListener('mousedown', function(e) {
+            isResizing = true;
+            resizer.classList.add('resizing');
+            document.body.style.cursor = mainContainer.classList.contains('vertical') ? 'row-resize' : 'col-resize';
+            document.body.style.userSelect = 'none';
+            e.preventDefault();
+        });
+
+        document.addEventListener('mousemove', function(e) {
+            if (!isResizing) return;
+
+            if (mainContainer.classList.contains('vertical')) {
+                // Vertical layout - resize by height
+                const containerRect = mainContainer.getBoundingClientRect();
+                const newHeight = e.clientY - containerRect.top;
+                const percentage = (newHeight / containerRect.height) * 100;
+
+                if (percentage > 10 && percentage < 90) {
+                    editorPanel.style.flex = `0 0 ${percentage}%`;
+                }
+            } else {
+                // Horizontal layout - resize by width
+                const containerRect = mainContainer.getBoundingClientRect();
+                const newWidth = e.clientX - containerRect.left;
+                const percentage = (newWidth / containerRect.width) * 100;
+
+                if (percentage > 10 && percentage < 90) {
+                    editorPanel.style.flex = `0 0 ${percentage}%`;
+                }
+            }
+        });
+
+        document.addEventListener('mouseup', function() {
+            if (isResizing) {
+                isResizing = false;
+                resizer.classList.remove('resizing');
+                document.body.style.cursor = '';
+                document.body.style.userSelect = '';
+            }
+        });
+
+        // Keyboard shortcuts
+        editor.addEventListener('keydown', function(e) {
+            if (e.ctrlKey || e.metaKey) {
+                switch(e.key) {
+                    case 's':
+                        e.preventDefault();
+                        saveMermaid();
+                        break;
+                    case 'p':
+                        e.preventDefault();
+                        printDiagram();
+                        break;
+                }
+            }
+        });
+
+        // Global keyboard shortcuts for zoom
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey || e.metaKey) {
+                if (e.key === '+' || e.key === '=') {
+                    e.preventDefault();
+                    zoomIn();
+                } else if (e.key === '-') {
+                    e.preventDefault();
+                    zoomOut();
+                } else if (e.key === '0') {
+                    e.preventDefault();
+                    zoomReset();
+                }
+            }
+        });
+
+        // Mouse wheel zoom with Ctrl
+        preview.addEventListener('wheel', function(e) {
+            if (e.ctrlKey || e.metaKey) {
+                e.preventDefault();
+                if (e.deltaY < 0) {
+                    zoomIn();
+                } else {
+                    zoomOut();
+                }
+            }
+        }, { passive: false });
+
+        // Initialize
+        editor.addEventListener('input', updateDiagram);
+        loadAutoSave();
+
+        // Load theme preference (BW mode has priority over dark mode)
+        if (localStorage.getItem('bw-mode') === 'true') {
+            document.body.classList.add('bw-mode');
+            document.getElementById('bwButton').classList.add('active');
+            window.initializeMermaid('bw');
+            updateDiagram();
+        } else if (localStorage.getItem('dark-mode') === 'true') {
+            toggleTheme();
+        }
+
+        // Load zoom level
+        const savedZoom = localStorage.getItem('zoom-level');
+        if (savedZoom) {
+            zoomLevel = parseFloat(savedZoom);
+            updateZoom();
+        }
+
+        // Auto-save every 10 seconds
+        autoSaveInterval = setInterval(autoSave, 10000);
+    </script>
+</body>
+</html>

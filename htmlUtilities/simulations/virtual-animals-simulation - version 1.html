@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulácia Virtuálnych Živočíchov</title>
+    <style>
+        canvas {
+            border: 1px solid black;
+        }
+        button {
+            margin-top: 10px;
+            font-size: 16px;
+            padding: 5px 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Simulácia Virtuálnych Živočíchov</h1>
+    <canvas id="simulationCanvas" width="800" height="600"></canvas>
+    <br>
+    <button id="resetButton">Reset Simulácie</button>
+    <script>
+        const canvas = document.getElementById('simulationCanvas');
+        const ctx = canvas.getContext('2d');
+        const resetButton = document.getElementById('resetButton');
+
+        class Animal {
+            constructor(x, y, level, parent1 = null, parent2 = null) {
+                this.x = x;
+                this.y = y;
+                this.level = level;
+                this.baseSize = this.inheritParameter(parent1, parent2, 5 + level * 2);
+                this.size = this.baseSize;
+                this.speed = this.inheritParameter(parent1, parent2, 1 + level * 0.5);
+                this.perceptionRange = this.inheritParameter(parent1, parent2, 50 + level * 10);
+                this.energy = this.inheritParameter(parent1, parent2, 100);
+                this.maxEnergy = this.energy * 2;
+                this.minWeight = this.inheritParameter(parent1, parent2, 50);
+                this.reproductionWeight = this.inheritParameter(parent1, parent2, 150);
+                this.color = ['green', 'blue', 'red'][level - 1];
+                this.direction = Math.random() * Math.PI * 2;
+
+                this.escapeSpeed = this.inheritParameter(parent1, parent2, this.speed * 1.5);
+                this.detectionAngle = this.inheritParameter(parent1, parent2, Math.PI / 2);
+                this.camouflageAbility = this.inheritParameter(parent1, parent2, 0.5);
+                this.socialInteraction = Math.floor(this.inheritParameter(parent1, parent2, 3));
+                this.territorySize = this.inheritParameter(parent1, parent2, 50);
+                this.aggressiveness = this.inheritParameter(parent1, parent2, 0.5);
+                this.immuneResistance = this.inheritParameter(parent1, parent2, 0.7);
+                this.dietDiversity = this.inheritParameter(parent1, parent2, 0.5);
+                this.metabolismEfficiency = this.inheritParameter(parent1, parent2, 0.8);
+                this.preferredTemperature = this.inheritParameter(parent1, parent2, 25);
+                this.humidityPreference = this.inheritParameter(parent1, parent2, 0.5);
+                this.reproductiveAge = this.inheritParameter(parent1, parent2, 100);
+                this.stressFactor = this.inheritParameter(parent1, parent2, 0.3);
+                this.learningAbility = this.inheritParameter(parent1, parent2, 0.6);
+                this.energySpeedCoefficient = this.inheritParameter(parent1, parent2, 1.2);
+                this.focus = this.inheritParameter(parent1, parent2, 0.5);
+
+                this.age = 0;
+                this.weight = this.minWeight * 1.5;
+                this.targetFood = null;
+            }
+
+            inheritParameter(parent1, parent2, defaultValue) {
+                if (parent1 && parent2) {
+                    const parentValue = (parent1[this.getParameterName(defaultValue)] + parent2[this.getParameterName(defaultValue)]) / 2;
+                    return this.mutateParameter(parentValue);
+                }
+                return this.mutateParameter(defaultValue);
+            }
+
+            getParameterName(defaultValue) {
+                for (let key in this) {
+                    if (this[key] === defaultValue) return key;
+                }
+                return null;
+            }
+
+            mutateParameter(value) {
+                const mutationFactor = 1 + (Math.random() * 0.2 - 0.1); // -10% to +10%
+                return value * mutationFactor;
+            }
+
+            move() {
+                if (this.targetFood && Math.random() > this.focus) {
+                    this.targetFood = null;
+                }
+
+                if (this.targetFood) {
+                    this.direction = Math.atan2(this.targetFood.y - this.y, this.targetFood.x - this.x);
+                } else if (Math.random() < 0.05) {
+                    this.direction += (Math.random() - 0.5) * this.detectionAngle;
+                }
+                
+                const currentSpeed = this.isEscaping ? this.escapeSpeed : this.speed;
+                const newX = this.x + Math.cos(this.direction) * currentSpeed;
+                const newY = this.y + Math.sin(this.direction) * currentSpeed;
+
+                // Kontrola kolízií s okrajmi
+                if (newX < 0 || newX > canvas.width) {
+                    this.direction = Math.PI - this.direction;
+                }
+                if (newY < 0 || newY > canvas.height) {
+                    this.direction = -this.direction;
+                }
+
+                this.x = Math.max(0, Math.min(canvas.width, newX));
+                this.y = Math.max(0, Math.min(canvas.height, newY));
+
+                const energyConsumption = 0.01 * currentSpeed * this.energySpeedCoefficient;
+                this.energy -= energyConsumption / this.metabolismEfficiency;
+                this.weight -= energyConsumption * 0.1;
+                this.size = this.baseSize * (this.weight / this.minWeight);
+
+                this.age++;
+                this.isEscaping = false;
+            }
+
+            draw() {
+                ctx.fillStyle = this.color;
+                ctx.globalAlpha = 1 - this.camouflageAbility;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = 1;
+            }
+
+            eat(prey) {
+                const energyGain = prey instanceof Food ? 20 : prey.energy * 0.5;
+                const efficiencyFactor = prey instanceof Food ? this.dietDiversity : 1;
+                const gainedEnergy = energyGain * this.metabolismEfficiency * efficiencyFactor;
+                this.energy = Math.min(this.maxEnergy, this.energy + gainedEnergy);
+                this.weight += gainedEnergy * 0.1;
+                this.size = this.baseSize * (this.weight / this.minWeight);
+                this.targetFood = null;
+            }
+
+            canEat(prey) {
+                if (prey instanceof Food && this.level === 1) return true;
+                if (prey instanceof Animal && prey.level === this.level - 1) return true;
+                return false;
+            }
+
+            canReproduce() {
+                return this.age >= this.reproductiveAge && this.weight >= this.reproductionWeight;
+            }
+
+            reproduce(partner) {
+                if (this.canReproduce() && partner.canReproduce()) {
+                    const offspring = new Animal(
+                        (this.x + partner.x) / 2,
+                        (this.y + partner.y) / 2,
+                        this.level,
+                        this,
+                        partner
+                    );
+                    this.energy = 0; // Rodič zahynie po reprodukcii
+                    partner.energy = 0; // Rodič zahynie po reprodukcii
+                    return offspring;
+                }
+                return null;
+            }
+
+            detectThreat(predators) {
+                for (let predator of predators) {
+                    if (distance(this, predator) <= this.perceptionRange && predator.level > this.level) {
+                        const angle = Math.atan2(predator.y - this.y, predator.x - this.x);
+                        if (Math.abs(angle - this.direction) <= this.detectionAngle / 2) {
+                            this.isEscaping = true;
+                            this.direction = angle + Math.PI;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            findFood(foods, animals) {
+                if (this.targetFood) return;
+
+                let nearestFood = null;
+                let minDistance = Infinity;
+
+                if (this.level === 1) {
+                    for (let food of foods) {
+                        const dist = distance(this, food);
+                        if (dist < this.perceptionRange && dist < minDistance) {
+                            nearestFood = food;
+                            minDistance = dist;
+                        }
+                    }
+                } else {
+                    for (let animal of animals) {
+                        if (this.canEat(animal)) {
+                            const dist = distance(this, animal);
+                            if (dist < this.perceptionRange && dist < minDistance) {
+                                nearestFood = animal;
+                                minDistance = dist;
+                            }
+                        }
+                    }
+                }
+
+                if (nearestFood) {
+                    this.targetFood = nearestFood;
+                }
+            }
+        }
+
+        class Food {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.size = 3;
+            }
+
+            draw() {
+                ctx.fillStyle = 'brown';
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        let animals = [];
+        let foods = [];
+
+        function init() {
+            animals = [];
+            foods = [];
+            for (let i = 0; i < 10; i++) {
+                animals.push(new Animal(Math.random() * canvas.width, Math.random() * canvas.height, 1));
+            }
+            for (let i = 0; i < 5; i++) {
+                animals.push(new Animal(Math.random() * canvas.width, Math.random() * canvas.height, 2));
+            }
+            for (let i = 0; i < 2; i++) {
+                animals.push(new Animal(Math.random() * canvas.width, Math.random() * canvas.height, 3));
+            }
+            for (let i = 0; i < 50; i++) {
+                foods.push(new Food(Math.random() * canvas.width, Math.random() * canvas.height));
+            }
+        }
+
+        function handleCollisions() {
+            for (let i = 0; i < animals.length; i++) {
+                for (let j = i + 1; j < animals.length; j++) {
+                    const animal1 = animals[i];
+                    const animal2 = animals[j];
+                    const dist = distance(animal1, animal2);
+
+                    if (dist < animal1.size + animal2.size) {
+                        if (animal1.level === animal2.level) {
+                            if (animal1.canReproduce() && animal2.canReproduce()) {
+                                const offspring = animal1.reproduce(animal2);
+                                if (offspring) {
+                                    animals.push(offspring);
+                                    animals.splice(j, 1);
+                                    animals.splice(i, 1);
+                                    i--; // Adjust index after removal
+                                    break;
+                                }
+                            } else {
+                                // Odraz
+                                const angle = Math.atan2(animal2.y - animal1.y, animal2.x - animal1.x);
+                                animal1.direction = angle + Math.PI;
+                                animal2.direction = angle;
+                            }
+                        } else if (animal1.canEat(animal2)) {
+                            animal1.eat(animal2);
+                            animals.splice(j, 1);
+                            j--;
+                        } else if (animal2.canEat(animal1)) {
+                            animal2.eat(animal1);
+                            animals.splice(i, 1);
+                            i--;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        function simulate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            animals.forEach(animal => {
+                animal.detectThreat(animals);
+                animal.findFood(foods, animals);
+                animal.move();
+                animal.draw();
+            });
+
+            handleCollisions();
+
+            foods.forEach((food, index) => {
+                food.draw();
+                for (let animal of animals) {
+                    if (animal.level === 1 && distance(animal, food) < animal.size + food.size) {
+                        animal.eat(food);
+                        foods.splice(index, 1);
+                        index--;
+                        break;
+                    }
+                }
+            });
+
+            if (Math.random() < 0.1) {
+                foods.push(new Food(Math.random() * canvas.width, Math.random() * canvas.height));
+            }
+
+            animals = animals.filter(animal => animal.energy > 0 && animal.weight > animal.minWeight);
+
+            requestAnimationFrame(simulate);
+        }
+
+        function distance(a, b) {
+            return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
+        }
+
+        resetButton.addEventListener('click', () => {
+            init();
+        });
+
+        init();
+        simulate();
+    </script>
+</body>
+</html>
