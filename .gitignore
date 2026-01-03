@@ -10,3 +10,8 @@
 
 # Výnimka pre HTML súbory v htmlUtilities a jeho podpriečinkoch
 !htmlUtilities/**/*.html
+
+# Výnimka pre index.html a pomocné súbory v hlavnom adresári
+!index.html
+!generate-structure.js
+!structure.json

@@ -1,0 +1,242 @@
+[
+  {
+    "name": "games",
+    "type": "folder",
+    "path": "htmlUtilities/games",
+    "children": [
+      {
+        "name": "Conways Game of Life Simulator",
+        "type": "file",
+        "path": "htmlUtilities/games/Conways Game of Life Simulator.html"
+      },
+      {
+        "name": "gravity-game",
+        "type": "file",
+        "path": "htmlUtilities/games/gravity-game.html"
+      },
+      {
+        "name": "infinite-craft",
+        "type": "file",
+        "path": "htmlUtilities/games/infinite-craft.html"
+      }
+    ]
+  },
+  {
+    "name": "learning",
+    "type": "folder",
+    "path": "htmlUtilities/learning",
+    "children": [
+      {
+        "name": "complete-katakana-learning-app",
+        "type": "file",
+        "path": "htmlUtilities/learning/complete-katakana-learning-app.html"
+      },
+      {
+        "name": "hiragana-katakana-app",
+        "type": "file",
+        "path": "htmlUtilities/learning/hiragana-katakana-app.html"
+      },
+      {
+        "name": "hiragana-learning-game",
+        "type": "file",
+        "path": "htmlUtilities/learning/hiragana-learning-game.html"
+      },
+      {
+        "name": "kanji-learning-game",
+        "type": "file",
+        "path": "htmlUtilities/learning/kanji-learning-game.html"
+      },
+      {
+        "name": "katakana-learning-game-html-with-save",
+        "type": "file",
+        "path": "htmlUtilities/learning/katakana-learning-game-html-with-save.html"
+      }
+    ]
+  },
+  {
+    "name": "media",
+    "type": "folder",
+    "path": "htmlUtilities/media",
+    "children": [
+      {
+        "name": "melody-maker",
+        "type": "file",
+        "path": "htmlUtilities/media/melody-maker.html"
+      },
+      {
+        "name": "Vyhľadávanie MP3 a M3U linkov",
+        "type": "file",
+        "path": "htmlUtilities/media/Vyhľadávanie MP3 a M3U linkov.html"
+      }
+    ]
+  },
+  {
+    "name": "productivity",
+    "type": "folder",
+    "path": "htmlUtilities/productivity",
+    "children": [
+      {
+        "name": "mind-map-html",
+        "type": "file",
+        "path": "htmlUtilities/productivity/mind-map-html.html"
+      }
+    ]
+  },
+  {
+    "name": "readers",
+    "type": "folder",
+    "path": "htmlUtilities/readers",
+    "children": [
+      {
+        "name": "complete-rss-reader",
+        "type": "file",
+        "path": "htmlUtilities/readers/complete-rss-reader.html"
+      },
+      {
+        "name": "rss-reader-with-save – kópia.html",
+        "type": "file",
+        "path": "htmlUtilities/readers/rss-reader-with-save.html – kópia.html"
+      },
+      {
+        "name": "rss-reader-with-save.html",
+        "type": "file",
+        "path": "htmlUtilities/readers/rss-reader-with-save.html.html"
+      }
+    ]
+  },
+  {
+    "name": "search",
+    "type": "folder",
+    "path": "htmlUtilities/search",
+    "children": [
+      {
+        "name": "combined_wiki_search",
+        "type": "file",
+        "path": "htmlUtilities/search/combined_wiki_search.html"
+      }
+    ]
+  },
+  {
+    "name": "simulations",
+    "type": "folder",
+    "path": "htmlUtilities/simulations",
+    "children": [
+      {
+        "name": "evolutionary-playground",
+        "type": "file",
+        "path": "htmlUtilities/simulations/evolutionary-playground.html"
+      },
+      {
+        "name": "virtual-animals-simulation - version 1",
+        "type": "file",
+        "path": "htmlUtilities/simulations/virtual-animals-simulation - version 1.html"
+      }
+    ]
+  },
+  {
+    "name": "specific",
+    "type": "folder",
+    "path": "htmlUtilities/specific",
+    "children": [
+      {
+        "name": "zilina_kamery",
+        "type": "file",
+        "path": "htmlUtilities/specific/zilina_kamery.html"
+      }
+    ]
+  },
+  {
+    "name": "tools",
+    "type": "folder",
+    "path": "htmlUtilities/tools",
+    "children": [
+      {
+        "name": "DataArrayVisualizer",
+        "type": "file",
+        "path": "htmlUtilities/tools/DataArrayVisualizer.html"
+      },
+      {
+        "name": "ebookCatalog",
+        "type": "file",
+        "path": "htmlUtilities/tools/ebookCatalog.html"
+      },
+      {
+        "name": "file-scanner",
+        "type": "file",
+        "path": "htmlUtilities/tools/file-scanner.html"
+      },
+      {
+        "name": "html-style-editor",
+        "type": "file",
+        "path": "htmlUtilities/tools/html-style-editor.html"
+      },
+      {
+        "name": "json-xml-formatter",
+        "type": "file",
+        "path": "htmlUtilities/tools/json-xml-formatter.html"
+      },
+      {
+        "name": "markdown-live-editor",
+        "type": "file",
+        "path": "htmlUtilities/tools/markdown-live-editor.html"
+      },
+      {
+        "name": "mermaid-diagram-editor",
+        "type": "file",
+        "path": "htmlUtilities/tools/mermaid-diagram-editor.html"
+      },
+      {
+        "name": "password-generator",
+        "type": "file",
+        "path": "htmlUtilities/tools/password-generator.html"
+      },
+      {
+        "name": "qr-generator",
+        "type": "file",
+        "path": "htmlUtilities/tools/qr-generator.html"
+      },
+      {
+        "name": "regex-tester",
+        "type": "file",
+        "path": "htmlUtilities/tools/regex-tester.html"
+      },
+      {
+        "name": "SQL-INSERT-Parser",
+        "type": "file",
+        "path": "htmlUtilities/tools/SQL-INSERT-Parser.html"
+      },
+      {
+        "name": "text-filter",
+        "type": "file",
+        "path": "htmlUtilities/tools/text-filter.html"
+      },
+      {
+        "name": "TransactionSalesEntity_parser",
+        "type": "file",
+        "path": "htmlUtilities/tools/TransactionSalesEntity_parser.html"
+      },
+      {
+        "name": "voice-dictation-webpage",
+        "type": "file",
+        "path": "htmlUtilities/tools/voice-dictation-webpage.html"
+      },
+      {
+        "name": "Wokabee Text to Table Converter",
+        "type": "file",
+        "path": "htmlUtilities/tools/Wokabee Text to Table Converter.html"
+      }
+    ]
+  },
+  {
+    "name": "visualization",
+    "type": "folder",
+    "path": "htmlUtilities/visualization",
+    "children": [
+      {
+        "name": "Lissajous Forms Interactive Viewer",
+        "type": "file",
+        "path": "htmlUtilities/visualization/Lissajous Forms Interactive Viewer.html"
+      }
+    ]
+  }
+]
