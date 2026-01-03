@@ -1,0 +1,12 @@
+# Ignorovať všetko
+*
+
+# Výnimka pre .gitignore samotný
+!.gitignore
+
+# Výnimka pre priečinok htmlUtilities (priečinky sa musia povoliť, aby git mohol prehľadávať ich obsah)
+!htmlUtilities/
+!htmlUtilities/**/
+
+# Výnimka pre HTML súbory v htmlUtilities a jeho podpriečinkoch
+!htmlUtilities/**/*.html
