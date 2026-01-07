@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Spektrálny Analyzátor</title>
+    <title>Spektralny Analyzator</title>
     <style>
         * {
             margin: 0;
@@ -69,14 +69,20 @@
         }
 
         select {
-            background: rgba(0, 212, 255, 0.1);
+            background: #1a1a2e;
             color: #fff;
             border: 1px solid rgba(0, 212, 255, 0.3);
             min-width: 200px;
         }
 
+        select option {
+            background: #1a1a2e;
+            color: #fff;
+            padding: 10px;
+        }
+
         select:hover {
-            background: rgba(0, 212, 255, 0.2);
+            background: #252540;
         }
 
         select:focus {
@@ -325,32 +331,32 @@
 </head>
 <body>
     <div class="container">
-        <h1>Spektrálny Analyzátor</h1>
+        <h1>Spektralny Analyzator</h1>
 
-        <div class="status inactive" id="status">Neaktívne - Vyberte zdroj zvuku</div>
+        <div class="status inactive" id="status">Neaktivne - Vyberte zdroj zvuku</div>
 
         <div class="controls">
             <div class="control-group">
                 <label>Zdroj zvuku</label>
                 <select id="sourceSelect">
                     <option value="">-- Vyberte zdroj --</option>
-                    <option value="microphone">Mikrofón</option>
-                    <option value="file">MP3 súbor</option>
-                    <option value="system">Systémový zvuk (Windows)</option>
+                    <option value="microphone">Mikrofon</option>
+                    <option value="file">MP3 subor</option>
+                    <option value="system">Systemovy zvuk (Windows)</option>
                 </select>
             </div>
 
             <div class="control-group" id="fileGroup" style="display: none;">
-                <label>Audio súbor</label>
+                <label>Audio subor</label>
                 <div class="file-input-wrapper">
-                    <button class="btn-file">Vybrae súbor</button>
+                    <button class="btn-file">Vybrat subor</button>
                     <input type="file" id="audioFile" accept="audio/*">
                 </div>
             </div>
 
             <div class="control-group">
                 <label>&nbsp;</label>
-                <button id="startBtn" disabled>`tart</button>
+                <button id="startBtn" disabled>Start</button>
             </div>
 
             <div class="control-group">
@@ -361,7 +367,7 @@
 
         <div class="controls settings-row">
             <div class="slider-group">
-                <label>FFT Ve>kose:</label>
+                <label>FFT Velkost:</label>
                 <select id="fftSize">
                     <option value="256">256</option>
                     <option value="512">512</option>
@@ -373,7 +379,7 @@
             </div>
 
             <div class="slider-group">
-                <label>Citlivose:</label>
+                <label>Citlivost:</label>
                 <input type="range" id="sensitivity" min="-100" max="-20" value="-60">
             </div>
 
@@ -383,18 +389,18 @@
             </div>
 
             <div class="slider-group">
-                <label>Rýchlose vodopádu:</label>
+                <label>Rychlost vodopadu:</label>
                 <input type="range" id="waterfallSpeed" min="1" max="10" value="3">
             </div>
 
             <div class="control-group">
-                <label>Farebná schéma</label>
+                <label>Farebna schema</label>
                 <div class="color-scheme">
                     <div class="color-btn cyan active" data-color="cyan" title="Cyan"></div>
                     <div class="color-btn magenta" data-color="magenta" title="Magenta"></div>
-                    <div class="color-btn green" data-color="green" title="Zelená"></div>
-                    <div class="color-btn orange" data-color="orange" title="Oran~ová"></div>
-                    <div class="color-btn rainbow" data-color="rainbow" title="Dúha"></div>
+                    <div class="color-btn green" data-color="green" title="Zelena"></div>
+                    <div class="color-btn orange" data-color="orange" title="Oranzova"></div>
+                    <div class="color-btn rainbow" data-color="rainbow" title="Duha"></div>
                 </div>
             </div>
         </div>
@@ -407,17 +413,17 @@
 
         <div class="visualizer-container">
             <div class="visualizer-panel">
-                <h2>Spektrum (Frekvenná analýza)</h2>
+                <h2>Spektrum (Frekvencna analyza)</h2>
                 <canvas id="spectrumCanvas"></canvas>
             </div>
 
             <div class="visualizer-panel">
-                <h2>Spektrálny vodopád</h2>
+                <h2>Spektralny vodopad</h2>
                 <canvas id="waterfallCanvas"></canvas>
             </div>
 
             <div class="visualizer-panel waveform-panel">
-                <h2>Vlnová forma</h2>
+                <h2>Vlnova forma</h2>
                 <canvas id="waveformCanvas"></canvas>
             </div>
         </div>
@@ -425,15 +431,15 @@
         <div class="info-panel">
             <div class="info-item">
                 <div class="value" id="peakFreq">0 Hz</div>
-                <div class="label">Dominantná frekvencia</div>
+                <div class="label">Dominantna frekvencia</div>
             </div>
             <div class="info-item">
-                <div class="value" id="peakDb">- dB</div>
-                <div class="label">`piková úroveH</div>
+                <div class="value" id="peakDb">-&#8734; dB</div>
+                <div class="label">Spickova uroven</div>
             </div>
             <div class="info-item">
-                <div class="value" id="rmsLevel">- dB</div>
-                <div class="label">RMS úroveH</div>
+                <div class="value" id="rmsLevel">-&#8734; dB</div>
+                <div class="label">RMS uroven</div>
             </div>
             <div class="info-item">
                 <div class="value" id="sampleRate">0 Hz</div>
@@ -441,11 +447,11 @@
             </div>
             <div class="info-item">
                 <div class="value" id="freqRange">0 - 0 Hz</div>
-                <div class="label">Frekvenný rozsah</div>
+                <div class="label">Frekvencny rozsah</div>
             </div>
             <div class="info-item">
                 <div class="value" id="resolution">0 Hz</div>
-                <div class="label">Frekvenné rozlíaenie</div>
+                <div class="label">Frekvencne rozlisenie</div>
             </div>
         </div>
     </div>
@@ -484,14 +490,14 @@
         const smoothingSlider = document.getElementById('smoothing');
         const waterfallSpeedSlider = document.getElementById('waterfallSpeed');
 
-        // Farebná schéma
+        // Farebna schema
         let colorScheme = 'cyan';
         const colorBtns = document.querySelectorAll('.color-btn');
 
-        // Vodopád dáta
+        // Vodopad data
         let waterfallData = [];
 
-        // Inicializácia ve>kosti canvasu
+        // Inicializacia velkosti canvasu
         function resizeCanvases() {
             const dpr = window.devicePixelRatio || 1;
 
@@ -503,7 +509,7 @@
                 ctx.scale(dpr, dpr);
             });
 
-            // Reset vodopád dáta
+            // Reset vodopad data
             waterfallData = [];
         }
 
@@ -568,20 +574,20 @@
             const source = sourceSelect.value;
             if (!source) return;
 
-            setStatus('Inicializácia...', 'loading');
+            setStatus('Inicializacia...', 'loading');
 
             try {
                 // Vytvorenie audio kontextu
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
-                // Vytvorenie analyzéra
+                // Vytvorenie analyzera
                 analyser = audioContext.createAnalyser();
                 analyser.fftSize = parseInt(fftSizeSelect.value);
                 analyser.minDecibels = parseInt(sensitivitySlider.value);
                 analyser.maxDecibels = -10;
                 analyser.smoothingTimeConstant = parseInt(smoothingSlider.value) / 100;
 
-                // Pripojenie zdroja pod>a typu
+                // Pripojenie zdroja podla typu
                 if (source === 'microphone') {
                     mediaStream = await navigator.mediaDevices.getUserMedia({
                         audio: {
@@ -600,7 +606,7 @@
                     audioPlayer.play();
 
                 } else if (source === 'system') {
-                    // Systémový zvuk cez getDisplayMedia
+                    // Systemovy zvuk cez getDisplayMedia
                     try {
                         mediaStream = await navigator.mediaDevices.getDisplayMedia({
                             video: true,
@@ -619,14 +625,14 @@
 
                         const audioTrack = mediaStream.getAudioTracks()[0];
                         if (!audioTrack) {
-                            throw new Error('Nepodarilo sa získae audio track. Uistite sa, ~e ste vybrali okno/tab so zvukom a zaakrtli "Zdie>ae zvuk".');
+                            throw new Error('Nepodarilo sa ziskat audio track. Uistite sa, ze ste vybrali okno/tab so zvukom a zaskrtli "Zdielat zvuk".');
                         }
 
                         sourceNode = audioContext.createMediaStreamSource(mediaStream);
                         sourceNode.connect(analyser);
 
                     } catch (err) {
-                        throw new Error('Pre systémový zvuk: Vyberte okno alebo zálo~ku prehliadaa a zaakrtnite "Zdie>ae zvuk systému" alebo "Share system audio".');
+                        throw new Error('Pre systemovy zvuk: Vyberte okno alebo zalozku prehliadaca a zaskrtnite "Zdielat zvuk systemu" alebo "Share system audio".');
                     }
                 }
 
@@ -636,14 +642,14 @@
                 sourceSelect.disabled = true;
 
                 updateFrequencyInfo();
-                setStatus('Aktívne - Analýza prebieha', 'active');
+                setStatus('Aktivne - Analyza prebieha', 'active');
 
-                // `tart animácie
+                // Start animacie
                 waterfallData = [];
                 animate();
 
             } catch (error) {
-                console.error('Chyba pri inicializácii:', error);
+                console.error('Chyba pri inicializacii:', error);
                 setStatus('Chyba: ' + error.message, 'inactive');
                 stopAnalysis();
             }
@@ -678,9 +684,9 @@
             stopBtn.disabled = true;
             sourceSelect.disabled = false;
 
-            setStatus('Zastavené', 'inactive');
+            setStatus('Zastavene', 'inactive');
 
-            // Vyistenie canvasov
+            // Vycistenie canvasov
             clearCanvases();
         }
 
@@ -706,7 +712,7 @@
             const resolution = sampleRate / analyser.fftSize;
 
             document.getElementById('sampleRate').textContent = sampleRate + ' Hz';
-            document.getElementById('freqRange').textContent = `0 - ${nyquist} Hz`;
+            document.getElementById('freqRange').textContent = '0 - ' + nyquist + ' Hz';
             document.getElementById('resolution').textContent = resolution.toFixed(1) + ' Hz';
         }
 
@@ -715,18 +721,18 @@
 
             switch (colorScheme) {
                 case 'cyan':
-                    return `rgba(0, ${Math.floor(150 + normalizedValue * 105)}, ${Math.floor(200 + normalizedValue * 55)}, ${0.8 + normalizedValue * 0.2})`;
+                    return 'rgba(0, ' + Math.floor(150 + normalizedValue * 105) + ', ' + Math.floor(200 + normalizedValue * 55) + ', ' + (0.8 + normalizedValue * 0.2) + ')';
                 case 'magenta':
-                    return `rgba(${Math.floor(200 + normalizedValue * 55)}, 0, ${Math.floor(200 + normalizedValue * 55)}, ${0.8 + normalizedValue * 0.2})`;
+                    return 'rgba(' + Math.floor(200 + normalizedValue * 55) + ', 0, ' + Math.floor(200 + normalizedValue * 55) + ', ' + (0.8 + normalizedValue * 0.2) + ')';
                 case 'green':
-                    return `rgba(0, ${Math.floor(200 + normalizedValue * 55)}, 0, ${0.8 + normalizedValue * 0.2})`;
+                    return 'rgba(0, ' + Math.floor(200 + normalizedValue * 55) + ', 0, ' + (0.8 + normalizedValue * 0.2) + ')';
                 case 'orange':
-                    return `rgba(${Math.floor(200 + normalizedValue * 55)}, ${Math.floor(100 + normalizedValue * 55)}, 0, ${0.8 + normalizedValue * 0.2})`;
+                    return 'rgba(' + Math.floor(200 + normalizedValue * 55) + ', ' + Math.floor(100 + normalizedValue * 55) + ', 0, ' + (0.8 + normalizedValue * 0.2) + ')';
                 case 'rainbow':
-                    const hue = (index / total) * 360;
-                    return `hsla(${hue}, 100%, ${40 + normalizedValue * 30}%, ${0.8 + normalizedValue * 0.2})`;
+                    var hue = (index / total) * 360;
+                    return 'hsla(' + hue + ', 100%, ' + (40 + normalizedValue * 30) + '%, ' + (0.8 + normalizedValue * 0.2) + ')';
                 default:
-                    return `rgba(0, ${Math.floor(200 + normalizedValue * 55)}, 255, ${0.8 + normalizedValue * 0.2})`;
+                    return 'rgba(0, ' + Math.floor(200 + normalizedValue * 55) + ', 255, ' + (0.8 + normalizedValue * 0.2) + ')';
             }
         }
 
@@ -735,18 +741,18 @@
 
             switch (colorScheme) {
                 case 'cyan':
-                    return `rgb(0, ${Math.floor(normalized * 200)}, ${Math.floor(normalized * 255)})`;
+                    return 'rgb(0, ' + Math.floor(normalized * 200) + ', ' + Math.floor(normalized * 255) + ')';
                 case 'magenta':
-                    return `rgb(${Math.floor(normalized * 255)}, 0, ${Math.floor(normalized * 255)})`;
+                    return 'rgb(' + Math.floor(normalized * 255) + ', 0, ' + Math.floor(normalized * 255) + ')';
                 case 'green':
-                    return `rgb(0, ${Math.floor(normalized * 255)}, 0)`;
+                    return 'rgb(0, ' + Math.floor(normalized * 255) + ', 0)';
                 case 'orange':
-                    return `rgb(${Math.floor(normalized * 255)}, ${Math.floor(normalized * 140)}, 0)`;
+                    return 'rgb(' + Math.floor(normalized * 255) + ', ' + Math.floor(normalized * 140) + ', 0)';
                 case 'rainbow':
-                    const hue = normalized * 240;
-                    return `hsl(${hue}, 100%, ${normalized * 50}%)`;
+                    var hue = normalized * 240;
+                    return 'hsl(' + hue + ', 100%, ' + (normalized * 50) + '%)';
                 default:
-                    return `rgb(0, ${Math.floor(normalized * 200)}, ${Math.floor(normalized * 255)})`;
+                    return 'rgb(0, ' + Math.floor(normalized * 200) + ', ' + Math.floor(normalized * 255) + ')';
             }
         }
 
@@ -761,7 +767,7 @@
             const barWidth = width / bufferLength * 2.5;
             let x = 0;
 
-            // Nájdenie apikovej frekvencie
+            // Najdenie spickovej frekvencie
             let maxValue = 0;
             let maxIndex = 0;
 
@@ -785,7 +791,7 @@
                 if (x > width) break;
             }
 
-            // Frekvenná stupnica
+            // Frekvencna stupnica
             spectrumCtx.fillStyle = '#666';
             spectrumCtx.font = '10px Arial';
             const freqStep = audioContext.sampleRate / 2 / 5;
@@ -795,7 +801,7 @@
                 spectrumCtx.fillText(formatFrequency(freq), xPos, height - 5);
             }
 
-            // Aktualizácia info
+            // Aktualizacia info
             if (audioContext) {
                 const peakFreq = (maxIndex * audioContext.sampleRate) / analyser.fftSize;
                 const peakDb = analyser.minDecibels + (maxValue / 255) * (analyser.maxDecibels - analyser.minDecibels);
@@ -813,7 +819,7 @@
             // Pridanie novej riadky
             waterfallData.unshift([...dataArray]);
 
-            // Obmedzenie ve>kosti
+            // Obmedzenie velkosti
             const maxRows = Math.floor(height / speed);
             if (waterfallData.length > maxRows) {
                 waterfallData.pop();
@@ -849,7 +855,7 @@
             const sliceWidth = width / bufferLength;
             let x = 0;
 
-            // Výpoet RMS
+            // Vypocet RMS
             let sum = 0;
 
             for (let i = 0; i < bufferLength; i++) {
@@ -869,7 +875,7 @@
 
             waveformCtx.stroke();
 
-            // Stredová iara
+            // Stredova ciara
             waveformCtx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
             waveformCtx.lineWidth = 1;
             waveformCtx.beginPath();
@@ -877,10 +883,10 @@
             waveformCtx.lineTo(width, height / 2);
             waveformCtx.stroke();
 
-            // RMS výpoet
+            // RMS vypocet
             const rms = Math.sqrt(sum / bufferLength);
             const rmsDb = 20 * Math.log10(rms);
-            document.getElementById('rmsLevel').textContent = isFinite(rmsDb) ? rmsDb.toFixed(1) + ' dB' : '- dB';
+            document.getElementById('rmsLevel').textContent = isFinite(rmsDb) ? rmsDb.toFixed(1) + ' dB' : '-\u221E dB';
         }
 
         function formatFrequency(freq) {
@@ -906,10 +912,10 @@
             drawWaveform(timeDomainData);
         }
 
-        // Zastavenie pri zatvorení stránky
+        // Zastavenie pri zatvoreni stranky
         window.addEventListener('beforeunload', stopAnalysis);
 
-        // Poiatoné vyistenie
+        // Pociatocne vycistenie
         clearCanvases();
     </script>
 </body>
