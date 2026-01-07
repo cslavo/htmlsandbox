@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spektrálny Analyzátor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #00d4ff;
+            text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+            font-size: 2.5rem;
+        }
+
+        .controls {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .control-group label {
+            font-size: 0.9rem;
+            color: #aaa;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        select, input[type="file"], button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        select {
+            background: rgba(0, 212, 255, 0.1);
+            color: #fff;
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            min-width: 200px;
+        }
+
+        select:hover {
+            background: rgba(0, 212, 255, 0.2);
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #00d4ff;
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+        }
+
+        button {
+            background: linear-gradient(135deg, #00d4ff, #0099cc);
+            color: #fff;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 212, 255, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button.stop {
+            background: linear-gradient(135deg, #ff4757, #cc0022);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+
+        .file-input-wrapper input[type="file"] {
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            cursor: pointer;
+            width: 100%;
+            height: 100%;
+        }
+
+        .file-input-wrapper .btn-file {
+            background: linear-gradient(135deg, #9b59b6, #8e44ad);
+        }
+
+        .visualizer-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 1000px) {
+            .visualizer-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .visualizer-panel {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 15px;
+            padding: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .visualizer-panel h2 {
+            text-align: center;
+            margin-bottom: 10px;
+            color: #00d4ff;
+            font-size: 1.2rem;
+        }
+
+        canvas {
+            width: 100%;
+            height: 300px;
+            border-radius: 10px;
+            background: #000;
+        }
+
+        .waveform-panel {
+            grid-column: 1 / -1;
+        }
+
+        .waveform-panel canvas {
+            height: 150px;
+        }
+
+        .info-panel {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .info-item {
+            text-align: center;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+        }
+
+        .info-item .value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #00d4ff;
+            text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+        }
+
+        .info-item .label {
+            font-size: 0.8rem;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 5px;
+        }
+
+        .audio-player {
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        audio {
+            width: 100%;
+            height: 40px;
+        }
+
+        .settings-row {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .slider-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .slider-group label {
+            min-width: 80px;
+            color: #aaa;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 120px;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #00d4ff;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+        }
+
+        .color-scheme {
+            display: flex;
+            gap: 5px;
+        }
+
+        .color-btn {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .color-btn:hover, .color-btn.active {
+            border-color: #fff;
+            transform: scale(1.1);
+        }
+
+        .color-btn.cyan { background: linear-gradient(135deg, #00d4ff, #0099cc); }
+        .color-btn.magenta { background: linear-gradient(135deg, #ff00ff, #cc00cc); }
+        .color-btn.green { background: linear-gradient(135deg, #00ff00, #00cc00); }
+        .color-btn.orange { background: linear-gradient(135deg, #ff8c00, #cc7000); }
+        .color-btn.rainbow { background: linear-gradient(90deg, red, orange, yellow, green, blue, violet); }
+
+        .status {
+            text-align: center;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+
+        .status.active {
+            background: rgba(0, 255, 0, 0.2);
+            color: #00ff00;
+            border: 1px solid rgba(0, 255, 0, 0.3);
+        }
+
+        .status.inactive {
+            background: rgba(255, 0, 0, 0.2);
+            color: #ff4757;
+            border: 1px solid rgba(255, 0, 0, 0.3);
+        }
+
+        .status.loading {
+            background: rgba(255, 165, 0, 0.2);
+            color: #ffa500;
+            border: 1px solid rgba(255, 165, 0, 0.3);
+        }
+
+        .peak-meter {
+            display: flex;
+            gap: 5px;
+            align-items: flex-end;
+            height: 60px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+        }
+
+        .peak-bar {
+            flex: 1;
+            background: linear-gradient(to top, #00ff00, #ffff00, #ff0000);
+            border-radius: 2px;
+            transition: height 0.05s;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Spektrálny Analyzátor</h1>
+
+        <div class="status inactive" id="status">Neaktívne - Vyberte zdroj zvuku</div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label>Zdroj zvuku</label>
+                <select id="sourceSelect">
+                    <option value="">-- Vyberte zdroj --</option>
+                    <option value="microphone">Mikrofón</option>
+                    <option value="file">MP3 súbor</option>
+                    <option value="system">Systémový zvuk (Windows)</option>
+                </select>
+            </div>
+
+            <div class="control-group" id="fileGroup" style="display: none;">
+                <label>Audio súbor</label>
+                <div class="file-input-wrapper">
+                    <button class="btn-file">Vybrae súbor</button>
+                    <input type="file" id="audioFile" accept="audio/*">
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label>&nbsp;</label>
+                <button id="startBtn" disabled>`tart</button>
+            </div>
+
+            <div class="control-group">
+                <label>&nbsp;</label>
+                <button id="stopBtn" class="stop" disabled>Stop</button>
+            </div>
+        </div>
+
+        <div class="controls settings-row">
+            <div class="slider-group">
+                <label>FFT Ve>kose:</label>
+                <select id="fftSize">
+                    <option value="256">256</option>
+                    <option value="512">512</option>
+                    <option value="1024">1024</option>
+                    <option value="2048" selected>2048</option>
+                    <option value="4096">4096</option>
+                    <option value="8192">8192</option>
+                </select>
+            </div>
+
+            <div class="slider-group">
+                <label>Citlivose:</label>
+                <input type="range" id="sensitivity" min="-100" max="-20" value="-60">
+            </div>
+
+            <div class="slider-group">
+                <label>Smoothing:</label>
+                <input type="range" id="smoothing" min="0" max="99" value="80">
+            </div>
+
+            <div class="slider-group">
+                <label>Rýchlose vodopádu:</label>
+                <input type="range" id="waterfallSpeed" min="1" max="10" value="3">
+            </div>
+
+            <div class="control-group">
+                <label>Farebná schéma</label>
+                <div class="color-scheme">
+                    <div class="color-btn cyan active" data-color="cyan" title="Cyan"></div>
+                    <div class="color-btn magenta" data-color="magenta" title="Magenta"></div>
+                    <div class="color-btn green" data-color="green" title="Zelená"></div>
+                    <div class="color-btn orange" data-color="orange" title="Oran~ová"></div>
+                    <div class="color-btn rainbow" data-color="rainbow" title="Dúha"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="audioPlayerContainer" style="display: none;">
+            <div class="controls">
+                <audio id="audioPlayer" controls></audio>
+            </div>
+        </div>
+
+        <div class="visualizer-container">
+            <div class="visualizer-panel">
+                <h2>Spektrum (Frekvenná analýza)</h2>
+                <canvas id="spectrumCanvas"></canvas>
+            </div>
+
+            <div class="visualizer-panel">
+                <h2>Spektrálny vodopád</h2>
+                <canvas id="waterfallCanvas"></canvas>
+            </div>
+
+            <div class="visualizer-panel waveform-panel">
+                <h2>Vlnová forma</h2>
+                <canvas id="waveformCanvas"></canvas>
+            </div>
+        </div>
+
+        <div class="info-panel">
+            <div class="info-item">
+                <div class="value" id="peakFreq">0 Hz</div>
+                <div class="label">Dominantná frekvencia</div>
+            </div>
+            <div class="info-item">
+                <div class="value" id="peakDb">- dB</div>
+                <div class="label">`piková úroveH</div>
+            </div>
+            <div class="info-item">
+                <div class="value" id="rmsLevel">- dB</div>
+                <div class="label">RMS úroveH</div>
+            </div>
+            <div class="info-item">
+                <div class="value" id="sampleRate">0 Hz</div>
+                <div class="label">Vzorkovacia frekvencia</div>
+            </div>
+            <div class="info-item">
+                <div class="value" id="freqRange">0 - 0 Hz</div>
+                <div class="label">Frekvenný rozsah</div>
+            </div>
+            <div class="info-item">
+                <div class="value" id="resolution">0 Hz</div>
+                <div class="label">Frekvenné rozlíaenie</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Audio context a uzly
+        let audioContext = null;
+        let analyser = null;
+        let sourceNode = null;
+        let mediaStream = null;
+        let animationId = null;
+        let isRunning = false;
+
+        // Canvas elementy
+        const spectrumCanvas = document.getElementById('spectrumCanvas');
+        const waterfallCanvas = document.getElementById('waterfallCanvas');
+        const waveformCanvas = document.getElementById('waveformCanvas');
+
+        const spectrumCtx = spectrumCanvas.getContext('2d');
+        const waterfallCtx = waterfallCanvas.getContext('2d');
+        const waveformCtx = waveformCanvas.getContext('2d');
+
+        // UI elementy
+        const sourceSelect = document.getElementById('sourceSelect');
+        const fileGroup = document.getElementById('fileGroup');
+        const audioFile = document.getElementById('audioFile');
+        const audioPlayer = document.getElementById('audioPlayer');
+        const audioPlayerContainer = document.getElementById('audioPlayerContainer');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const statusEl = document.getElementById('status');
+
+        // Nastavenia
+        const fftSizeSelect = document.getElementById('fftSize');
+        const sensitivitySlider = document.getElementById('sensitivity');
+        const smoothingSlider = document.getElementById('smoothing');
+        const waterfallSpeedSlider = document.getElementById('waterfallSpeed');
+
+        // Farebná schéma
+        let colorScheme = 'cyan';
+        const colorBtns = document.querySelectorAll('.color-btn');
+
+        // Vodopád dáta
+        let waterfallData = [];
+
+        // Inicializácia ve>kosti canvasu
+        function resizeCanvases() {
+            const dpr = window.devicePixelRatio || 1;
+
+            [spectrumCanvas, waterfallCanvas, waveformCanvas].forEach(canvas => {
+                const rect = canvas.getBoundingClientRect();
+                canvas.width = rect.width * dpr;
+                canvas.height = rect.height * dpr;
+                const ctx = canvas.getContext('2d');
+                ctx.scale(dpr, dpr);
+            });
+
+            // Reset vodopád dáta
+            waterfallData = [];
+        }
+
+        window.addEventListener('resize', resizeCanvases);
+        resizeCanvases();
+
+        // Event listenery
+        sourceSelect.addEventListener('change', handleSourceChange);
+        audioFile.addEventListener('change', handleFileSelect);
+        startBtn.addEventListener('click', startAnalysis);
+        stopBtn.addEventListener('click', stopAnalysis);
+
+        fftSizeSelect.addEventListener('change', () => {
+            if (analyser) {
+                analyser.fftSize = parseInt(fftSizeSelect.value);
+                updateFrequencyInfo();
+            }
+        });
+
+        sensitivitySlider.addEventListener('input', () => {
+            if (analyser) {
+                analyser.minDecibels = parseInt(sensitivitySlider.value);
+            }
+        });
+
+        smoothingSlider.addEventListener('input', () => {
+            if (analyser) {
+                analyser.smoothingTimeConstant = parseInt(smoothingSlider.value) / 100;
+            }
+        });
+
+        colorBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                colorBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                colorScheme = btn.dataset.color;
+            });
+        });
+
+        function handleSourceChange() {
+            const source = sourceSelect.value;
+            fileGroup.style.display = source === 'file' ? 'block' : 'none';
+            audioPlayerContainer.style.display = 'none';
+            startBtn.disabled = source === '' || (source === 'file' && !audioFile.files[0]);
+        }
+
+        function handleFileSelect() {
+            if (audioFile.files[0]) {
+                const url = URL.createObjectURL(audioFile.files[0]);
+                audioPlayer.src = url;
+                audioPlayerContainer.style.display = 'block';
+                startBtn.disabled = false;
+            }
+        }
+
+        function setStatus(text, type) {
+            statusEl.textContent = text;
+            statusEl.className = 'status ' + type;
+        }
+
+        async function startAnalysis() {
+            const source = sourceSelect.value;
+            if (!source) return;
+
+            setStatus('Inicializácia...', 'loading');
+
+            try {
+                // Vytvorenie audio kontextu
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+                // Vytvorenie analyzéra
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = parseInt(fftSizeSelect.value);
+                analyser.minDecibels = parseInt(sensitivitySlider.value);
+                analyser.maxDecibels = -10;
+                analyser.smoothingTimeConstant = parseInt(smoothingSlider.value) / 100;
+
+                // Pripojenie zdroja pod>a typu
+                if (source === 'microphone') {
+                    mediaStream = await navigator.mediaDevices.getUserMedia({
+                        audio: {
+                            echoCancellation: false,
+                            noiseSuppression: false,
+                            autoGainControl: false
+                        }
+                    });
+                    sourceNode = audioContext.createMediaStreamSource(mediaStream);
+                    sourceNode.connect(analyser);
+
+                } else if (source === 'file') {
+                    sourceNode = audioContext.createMediaElementSource(audioPlayer);
+                    sourceNode.connect(analyser);
+                    analyser.connect(audioContext.destination);
+                    audioPlayer.play();
+
+                } else if (source === 'system') {
+                    // Systémový zvuk cez getDisplayMedia
+                    try {
+                        mediaStream = await navigator.mediaDevices.getDisplayMedia({
+                            video: true,
+                            audio: {
+                                echoCancellation: false,
+                                noiseSuppression: false,
+                                autoGainControl: false
+                            }
+                        });
+
+                        // Zastavenie video tracku - potrebujeme len audio
+                        const videoTrack = mediaStream.getVideoTracks()[0];
+                        if (videoTrack) {
+                            videoTrack.stop();
+                        }
+
+                        const audioTrack = mediaStream.getAudioTracks()[0];
+                        if (!audioTrack) {
+                            throw new Error('Nepodarilo sa získae audio track. Uistite sa, ~e ste vybrali okno/tab so zvukom a zaakrtli "Zdie>ae zvuk".');
+                        }
+
+                        sourceNode = audioContext.createMediaStreamSource(mediaStream);
+                        sourceNode.connect(analyser);
+
+                    } catch (err) {
+                        throw new Error('Pre systémový zvuk: Vyberte okno alebo zálo~ku prehliadaa a zaakrtnite "Zdie>ae zvuk systému" alebo "Share system audio".');
+                    }
+                }
+
+                isRunning = true;
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+                sourceSelect.disabled = true;
+
+                updateFrequencyInfo();
+                setStatus('Aktívne - Analýza prebieha', 'active');
+
+                // `tart animácie
+                waterfallData = [];
+                animate();
+
+            } catch (error) {
+                console.error('Chyba pri inicializácii:', error);
+                setStatus('Chyba: ' + error.message, 'inactive');
+                stopAnalysis();
+            }
+        }
+
+        function stopAnalysis() {
+            isRunning = false;
+
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+
+            if (sourceNode) {
+                sourceNode.disconnect();
+                sourceNode = null;
+            }
+
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+                mediaStream = null;
+            }
+
+            if (audioContext) {
+                audioContext.close();
+                audioContext = null;
+            }
+
+            audioPlayer.pause();
+
+            startBtn.disabled = sourceSelect.value === '' || (sourceSelect.value === 'file' && !audioFile.files[0]);
+            stopBtn.disabled = true;
+            sourceSelect.disabled = false;
+
+            setStatus('Zastavené', 'inactive');
+
+            // Vyistenie canvasov
+            clearCanvases();
+        }
+
+        function clearCanvases() {
+            const canvases = [
+                { canvas: spectrumCanvas, ctx: spectrumCtx },
+                { canvas: waterfallCanvas, ctx: waterfallCtx },
+                { canvas: waveformCanvas, ctx: waveformCtx }
+            ];
+
+            canvases.forEach(({ canvas, ctx }) => {
+                ctx.fillStyle = '#000';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            });
+        }
+
+        function updateFrequencyInfo() {
+            if (!audioContext || !analyser) return;
+
+            const sampleRate = audioContext.sampleRate;
+            const nyquist = sampleRate / 2;
+            const binCount = analyser.frequencyBinCount;
+            const resolution = sampleRate / analyser.fftSize;
+
+            document.getElementById('sampleRate').textContent = sampleRate + ' Hz';
+            document.getElementById('freqRange').textContent = `0 - ${nyquist} Hz`;
+            document.getElementById('resolution').textContent = resolution.toFixed(1) + ' Hz';
+        }
+
+        function getColor(value, index, total) {
+            const normalizedValue = value / 255;
+
+            switch (colorScheme) {
+                case 'cyan':
+                    return `rgba(0, ${Math.floor(150 + normalizedValue * 105)}, ${Math.floor(200 + normalizedValue * 55)}, ${0.8 + normalizedValue * 0.2})`;
+                case 'magenta':
+                    return `rgba(${Math.floor(200 + normalizedValue * 55)}, 0, ${Math.floor(200 + normalizedValue * 55)}, ${0.8 + normalizedValue * 0.2})`;
+                case 'green':
+                    return `rgba(0, ${Math.floor(200 + normalizedValue * 55)}, 0, ${0.8 + normalizedValue * 0.2})`;
+                case 'orange':
+                    return `rgba(${Math.floor(200 + normalizedValue * 55)}, ${Math.floor(100 + normalizedValue * 55)}, 0, ${0.8 + normalizedValue * 0.2})`;
+                case 'rainbow':
+                    const hue = (index / total) * 360;
+                    return `hsla(${hue}, 100%, ${40 + normalizedValue * 30}%, ${0.8 + normalizedValue * 0.2})`;
+                default:
+                    return `rgba(0, ${Math.floor(200 + normalizedValue * 55)}, 255, ${0.8 + normalizedValue * 0.2})`;
+            }
+        }
+
+        function getWaterfallColor(value) {
+            const normalized = value / 255;
+
+            switch (colorScheme) {
+                case 'cyan':
+                    return `rgb(0, ${Math.floor(normalized * 200)}, ${Math.floor(normalized * 255)})`;
+                case 'magenta':
+                    return `rgb(${Math.floor(normalized * 255)}, 0, ${Math.floor(normalized * 255)})`;
+                case 'green':
+                    return `rgb(0, ${Math.floor(normalized * 255)}, 0)`;
+                case 'orange':
+                    return `rgb(${Math.floor(normalized * 255)}, ${Math.floor(normalized * 140)}, 0)`;
+                case 'rainbow':
+                    const hue = normalized * 240;
+                    return `hsl(${hue}, 100%, ${normalized * 50}%)`;
+                default:
+                    return `rgb(0, ${Math.floor(normalized * 200)}, ${Math.floor(normalized * 255)})`;
+            }
+        }
+
+        function drawSpectrum(dataArray) {
+            const width = spectrumCanvas.clientWidth;
+            const height = spectrumCanvas.clientHeight;
+            const bufferLength = dataArray.length;
+
+            spectrumCtx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+            spectrumCtx.fillRect(0, 0, width, height);
+
+            const barWidth = width / bufferLength * 2.5;
+            let x = 0;
+
+            // Nájdenie apikovej frekvencie
+            let maxValue = 0;
+            let maxIndex = 0;
+
+            for (let i = 0; i < bufferLength; i++) {
+                if (dataArray[i] > maxValue) {
+                    maxValue = dataArray[i];
+                    maxIndex = i;
+                }
+
+                const barHeight = (dataArray[i] / 255) * height;
+
+                // Gradient pre bar
+                const gradient = spectrumCtx.createLinearGradient(0, height, 0, height - barHeight);
+                gradient.addColorStop(0, getColor(dataArray[i], i, bufferLength));
+                gradient.addColorStop(1, getColor(dataArray[i] * 0.5, i, bufferLength));
+
+                spectrumCtx.fillStyle = gradient;
+                spectrumCtx.fillRect(x, height - barHeight, barWidth - 1, barHeight);
+
+                x += barWidth;
+                if (x > width) break;
+            }
+
+            // Frekvenná stupnica
+            spectrumCtx.fillStyle = '#666';
+            spectrumCtx.font = '10px Arial';
+            const freqStep = audioContext.sampleRate / 2 / 5;
+            for (let i = 0; i <= 5; i++) {
+                const freq = Math.round(freqStep * i);
+                const xPos = (i / 5) * width;
+                spectrumCtx.fillText(formatFrequency(freq), xPos, height - 5);
+            }
+
+            // Aktualizácia info
+            if (audioContext) {
+                const peakFreq = (maxIndex * audioContext.sampleRate) / analyser.fftSize;
+                const peakDb = analyser.minDecibels + (maxValue / 255) * (analyser.maxDecibels - analyser.minDecibels);
+
+                document.getElementById('peakFreq').textContent = formatFrequency(peakFreq);
+                document.getElementById('peakDb').textContent = peakDb.toFixed(1) + ' dB';
+            }
+        }
+
+        function drawWaterfall(dataArray) {
+            const width = waterfallCanvas.clientWidth;
+            const height = waterfallCanvas.clientHeight;
+            const speed = parseInt(waterfallSpeedSlider.value);
+
+            // Pridanie novej riadky
+            waterfallData.unshift([...dataArray]);
+
+            // Obmedzenie ve>kosti
+            const maxRows = Math.floor(height / speed);
+            if (waterfallData.length > maxRows) {
+                waterfallData.pop();
+            }
+
+            // Vykreslenie
+            waterfallCtx.fillStyle = '#000';
+            waterfallCtx.fillRect(0, 0, width, height);
+
+            const binWidth = width / dataArray.length * 2;
+
+            for (let y = 0; y < waterfallData.length; y++) {
+                const row = waterfallData[y];
+                for (let x = 0; x < row.length && x * binWidth < width; x++) {
+                    waterfallCtx.fillStyle = getWaterfallColor(row[x]);
+                    waterfallCtx.fillRect(x * binWidth, y * speed, binWidth, speed);
+                }
+            }
+        }
+
+        function drawWaveform(dataArray) {
+            const width = waveformCanvas.clientWidth;
+            const height = waveformCanvas.clientHeight;
+            const bufferLength = dataArray.length;
+
+            waveformCtx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            waveformCtx.fillRect(0, 0, width, height);
+
+            waveformCtx.lineWidth = 2;
+            waveformCtx.strokeStyle = colorScheme === 'rainbow' ? '#fff' : getColor(200, 0, 1);
+            waveformCtx.beginPath();
+
+            const sliceWidth = width / bufferLength;
+            let x = 0;
+
+            // Výpoet RMS
+            let sum = 0;
+
+            for (let i = 0; i < bufferLength; i++) {
+                const v = dataArray[i] / 128.0;
+                const y = (v * height) / 2;
+
+                sum += (v - 1) * (v - 1);
+
+                if (i === 0) {
+                    waveformCtx.moveTo(x, y);
+                } else {
+                    waveformCtx.lineTo(x, y);
+                }
+
+                x += sliceWidth;
+            }
+
+            waveformCtx.stroke();
+
+            // Stredová iara
+            waveformCtx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+            waveformCtx.lineWidth = 1;
+            waveformCtx.beginPath();
+            waveformCtx.moveTo(0, height / 2);
+            waveformCtx.lineTo(width, height / 2);
+            waveformCtx.stroke();
+
+            // RMS výpoet
+            const rms = Math.sqrt(sum / bufferLength);
+            const rmsDb = 20 * Math.log10(rms);
+            document.getElementById('rmsLevel').textContent = isFinite(rmsDb) ? rmsDb.toFixed(1) + ' dB' : '- dB';
+        }
+
+        function formatFrequency(freq) {
+            if (freq >= 1000) {
+                return (freq / 1000).toFixed(1) + ' kHz';
+            }
+            return Math.round(freq) + ' Hz';
+        }
+
+        function animate() {
+            if (!isRunning) return;
+
+            animationId = requestAnimationFrame(animate);
+
+            const frequencyData = new Uint8Array(analyser.frequencyBinCount);
+            const timeDomainData = new Uint8Array(analyser.fftSize);
+
+            analyser.getByteFrequencyData(frequencyData);
+            analyser.getByteTimeDomainData(timeDomainData);
+
+            drawSpectrum(frequencyData);
+            drawWaterfall(frequencyData);
+            drawWaveform(timeDomainData);
+        }
+
+        // Zastavenie pri zatvorení stránky
+        window.addEventListener('beforeunload', stopAnalysis);
+
+        // Poiatoné vyistenie
+        clearCanvases();
+    </script>
+</body>
+</html>
