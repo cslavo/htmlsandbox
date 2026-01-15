@@ -664,10 +664,14 @@ async function handleRefresh() {
         // Aktualizujeme stav koncoviek na základe obnoveného výberu
         synchronizeExtensionsWithFiles();
 
+        // Prekreslíme strom so správnym stavom výberu
+        renderTreeView();
+
         // Aktualizujeme UI
-        updateCheckboxStatesInDOM();
         updateExtensionsUI();
         updateTotalSelectedFilesCount();
+
+        showStatus('Strom adresára bol úspešne obnovený.', 'success');
 
     } catch (error) {
         console.error('Chyba pri obnovení adresára:', error);
