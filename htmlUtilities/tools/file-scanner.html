@@ -255,7 +255,7 @@
 <body>
     <div class="container">
         <header>
-            <h1>Extraktor projektových súborov pre AI</h1>
+            <h1>Extraktor projektových súborov pre AI <span style="font-size: 0.5em; color: #888; font-weight: normal;">(v1.1.0)</span></h1>
             <p>Nástroj na vytvorenie textového súboru zo zdrojových kódov projektu pre použitie ako kontext pre AI.</p>
         </header>
         
@@ -745,8 +745,8 @@ async function handleDirectorySelection() {
         savedDirectoryHandle = rootDirectory;
         await saveDirHandleToDB(rootDirectory);
         
-        // Spracujeme vybraný adresár
-        await processSelectedDirectory();
+        // Spracujeme vybraný adresár - pri prvom načítaní vyberieme všetky súbory
+        await processSelectedDirectory(true);
         
     } catch (error) {
         if (error.name !== 'AbortError') { // Ignorovanie "cancel" akcie od používateľa
@@ -757,21 +757,22 @@ async function handleDirectorySelection() {
 }
 
 // Funkcia na spracovanie vybraného adresára
-async function processSelectedDirectory() {
+// selectAll - ak je true, všetky súbory budú automaticky vybrané (pre prvé načítanie)
+async function processSelectedDirectory(selectAll = false) {
     if (!rootDirectory) return;
-    
+
     // Aktualizácia UI
     selectedDirPath.textContent = rootDirectory.name;
     generateBtn.disabled = true;
     showStatus('Načítavam adresárovú štruktúru...');
-    
+
     // Resetovanie premenných
     directoryStructure = null;
     fileExtensions.clear();
-    
+
     // Spracovanie adresárovej štruktúry (asynchrónne)
-    directoryStructure = await processDirectory(rootDirectory);
-    
+    directoryStructure = await processDirectory(rootDirectory, null, selectAll);
+
     // Aktualizácia UI
     updateStatistics();
     updateExtensionsUI();
@@ -788,7 +789,9 @@ async function processSelectedDirectory() {
 }
 
 // Funkcia na spracovanie adresára a vytvorenie stromovej štruktúry
-async function processDirectory(directoryHandle, parentPath = null) {
+// selectAll - ak je true, všetky súbory budú automaticky vybrané (pre prvé načítanie)
+//           - ak je false, súbory budú vybrané na základe koncovky (pre obnovenie)
+async function processDirectory(directoryHandle, parentPath = null, selectAll = false) {
     const isRoot = parentPath === null;
     const currentPath = isRoot ? directoryHandle.name : `${parentPath}/${directoryHandle.name}`;
 
@@ -805,7 +808,7 @@ async function processDirectory(directoryHandle, parentPath = null) {
     for await (const entry of directoryHandle.values()) {
         if (entry.kind === 'directory') {
             // Rekurzívne spracovanie podadresára
-            const subDir = await processDirectory(entry, currentPath);
+            const subDir = await processDirectory(entry, currentPath, selectAll);
             result.children.push(subDir);
         } else {
             // Spracovanie súboru
@@ -817,32 +820,37 @@ async function processDirectory(directoryHandle, parentPath = null) {
                 selected: false,
                 extension: getFileExtension(entry.name)
             };
-            
+
             // Získanie a spracovanie koncovky súboru
             if (file.extension) {
                 // Aktualizácia počtu súborov pre danú koncovku
                 if (!fileExtensions.has(file.extension)) {
                     fileExtensions.set(file.extension, {
                         count: 1,
-                        selected: selectedExtensions.has(file.extension)
+                        selected: selectAll || selectedExtensions.has(file.extension)
                     });
                 } else {
                     const extInfo = fileExtensions.get(file.extension);
                     extInfo.count++;
                     fileExtensions.set(file.extension, extInfo);
                 }
-                
-                // Nastavenie, či je súbor vybraný, na základe jeho koncovky
-                file.selected = fileExtensions.get(file.extension).selected;
+
+                // Nastavenie, či je súbor vybraný
+                // Pri prvom načítaní (selectAll=true) sú všetky súbory vybrané
+                // Pri obnovení (selectAll=false) sa vyberajú podľa koncovky
+                file.selected = selectAll || fileExtensions.get(file.extension).selected;
+            } else {
+                // Súbory bez koncovky - pri prvom načítaní vybrané, pri obnovení nie
+                file.selected = selectAll;
             }
-            
+
             result.children.push(file);
         }
     }
-    
+
     // Odvodzujeme stav výberu adresára na základe stavu jeho detí
     updateDirectorySelectionState(result);
-    
+
     return result;
 }
 
