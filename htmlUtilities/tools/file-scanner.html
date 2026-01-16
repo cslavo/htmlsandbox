@@ -610,19 +610,46 @@ function getSelectedFilePaths() {
     return selectedPaths;
 }
 
+// Funkcia na získanie všetkých ciest súborov (vybraných aj nevybraných)
+function getAllFilePaths() {
+    const allPaths = new Set();
+
+    function collectAll(node) {
+        if (node.type === 'file') {
+            allPaths.add(node.path);
+        } else if (node.type === 'directory' && node.children) {
+            for (const child of node.children) {
+                collectAll(child);
+            }
+        }
+    }
+
+    if (directoryStructure) {
+        collectAll(directoryStructure);
+    }
+
+    return allPaths;
+}
+
 // Funkcia na obnovenie výberu súborov podľa uložených ciest
-function restoreSelectedFilePaths(selectedPaths) {
-    if (!selectedPaths || selectedPaths.size === 0) return;
+// selectedPaths - cesty súborov, ktoré boli vybrané pred obnovením
+// previouslyExistingPaths - cesty všetkých súborov, ktoré existovali pred obnovením
+function restoreSelectedFilePaths(selectedPaths, previouslyExistingPaths) {
+    if (!previouslyExistingPaths || previouslyExistingPaths.size === 0) return;
 
     function restoreSelection(node) {
         if (node.type === 'file') {
-            // Obnovíme výber len ak bol súbor predtým vybraný
-            // Inak explicitne nastavíme selected na false
-            if (selectedPaths.has(node.path)) {
-                node.selected = true;
-            } else {
-                node.selected = false;
+            // Ak súbor existoval pred obnovením
+            if (previouslyExistingPaths.has(node.path)) {
+                // Obnovíme jeho predchádzajúci stav výberu
+                if (selectedPaths && selectedPaths.has(node.path)) {
+                    node.selected = true;
+                } else {
+                    node.selected = false;
+                }
             }
+            // Ak súbor neexistoval pred obnovením (je nový), ponecháme jeho
+            // aktuálny stav (auto-selected na základe koncovky v processDirectory)
         } else if (node.type === 'directory' && node.children) {
             // Rekurzívne spracujeme deti
             for (const child of node.children) {
@@ -654,12 +681,16 @@ async function handleRefresh() {
 
         // Uložíme si aktuálny výber súborov pred obnovením
         const previouslySelectedPaths = getSelectedFilePaths();
+        // Uložíme si všetky cesty súborov, ktoré existovali pred obnovením
+        const previouslyExistingPaths = getAllFilePaths();
 
         // Znovu spracujeme adresár
         await processSelectedDirectory();
 
         // Obnovíme výber súborov podľa uložených ciest
-        restoreSelectedFilePaths(previouslySelectedPaths);
+        // Súbory, ktoré existovali pred obnovením, dostanú svoj predchádzajúci stav
+        // Nové súbory zostanú auto-selected na základe koncovky
+        restoreSelectedFilePaths(previouslySelectedPaths, previouslyExistingPaths);
 
         // Aktualizujeme stav koncoviek na základe obnoveného výberu
         synchronizeExtensionsWithFiles();
