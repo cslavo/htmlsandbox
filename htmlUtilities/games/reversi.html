@@ -70,40 +70,49 @@
         }
 
         .container {
-            max-width: 800px;
+            max-width: 1100px;
             width: 100%;
         }
 
         .header {
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
 
         .header h1 {
-            font-size: 2.5rem;
-            margin-bottom: 5px;
+            font-size: 2rem;
+            margin-bottom: 0;
         }
 
-        .header p {
-            color: var(--text-secondary);
-            font-size: 14px;
+        .game-layout {
+            display: flex;
+            gap: 25px;
+            justify-content: center;
+            align-items: flex-start;
+            margin-bottom: 20px;
+        }
+
+        .side-panel {
+            background: var(--bg-secondary);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            min-width: 220px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
         }
 
         .game-info {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: var(--bg-secondary);
-            padding: 15px 25px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-            box-shadow: var(--shadow);
+            flex-direction: column;
+            gap: 15px;
         }
 
         .score-panel {
             display: flex;
-            align-items: center;
-            gap: 30px;
+            flex-direction: column;
+            gap: 12px;
         }
 
         .score {
@@ -129,29 +138,52 @@
         }
 
         .score-value {
-            font-size: 1.8rem;
+            font-size: 1.5rem;
             font-weight: bold;
-            min-width: 40px;
+            min-width: 35px;
+        }
+
+        .score-label {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-left: auto;
         }
 
         .turn-indicator {
             text-align: center;
+            padding: 10px;
+            background: var(--bg-primary);
+            border-radius: 8px;
         }
 
         .turn-indicator span {
             display: block;
-            font-size: 14px;
+            font-size: 12px;
             color: var(--text-secondary);
         }
 
         .turn-indicator strong {
-            font-size: 1.2rem;
+            font-size: 1.1rem;
+        }
+
+        .board-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
         .board-container {
             display: flex;
             justify-content: center;
-            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .board-overlay {
+            position: absolute;
+            top: -40px;
+            left: 50%;
+            transform: translateX(-50%);
+            white-space: nowrap;
         }
 
         .board {
@@ -237,22 +269,21 @@
 
         .controls {
             display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            justify-content: center;
-            margin-bottom: 20px;
+            flex-direction: column;
+            gap: 8px;
         }
 
         .controls button {
-            padding: 12px 24px;
+            padding: 10px 16px;
             border: 1px solid var(--border-color);
-            background: var(--bg-secondary);
+            background: var(--bg-primary);
             color: var(--text-primary);
             border-radius: 8px;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 500;
             transition: all 0.2s;
+            width: 100%;
         }
 
         .controls button:hover {
@@ -267,58 +298,74 @@
         }
 
         .controls button:disabled:hover {
-            background: var(--bg-secondary);
+            background: var(--bg-primary);
             color: var(--text-primary);
             border-color: var(--border-color);
         }
 
         .settings {
             display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-            justify-content: center;
-            background: var(--bg-secondary);
-            padding: 20px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-            box-shadow: var(--shadow);
+            flex-direction: column;
+            gap: 12px;
         }
 
         .setting-group {
             display: flex;
-            align-items: center;
-            gap: 10px;
+            flex-direction: column;
+            gap: 5px;
         }
 
         .setting-group label {
             font-weight: 500;
+            font-size: 12px;
             color: var(--text-secondary);
         }
 
         .setting-group select {
-            padding: 8px 12px;
+            padding: 8px 10px;
             border: 1px solid var(--border-color);
             background: var(--bg-primary);
             color: var(--text-primary);
             border-radius: 6px;
-            font-size: 14px;
+            font-size: 13px;
             cursor: pointer;
+            width: 100%;
+        }
+
+        .panel-section {
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 15px;
+        }
+
+        .panel-section:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .panel-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
         }
 
         .message {
             text-align: center;
-            padding: 15px;
+            padding: 12px 20px;
             background: var(--bg-secondary);
-            border-radius: 12px;
-            margin-bottom: 20px;
-            font-size: 1.2rem;
+            border-radius: 10px;
+            font-size: 1rem;
             font-weight: 500;
             box-shadow: var(--shadow);
-            display: none;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
         }
 
         .message.show {
-            display: block;
+            opacity: 1;
+            visibility: visible;
         }
 
         .message.winner {
@@ -326,35 +373,78 @@
             color: #333;
         }
 
-        .rules {
-            background: var(--bg-secondary);
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: var(--shadow);
+        .status-area {
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
         }
 
-        .rules h3 {
-            margin-bottom: 15px;
+        .status-area .thinking,
+        .status-area .message {
+            position: absolute;
+        }
+
+        .rules {
+            background: var(--bg-secondary);
+            padding: 15px 20px;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .rules summary {
+            cursor: pointer;
+            padding: 5px 0;
             color: var(--text-primary);
+            list-style: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .rules summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .rules summary::before {
+            content: '▶';
+            font-size: 10px;
+            transition: transform 0.2s;
+        }
+
+        .rules[open] summary::before {
+            transform: rotate(90deg);
         }
 
         .rules ul {
             padding-left: 20px;
             color: var(--text-secondary);
             line-height: 1.8;
+            margin-top: 15px;
+            font-size: 14px;
         }
 
         .thinking {
-            display: none;
+            display: flex;
             align-items: center;
             justify-content: center;
-            gap: 10px;
-            padding: 10px;
+            gap: 8px;
+            padding: 10px 16px;
             color: var(--text-secondary);
+            background: var(--bg-secondary);
+            border-radius: 10px;
+            font-size: 0.9rem;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
         }
 
         .thinking.show {
-            display: flex;
+            opacity: 1;
+            visibility: visible;
         }
 
         .thinking-dots {
@@ -379,6 +469,41 @@
             40% { transform: scale(1); }
         }
 
+        @media (max-width: 800px) {
+            .game-layout {
+                flex-direction: column;
+                align-items: center;
+            }
+            .side-panel {
+                min-width: auto;
+                width: 100%;
+                max-width: 420px;
+                flex-direction: row;
+                flex-wrap: wrap;
+                justify-content: space-between;
+            }
+            .side-panel .panel-section {
+                flex: 1;
+                min-width: 180px;
+                border-bottom: none;
+                border-right: 1px solid var(--border-color);
+                padding-right: 15px;
+                padding-bottom: 0;
+            }
+            .side-panel .panel-section:last-child {
+                border-right: none;
+                padding-right: 0;
+            }
+            .controls {
+                flex-direction: row;
+                flex-wrap: wrap;
+            }
+            .controls button {
+                width: auto;
+                flex: 1;
+            }
+        }
+
         @media (max-width: 500px) {
             .cell {
                 width: 40px;
@@ -392,12 +517,26 @@
                 width: 16px;
                 height: 16px;
             }
-            .game-info {
+            .side-panel {
                 flex-direction: column;
-                gap: 15px;
+            }
+            .side-panel .panel-section {
+                border-right: none;
+                border-bottom: 1px solid var(--border-color);
+                padding-right: 0;
+                padding-bottom: 15px;
+            }
+            .side-panel .panel-section:last-child {
+                border-bottom: none;
             }
             .header h1 {
-                font-size: 1.8rem;
+                font-size: 1.5rem;
+            }
+            .controls {
+                flex-direction: column;
+            }
+            .controls button {
+                width: 100%;
             }
         }
     </style>
@@ -408,87 +547,100 @@
     <div class="container">
         <div class="header">
             <h1>Reversi</h1>
-            <p>Klasicka strategicka hra pre dvoch hracov</p>
         </div>
 
-        <div class="settings">
-            <div class="setting-group">
-                <label for="gameMode">Rezim hry:</label>
-                <select id="gameMode" onchange="changeGameMode()">
-                    <option value="pvai">Hrac vs Pocitac</option>
-                    <option value="pvp">Hrac vs Hrac</option>
-                    <option value="aivai">Pocitac vs Pocitac</option>
-                </select>
-            </div>
-            <div class="setting-group">
-                <label for="difficulty">Obtiaznost:</label>
-                <select id="difficulty">
-                    <option value="1">Lahka</option>
-                    <option value="3" selected>Stredna</option>
-                    <option value="5">Tazka</option>
-                    <option value="7">Expert</option>
-                </select>
-            </div>
-            <div class="setting-group">
-                <label for="playerColor">Tvoja farba:</label>
-                <select id="playerColor">
-                    <option value="black">Cierny (prvy)</option>
-                    <option value="white">Biely (druhy)</option>
-                </select>
-            </div>
-        </div>
-
-        <div class="game-info">
-            <div class="score-panel">
-                <div class="score">
-                    <div class="score-disc black"></div>
-                    <span class="score-value" id="blackScore">2</span>
+        <div class="game-layout">
+            <div class="side-panel">
+                <div class="panel-section">
+                    <div class="panel-title">Skore</div>
+                    <div class="game-info">
+                        <div class="score-panel">
+                            <div class="score">
+                                <div class="score-disc black"></div>
+                                <span class="score-value" id="blackScore">2</span>
+                                <span class="score-label">Cierny</span>
+                            </div>
+                            <div class="score">
+                                <div class="score-disc white"></div>
+                                <span class="score-value" id="whiteScore">2</span>
+                                <span class="score-label">Biely</span>
+                            </div>
+                        </div>
+                        <div class="turn-indicator">
+                            <span>Na rade:</span>
+                            <strong id="currentTurn">Cierny</strong>
+                        </div>
+                    </div>
                 </div>
-                <div class="score">
-                    <div class="score-disc white"></div>
-                    <span class="score-value" id="whiteScore">2</span>
+
+                <div class="panel-section">
+                    <div class="panel-title">Nastavenia</div>
+                    <div class="settings">
+                        <div class="setting-group">
+                            <label for="gameMode">Rezim hry</label>
+                            <select id="gameMode" onchange="changeGameMode()">
+                                <option value="pvai">Hrac vs Pocitac</option>
+                                <option value="pvp">Hrac vs Hrac</option>
+                                <option value="aivai">Pocitac vs Pocitac</option>
+                            </select>
+                        </div>
+                        <div class="setting-group">
+                            <label for="difficulty">Obtiaznost</label>
+                            <select id="difficulty">
+                                <option value="1">Lahka</option>
+                                <option value="3" selected>Stredna</option>
+                                <option value="5">Tazka</option>
+                                <option value="7">Expert</option>
+                            </select>
+                        </div>
+                        <div class="setting-group">
+                            <label for="playerColor">Tvoja farba</label>
+                            <select id="playerColor">
+                                <option value="black">Cierny (prvy)</option>
+                                <option value="white">Biely (druhy)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <div class="panel-title">Ovladanie</div>
+                    <div class="controls">
+                        <button onclick="newGame()">Nova hra</button>
+                        <button onclick="undoMove()" id="undoBtn" disabled>Spat</button>
+                        <button onclick="showHint()" id="hintBtn">Napoveda</button>
+                    </div>
                 </div>
             </div>
-            <div class="turn-indicator">
-                <span>Na rade:</span>
-                <strong id="currentTurn">Cierny</strong>
+
+            <div class="board-section">
+                <div class="status-area">
+                    <div class="thinking" id="thinking">
+                        <span>Pocitac premysla</span>
+                        <div class="thinking-dots">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+                    </div>
+                    <div class="message" id="message"></div>
+                </div>
+                <div class="board-container">
+                    <div class="board" id="board"></div>
+                </div>
             </div>
         </div>
 
-        <div class="thinking" id="thinking">
-            <span>Pocitac premysla</span>
-            <div class="thinking-dots">
-                <span></span>
-                <span></span>
-                <span></span>
-            </div>
-        </div>
-
-        <div class="message" id="message"></div>
-
-        <div class="board-container">
-            <div class="board" id="board"></div>
-        </div>
-
-        <div class="controls">
-            <button onclick="newGame()">Nova hra</button>
-            <button onclick="undoMove()" id="undoBtn" disabled>Spat</button>
-            <button onclick="passMove()" id="passBtn" disabled>Pass</button>
-            <button onclick="showHint()" id="hintBtn">Napoveda</button>
-        </div>
-
-        <div class="rules">
-            <h3>Pravidla hry Reversi</h3>
+        <details class="rules">
+            <summary><strong>Pravidla hry Reversi</strong></summary>
             <ul>
                 <li><strong>Ciel:</strong> Mat na konci hry viac diskov svojej farby nez supor.</li>
-                <li><strong>Zaciatocna pozicia:</strong> 4 disky v strede - 2 cierne a 2 biele diagonalne.</li>
                 <li><strong>Tah:</strong> Poloz disk tak, aby si obklopil supove disky medzi novym a existujucim diskom.</li>
                 <li><strong>Obratanie:</strong> Vsetky obklopene supove disky sa otocla na tvoju farbu.</li>
                 <li><strong>Pass:</strong> Ak nemas ziadny platny tah, hra automaticky prejde na supera.</li>
-                <li><strong>Koniec hry:</strong> Hra konci, ked ziaden hrac nema platny tah.</li>
                 <li><strong>Strategia:</strong> Rohy su najcennejsie - nedaju sa otocit!</li>
             </ul>
-        </div>
+        </details>
     </div>
 
     <script>
