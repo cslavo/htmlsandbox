@@ -352,7 +352,7 @@
 
         .message {
             text-align: center;
-            padding: 12px 20px;
+            padding: 10px 20px;
             background: var(--bg-secondary);
             border-radius: 10px;
             font-size: 1rem;
@@ -361,6 +361,7 @@
             opacity: 0;
             visibility: hidden;
             transition: opacity 0.3s, visibility 0.3s;
+            white-space: nowrap;
         }
 
         .message.show {
@@ -374,16 +375,10 @@
         }
 
         .status-area {
-            height: 50px;
+            height: 45px;
             display: flex;
             align-items: center;
             justify-content: center;
-            position: relative;
-        }
-
-        .status-area .thinking,
-        .status-area .message {
-            position: absolute;
         }
 
         .rules {
