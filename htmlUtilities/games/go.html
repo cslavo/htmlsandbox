@@ -1,0 +1,1746 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Go (Weiqi / Baduk)</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #f5f5f5;
+            --bg-secondary: #ffffff;
+            --bg-board: #dcb35c;
+            --bg-board-hover: #e8c46a;
+            --text-primary: #212529;
+            --text-secondary: #6c757d;
+            --border-color: #dee2e6;
+            --accent-color: #0d6efd;
+            --board-line: #1a1a1a;
+            --star-point: #1a1a1a;
+            --last-move: rgba(255, 100, 100, 0.7);
+            --territory-black: rgba(0, 0, 0, 0.3);
+            --territory-white: rgba(255, 255, 255, 0.5);
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        body.dark-mode {
+            --bg-primary: #1a1a2e;
+            --bg-secondary: #16213e;
+            --bg-board: #a67c3d;
+            --bg-board-hover: #b88d4e;
+            --text-primary: #e0e0e0;
+            --text-secondary: #a0a0a0;
+            --border-color: #404040;
+            --accent-color: #4a9eff;
+            --board-line: #2a2a2a;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 15px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 20px;
+            transition: all 0.3s;
+            z-index: 100;
+        }
+
+        .theme-toggle:hover {
+            transform: scale(1.1);
+        }
+
+        .container {
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 0;
+        }
+
+        .game-layout {
+            display: flex;
+            gap: 25px;
+            justify-content: center;
+            align-items: flex-start;
+            margin-bottom: 20px;
+        }
+
+        .side-panel {
+            background: var(--bg-secondary);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            min-width: 220px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .game-info {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .score-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .score {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .score-stone {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .score-stone.black {
+            background: radial-gradient(circle at 30% 30%, #555, #000);
+        }
+
+        .score-stone.white {
+            background: radial-gradient(circle at 30% 30%, #fff, #ccc);
+            border: 1px solid #aaa;
+        }
+
+        .score-value {
+            font-size: 1.2rem;
+            font-weight: bold;
+            min-width: 35px;
+        }
+
+        .score-label {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .score-details {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-left: auto;
+        }
+
+        .turn-indicator {
+            text-align: center;
+            padding: 10px;
+            background: var(--bg-primary);
+            border-radius: 8px;
+        }
+
+        .turn-indicator span {
+            display: block;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .turn-indicator strong {
+            font-size: 1.1rem;
+        }
+
+        .board-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .board-container {
+            display: flex;
+            justify-content: center;
+            position: relative;
+        }
+
+        .board-overlay {
+            position: absolute;
+            top: -40px;
+            left: 50%;
+            transform: translateX(-50%);
+            white-space: nowrap;
+        }
+
+        .board {
+            background: var(--bg-board);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            position: relative;
+        }
+
+        .board-grid {
+            position: relative;
+            display: grid;
+        }
+
+        .intersection {
+            width: 30px;
+            height: 30px;
+            position: relative;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .intersection::before,
+        .intersection::after {
+            content: '';
+            position: absolute;
+            background: var(--board-line);
+        }
+
+        .intersection::before {
+            width: 1px;
+            height: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .intersection::after {
+            height: 1px;
+            width: 100%;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        /* Edge intersections */
+        .intersection.top::before { top: 50%; height: 50%; }
+        .intersection.bottom::before { bottom: 50%; height: 50%; }
+        .intersection.left::after { left: 50%; width: 50%; }
+        .intersection.right::after { right: 50%; width: 50%; }
+
+        /* Star points (hoshi) */
+        .intersection.star-point::after {
+            content: '';
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: var(--star-point);
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1;
+        }
+
+        .intersection:hover::after {
+            background: var(--bg-board-hover);
+        }
+
+        .stone {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            position: absolute;
+            z-index: 2;
+            box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.4);
+        }
+
+        .stone.black {
+            background: radial-gradient(circle at 30% 30%, #555, #000);
+        }
+
+        .stone.white {
+            background: radial-gradient(circle at 30% 30%, #fff, #ccc);
+            border: 1px solid #aaa;
+        }
+
+        .stone.preview {
+            opacity: 0.5;
+        }
+
+        .stone.last-move::after {
+            content: '';
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: var(--last-move);
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .stone.new {
+            animation: placeStone 0.2s ease;
+        }
+
+        @keyframes placeStone {
+            0% { transform: scale(0); }
+            70% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .territory-marker {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            position: absolute;
+            z-index: 1;
+        }
+
+        .territory-marker.black {
+            background: var(--territory-black);
+        }
+
+        .territory-marker.white {
+            background: var(--territory-white);
+            border: 1px solid #aaa;
+        }
+
+        .dead-stone {
+            opacity: 0.4;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .controls button {
+            padding: 10px 16px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s;
+            width: 100%;
+        }
+
+        .controls button:hover {
+            background: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+
+        .controls button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .controls button:disabled:hover {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            border-color: var(--border-color);
+        }
+
+        .controls button.pass-btn {
+            background: #f0ad4e;
+            border-color: #f0ad4e;
+            color: #333;
+        }
+
+        .controls button.pass-btn:hover {
+            background: #ec971f;
+            border-color: #ec971f;
+        }
+
+        .controls button.resign-btn {
+            background: #d9534f;
+            border-color: #d9534f;
+            color: white;
+        }
+
+        .controls button.resign-btn:hover {
+            background: #c9302c;
+            border-color: #c9302c;
+        }
+
+        .settings {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .setting-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .setting-group label {
+            font-weight: 500;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .setting-group select {
+            padding: 8px 10px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .panel-section {
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 15px;
+        }
+
+        .panel-section:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .panel-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+        }
+
+        .message {
+            text-align: center;
+            padding: 10px 20px;
+            background: var(--bg-secondary);
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 500;
+            box-shadow: var(--shadow);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+            white-space: nowrap;
+        }
+
+        .message.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .message.winner {
+            background: linear-gradient(135deg, #ffd700, #ffed4a);
+            color: #333;
+        }
+
+        .status-area {
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 10px;
+        }
+
+        .rules {
+            background: var(--bg-secondary);
+            padding: 15px 20px;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .rules summary {
+            cursor: pointer;
+            padding: 5px 0;
+            color: var(--text-primary);
+            list-style: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .rules summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .rules summary::before {
+            content: '▶';
+            font-size: 10px;
+            transition: transform 0.2s;
+        }
+
+        .rules[open] summary::before {
+            transform: rotate(90deg);
+        }
+
+        .rules ul {
+            padding-left: 20px;
+            color: var(--text-secondary);
+            line-height: 1.8;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+
+        .thinking {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 16px;
+            color: var(--text-secondary);
+            background: var(--bg-secondary);
+            border-radius: 10px;
+            font-size: 0.9rem;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+            white-space: nowrap;
+        }
+
+        .thinking.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .thinking-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .thinking-dots span {
+            width: 8px;
+            height: 8px;
+            background: var(--accent-color);
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out;
+        }
+
+        .thinking-dots span:nth-child(1) { animation-delay: -0.32s; }
+        .thinking-dots span:nth-child(2) { animation-delay: -0.16s; }
+        .thinking-dots span:nth-child(3) { animation-delay: 0s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+
+        .captures-info {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 5px;
+        }
+
+        .capture-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .capture-stone {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+        }
+
+        .capture-stone.black {
+            background: radial-gradient(circle at 30% 30%, #555, #000);
+        }
+
+        .capture-stone.white {
+            background: radial-gradient(circle at 30% 30%, #fff, #ccc);
+            border: 1px solid #aaa;
+        }
+
+        .board-coords {
+            position: absolute;
+            font-size: 11px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .board-coords.top, .board-coords.bottom {
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-around;
+            padding: 0 20px;
+        }
+
+        .board-coords.top { top: 2px; }
+        .board-coords.bottom { bottom: 2px; }
+
+        .board-coords.left, .board-coords.right {
+            top: 0;
+            bottom: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            padding: 20px 0;
+        }
+
+        .board-coords.left { left: 3px; }
+        .board-coords.right { right: 3px; }
+
+        @media (max-width: 900px) {
+            .game-layout {
+                flex-direction: column;
+                align-items: center;
+            }
+            .side-panel {
+                min-width: auto;
+                width: 100%;
+                max-width: 500px;
+                flex-direction: row;
+                flex-wrap: wrap;
+                justify-content: space-between;
+            }
+            .side-panel .panel-section {
+                flex: 1;
+                min-width: 180px;
+                border-bottom: none;
+                border-right: 1px solid var(--border-color);
+                padding-right: 15px;
+                padding-bottom: 0;
+            }
+            .side-panel .panel-section:last-child {
+                border-right: none;
+                padding-right: 0;
+            }
+            .controls {
+                flex-direction: row;
+                flex-wrap: wrap;
+            }
+            .controls button {
+                width: auto;
+                flex: 1;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .intersection {
+                width: 22px;
+                height: 22px;
+            }
+            .stone {
+                width: 20px;
+                height: 20px;
+            }
+            .side-panel {
+                flex-direction: column;
+            }
+            .side-panel .panel-section {
+                border-right: none;
+                border-bottom: 1px solid var(--border-color);
+                padding-right: 0;
+                padding-bottom: 15px;
+            }
+            .side-panel .panel-section:last-child {
+                border-bottom: none;
+            }
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            .controls {
+                flex-direction: column;
+            }
+            .controls button {
+                width: 100%;
+            }
+            .board {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button class="theme-toggle" onclick="toggleTheme()" title="Prepnut temu">🌓</button>
+
+    <div class="container">
+        <div class="header">
+            <h1>Go</h1>
+        </div>
+
+        <div class="status-area">
+            <div class="thinking" id="thinking">
+                <span>Pocitac premysla</span>
+                <div class="thinking-dots">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
+            <div class="message" id="message"></div>
+        </div>
+
+        <div class="game-layout">
+            <div class="side-panel">
+                <div class="panel-section">
+                    <div class="panel-title">Skore</div>
+                    <div class="game-info">
+                        <div class="score-panel">
+                            <div class="score">
+                                <div class="score-stone black"></div>
+                                <span class="score-value" id="blackScore">0</span>
+                                <span class="score-label">Cierny</span>
+                                <span class="score-details" id="blackDetails"></span>
+                            </div>
+                            <div class="score">
+                                <div class="score-stone white"></div>
+                                <span class="score-value" id="whiteScore">6.5</span>
+                                <span class="score-label">Biely</span>
+                                <span class="score-details" id="whiteDetails">(komi)</span>
+                            </div>
+                        </div>
+                        <div class="captures-info">
+                            <div class="capture-item">
+                                <div class="capture-stone black"></div>
+                                <span>zajal: <strong id="blackCaptures">0</strong></span>
+                            </div>
+                            <div class="capture-item">
+                                <div class="capture-stone white"></div>
+                                <span>zajal: <strong id="whiteCaptures">0</strong></span>
+                            </div>
+                        </div>
+                        <div class="turn-indicator">
+                            <span>Na rade:</span>
+                            <strong id="currentTurn">Cierny</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <div class="panel-title">Nastavenia</div>
+                    <div class="settings">
+                        <div class="setting-group">
+                            <label for="boardSize">Velkost dosky</label>
+                            <select id="boardSize" onchange="changeBoardSize()">
+                                <option value="9">9 x 9 (zaciatok)</option>
+                                <option value="13">13 x 13 (stredna)</option>
+                                <option value="19" selected>19 x 19 (plna)</option>
+                            </select>
+                        </div>
+                        <div class="setting-group">
+                            <label for="gameMode">Rezim hry</label>
+                            <select id="gameMode" onchange="changeGameMode()">
+                                <option value="pvai">Hrac vs Pocitac</option>
+                                <option value="pvp">Hrac vs Hrac</option>
+                                <option value="aivai">Pocitac vs Pocitac</option>
+                            </select>
+                        </div>
+                        <div class="setting-group">
+                            <label for="difficulty">Obtiaznost AI</label>
+                            <select id="difficulty">
+                                <option value="200">Lahka</option>
+                                <option value="500" selected>Stredna</option>
+                                <option value="1000">Tazka</option>
+                                <option value="2000">Expert</option>
+                            </select>
+                        </div>
+                        <div class="setting-group">
+                            <label for="playerColor">Tvoja farba</label>
+                            <select id="playerColor">
+                                <option value="black">Cierny (prvy)</option>
+                                <option value="white">Biely (druhy)</option>
+                            </select>
+                        </div>
+                        <div class="setting-group">
+                            <label for="komi">Komi (vyhoda bieleho)</label>
+                            <select id="komi" onchange="updateKomi()">
+                                <option value="5.5">5.5</option>
+                                <option value="6.5" selected>6.5</option>
+                                <option value="7.5">7.5</option>
+                                <option value="0">0 (bez komi)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <div class="panel-title">Ovladanie</div>
+                    <div class="controls">
+                        <button onclick="newGame()">Nova hra</button>
+                        <button onclick="passMove()" class="pass-btn" id="passBtn">Pass</button>
+                        <button onclick="undoMove()" id="undoBtn" disabled>Spat</button>
+                        <button onclick="resignGame()" class="resign-btn" id="resignBtn">Vzdat sa</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="board-section">
+                <div class="board-container">
+                    <div class="board" id="board">
+                        <div class="board-coords top" id="coordsTop"></div>
+                        <div class="board-coords bottom" id="coordsBottom"></div>
+                        <div class="board-coords left" id="coordsLeft"></div>
+                        <div class="board-coords right" id="coordsRight"></div>
+                        <div class="board-grid" id="boardGrid"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <details class="rules">
+            <summary><strong>Pravidla hry Go</strong></summary>
+            <ul>
+                <li><strong>Ciel:</strong> Kontrolovat viac uzemia nez supor. Uzemie su prazdne priesecniky uplne obklopene tvojimi kamenmi.</li>
+                <li><strong>Tahanie:</strong> Poloz kamen na prazdny priesecnik. Cierny zacina.</li>
+                <li><strong>Slobody:</strong> Kazdy kamen alebo skupina kamenov musi mat aspon jednu slobodu (prazdny susedny priesecnik).</li>
+                <li><strong>Zajatie:</strong> Ked supor obklopi tvoj kamen/skupinu zo vsetkych stran (bez slobod), kamene su zajate a odstranene.</li>
+                <li><strong>Ko pravidlo:</strong> Nemozes ihned vratit dosku do rovnakej pozicie ako pred poslednym tahom.</li>
+                <li><strong>Pass:</strong> Mozes vynechat tah. Dva po sebe iduce passy ukoncuju hru.</li>
+                <li><strong>Bodovanie:</strong> Body = uzemie + zajate kamene. Biely dostava komi (6.5 bodu) ako kompenzaciu za druhy tah.</li>
+            </ul>
+        </details>
+    </div>
+
+    <script>
+        // Game constants
+        const EMPTY = 0;
+        const BLACK = 1;
+        const WHITE = 2;
+
+        // Game state
+        let boardSize = 19;
+        let board = [];
+        let currentPlayer = BLACK;
+        let gameOver = false;
+        let moveHistory = [];
+        let lastMove = null;
+        let isAIThinking = false;
+        let blackCaptures = 0;
+        let whiteCaptures = 0;
+        let consecutivePasses = 0;
+        let koPoint = null; // Point that cannot be played due to ko rule
+        let previousBoardState = null;
+        let komi = 6.5;
+
+        // Star point positions for different board sizes
+        const STAR_POINTS = {
+            9: [[2, 2], [2, 6], [4, 4], [6, 2], [6, 6]],
+            13: [[3, 3], [3, 9], [6, 6], [9, 3], [9, 9], [3, 6], [6, 3], [6, 9], [9, 6]],
+            19: [[3, 3], [3, 9], [3, 15], [9, 3], [9, 9], [9, 15], [15, 3], [15, 9], [15, 15]]
+        };
+
+        // Directions for checking liberties
+        const DIRECTIONS = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+
+        // Initialize game
+        function initBoard() {
+            board = Array(boardSize).fill(null).map(() => Array(boardSize).fill(EMPTY));
+            blackCaptures = 0;
+            whiteCaptures = 0;
+            consecutivePasses = 0;
+            koPoint = null;
+            previousBoardState = null;
+        }
+
+        function renderBoard() {
+            const boardEl = document.getElementById('board');
+            const gridEl = document.getElementById('boardGrid');
+            gridEl.innerHTML = '';
+            gridEl.style.gridTemplateColumns = `repeat(${boardSize}, 30px)`;
+            gridEl.style.gridTemplateRows = `repeat(${boardSize}, 30px)`;
+
+            // Render coordinates
+            renderCoordinates();
+
+            const starPoints = STAR_POINTS[boardSize] || [];
+
+            for (let row = 0; row < boardSize; row++) {
+                for (let col = 0; col < boardSize; col++) {
+                    const intersection = document.createElement('div');
+                    intersection.className = 'intersection';
+                    intersection.dataset.row = row;
+                    intersection.dataset.col = col;
+
+                    // Add edge classes
+                    if (row === 0) intersection.classList.add('top');
+                    if (row === boardSize - 1) intersection.classList.add('bottom');
+                    if (col === 0) intersection.classList.add('left');
+                    if (col === boardSize - 1) intersection.classList.add('right');
+
+                    // Add star point class
+                    if (starPoints.some(([r, c]) => r === row && c === col)) {
+                        intersection.classList.add('star-point');
+                    }
+
+                    // Add stone if present
+                    if (board[row][col] !== EMPTY) {
+                        const stone = document.createElement('div');
+                        stone.className = 'stone ' + (board[row][col] === BLACK ? 'black' : 'white');
+
+                        // Mark last move
+                        if (lastMove && lastMove.row === row && lastMove.col === col) {
+                            stone.classList.add('last-move');
+                        }
+
+                        intersection.appendChild(stone);
+                    }
+
+                    // Event listeners
+                    intersection.addEventListener('click', () => handleIntersectionClick(row, col));
+                    intersection.addEventListener('mouseenter', () => showPreview(row, col));
+                    intersection.addEventListener('mouseleave', () => hidePreview(row, col));
+
+                    gridEl.appendChild(intersection);
+                }
+            }
+
+            updateScores();
+            updateTurnIndicator();
+        }
+
+        function renderCoordinates() {
+            const letters = 'ABCDEFGHJKLMNOPQRST'; // I is skipped in Go notation
+
+            const topCoords = document.getElementById('coordsTop');
+            const bottomCoords = document.getElementById('coordsBottom');
+            const leftCoords = document.getElementById('coordsLeft');
+            const rightCoords = document.getElementById('coordsRight');
+
+            topCoords.innerHTML = '';
+            bottomCoords.innerHTML = '';
+            leftCoords.innerHTML = '';
+            rightCoords.innerHTML = '';
+
+            for (let i = 0; i < boardSize; i++) {
+                const letter = letters[i];
+                const number = boardSize - i;
+
+                topCoords.innerHTML += `<span>${letter}</span>`;
+                bottomCoords.innerHTML += `<span>${letter}</span>`;
+                leftCoords.innerHTML += `<span>${number}</span>`;
+                rightCoords.innerHTML += `<span>${number}</span>`;
+            }
+        }
+
+        function showPreview(row, col) {
+            if (gameOver || isAIThinking || board[row][col] !== EMPTY) return;
+            if (!isValidMove(row, col, currentPlayer)) return;
+
+            const intersection = document.querySelector(`.intersection[data-row="${row}"][data-col="${col}"]`);
+            if (!intersection.querySelector('.stone')) {
+                const preview = document.createElement('div');
+                preview.className = 'stone preview ' + (currentPlayer === BLACK ? 'black' : 'white');
+                intersection.appendChild(preview);
+            }
+        }
+
+        function hidePreview(row, col) {
+            const intersection = document.querySelector(`.intersection[data-row="${row}"][data-col="${col}"]`);
+            const preview = intersection.querySelector('.stone.preview');
+            if (preview) {
+                preview.remove();
+            }
+        }
+
+        function handleIntersectionClick(row, col) {
+            if (gameOver || isAIThinking) return;
+
+            const gameMode = document.getElementById('gameMode').value;
+            const playerColor = document.getElementById('playerColor').value;
+            const humanPlayer = playerColor === 'black' ? BLACK : WHITE;
+
+            // In PvAI mode, only allow human moves
+            if (gameMode === 'pvai' && currentPlayer !== humanPlayer) return;
+
+            // In AI vs AI mode, don't allow clicks
+            if (gameMode === 'aivai') return;
+
+            makeMove(row, col);
+        }
+
+        function makeMove(row, col) {
+            if (board[row][col] !== EMPTY) return false;
+            if (!isValidMove(row, col, currentPlayer)) return false;
+
+            // Save state for undo
+            moveHistory.push({
+                board: board.map(r => [...r]),
+                player: currentPlayer,
+                lastMove: lastMove,
+                blackCaptures: blackCaptures,
+                whiteCaptures: whiteCaptures,
+                koPoint: koPoint,
+                consecutivePasses: consecutivePasses
+            });
+
+            // Save previous board state for ko detection
+            previousBoardState = board.map(r => [...r]);
+
+            // Place stone
+            board[row][col] = currentPlayer;
+            lastMove = { row, col };
+            consecutivePasses = 0;
+
+            // Check and remove captured stones
+            const opponent = currentPlayer === BLACK ? WHITE : BLACK;
+            let captured = 0;
+            let capturedPoint = null;
+
+            for (const [dr, dc] of DIRECTIONS) {
+                const nr = row + dr;
+                const nc = col + dc;
+                if (nr >= 0 && nr < boardSize && nc >= 0 && nc < boardSize && board[nr][nc] === opponent) {
+                    const group = getGroup(nr, nc);
+                    if (getLiberties(group).length === 0) {
+                        captured += group.length;
+                        if (group.length === 1) {
+                            capturedPoint = { row: nr, col: nc };
+                        }
+                        removeGroup(group);
+                    }
+                }
+            }
+
+            // Update captures
+            if (currentPlayer === BLACK) {
+                blackCaptures += captured;
+            } else {
+                whiteCaptures += captured;
+            }
+
+            // Set ko point if single stone was captured
+            if (captured === 1 && capturedPoint) {
+                // Check if placing at captured point would recreate previous position
+                koPoint = capturedPoint;
+            } else {
+                koPoint = null;
+            }
+
+            // Switch player
+            currentPlayer = currentPlayer === BLACK ? WHITE : BLACK;
+
+            renderBoard();
+            updateUndoButton();
+
+            // Schedule AI move if needed
+            if (!gameOver) {
+                scheduleAIMove();
+            }
+
+            return true;
+        }
+
+        function passMove() {
+            if (gameOver || isAIThinking) return;
+
+            const gameMode = document.getElementById('gameMode').value;
+            const playerColor = document.getElementById('playerColor').value;
+            const humanPlayer = playerColor === 'black' ? BLACK : WHITE;
+
+            // In PvAI mode, only allow human to pass
+            if (gameMode === 'pvai' && currentPlayer !== humanPlayer) return;
+
+            // Save state for undo
+            moveHistory.push({
+                board: board.map(r => [...r]),
+                player: currentPlayer,
+                lastMove: lastMove,
+                blackCaptures: blackCaptures,
+                whiteCaptures: whiteCaptures,
+                koPoint: koPoint,
+                consecutivePasses: consecutivePasses
+            });
+
+            consecutivePasses++;
+            lastMove = null;
+            koPoint = null;
+
+            if (consecutivePasses >= 2) {
+                endGame();
+                return;
+            }
+
+            showMessage(currentPlayer === BLACK ? 'Cierny pasoval' : 'Biely pasoval');
+            currentPlayer = currentPlayer === BLACK ? WHITE : BLACK;
+
+            renderBoard();
+            updateUndoButton();
+
+            // Schedule AI move if needed
+            if (!gameOver) {
+                scheduleAIMove();
+            }
+        }
+
+        function isValidMove(row, col, player) {
+            if (board[row][col] !== EMPTY) return false;
+
+            // Check ko rule
+            if (koPoint && koPoint.row === row && koPoint.col === col) {
+                return false;
+            }
+
+            // Temporarily place stone
+            const tempBoard = board.map(r => [...r]);
+            tempBoard[row][col] = player;
+
+            // Check if it captures opponent stones
+            const opponent = player === BLACK ? WHITE : BLACK;
+            let captures = false;
+            for (const [dr, dc] of DIRECTIONS) {
+                const nr = row + dr;
+                const nc = col + dc;
+                if (nr >= 0 && nr < boardSize && nc >= 0 && nc < boardSize && tempBoard[nr][nc] === opponent) {
+                    const group = getGroupFromBoard(tempBoard, nr, nc);
+                    if (getLibertiesFromBoard(tempBoard, group).length === 0) {
+                        captures = true;
+                        // Remove captured group for suicide check
+                        for (const pos of group) {
+                            tempBoard[pos.row][pos.col] = EMPTY;
+                        }
+                    }
+                }
+            }
+
+            // Check suicide rule (stone must have liberties or capture opponent)
+            const ownGroup = getGroupFromBoard(tempBoard, row, col);
+            const liberties = getLibertiesFromBoard(tempBoard, ownGroup);
+
+            if (liberties.length === 0 && !captures) {
+                return false; // Suicide is not allowed
+            }
+
+            return true;
+        }
+
+        function getGroup(row, col) {
+            return getGroupFromBoard(board, row, col);
+        }
+
+        function getGroupFromBoard(boardState, row, col) {
+            const color = boardState[row][col];
+            if (color === EMPTY) return [];
+
+            const group = [];
+            const visited = new Set();
+            const stack = [{ row, col }];
+
+            while (stack.length > 0) {
+                const pos = stack.pop();
+                const key = `${pos.row},${pos.col}`;
+
+                if (visited.has(key)) continue;
+                if (pos.row < 0 || pos.row >= boardSize || pos.col < 0 || pos.col >= boardSize) continue;
+                if (boardState[pos.row][pos.col] !== color) continue;
+
+                visited.add(key);
+                group.push(pos);
+
+                for (const [dr, dc] of DIRECTIONS) {
+                    stack.push({ row: pos.row + dr, col: pos.col + dc });
+                }
+            }
+
+            return group;
+        }
+
+        function getLiberties(group) {
+            return getLibertiesFromBoard(board, group);
+        }
+
+        function getLibertiesFromBoard(boardState, group) {
+            const liberties = new Set();
+
+            for (const pos of group) {
+                for (const [dr, dc] of DIRECTIONS) {
+                    const nr = pos.row + dr;
+                    const nc = pos.col + dc;
+                    if (nr >= 0 && nr < boardSize && nc >= 0 && nc < boardSize && boardState[nr][nc] === EMPTY) {
+                        liberties.add(`${nr},${nc}`);
+                    }
+                }
+            }
+
+            return Array.from(liberties).map(key => {
+                const [r, c] = key.split(',').map(Number);
+                return { row: r, col: c };
+            });
+        }
+
+        function removeGroup(group) {
+            for (const pos of group) {
+                board[pos.row][pos.col] = EMPTY;
+            }
+        }
+
+        function updateScores() {
+            const territory = calculateTerritory();
+
+            const blackTotal = territory.black + blackCaptures;
+            const whiteTotal = territory.white + whiteCaptures + komi;
+
+            document.getElementById('blackScore').textContent = blackTotal;
+            document.getElementById('whiteScore').textContent = whiteTotal;
+            document.getElementById('blackCaptures').textContent = blackCaptures;
+            document.getElementById('whiteCaptures').textContent = whiteCaptures;
+            document.getElementById('blackDetails').textContent = `(${territory.black} uz. + ${blackCaptures} zaj.)`;
+            document.getElementById('whiteDetails').textContent = `(${territory.white} uz. + ${whiteCaptures} zaj. + ${komi} komi)`;
+        }
+
+        function calculateTerritory() {
+            const visited = new Set();
+            let blackTerritory = 0;
+            let whiteTerritory = 0;
+
+            for (let row = 0; row < boardSize; row++) {
+                for (let col = 0; col < boardSize; col++) {
+                    if (board[row][col] !== EMPTY) continue;
+                    const key = `${row},${col}`;
+                    if (visited.has(key)) continue;
+
+                    // Find connected empty region
+                    const region = [];
+                    const stack = [{ row, col }];
+                    const regionVisited = new Set();
+                    let touchesBlack = false;
+                    let touchesWhite = false;
+
+                    while (stack.length > 0) {
+                        const pos = stack.pop();
+                        const posKey = `${pos.row},${pos.col}`;
+
+                        if (regionVisited.has(posKey)) continue;
+                        if (pos.row < 0 || pos.row >= boardSize || pos.col < 0 || pos.col >= boardSize) continue;
+
+                        const cell = board[pos.row][pos.col];
+
+                        if (cell === BLACK) {
+                            touchesBlack = true;
+                            continue;
+                        }
+                        if (cell === WHITE) {
+                            touchesWhite = true;
+                            continue;
+                        }
+
+                        regionVisited.add(posKey);
+                        visited.add(posKey);
+                        region.push(pos);
+
+                        for (const [dr, dc] of DIRECTIONS) {
+                            stack.push({ row: pos.row + dr, col: pos.col + dc });
+                        }
+                    }
+
+                    // Assign territory
+                    if (touchesBlack && !touchesWhite) {
+                        blackTerritory += region.length;
+                    } else if (touchesWhite && !touchesBlack) {
+                        whiteTerritory += region.length;
+                    }
+                }
+            }
+
+            return { black: blackTerritory, white: whiteTerritory };
+        }
+
+        function updateTurnIndicator() {
+            const indicator = document.getElementById('currentTurn');
+            if (gameOver) {
+                indicator.textContent = 'Koniec hry';
+            } else {
+                indicator.textContent = currentPlayer === BLACK ? 'Cierny' : 'Biely';
+            }
+        }
+
+        function updateUndoButton() {
+            const undoBtn = document.getElementById('undoBtn');
+            undoBtn.disabled = moveHistory.length === 0 || isAIThinking;
+        }
+
+        function undoMove() {
+            if (moveHistory.length === 0 || isAIThinking) return;
+
+            const gameMode = document.getElementById('gameMode').value;
+
+            // In PvAI mode, undo two moves (player + AI)
+            if (gameMode === 'pvai' && moveHistory.length >= 2) {
+                moveHistory.pop(); // Remove AI move
+            }
+
+            const state = moveHistory.pop();
+            board = state.board;
+            currentPlayer = state.player;
+            lastMove = state.lastMove;
+            blackCaptures = state.blackCaptures;
+            whiteCaptures = state.whiteCaptures;
+            koPoint = state.koPoint;
+            consecutivePasses = state.consecutivePasses;
+            gameOver = false;
+
+            hideMessage();
+            renderBoard();
+            updateUndoButton();
+        }
+
+        function resignGame() {
+            if (gameOver || isAIThinking) return;
+
+            gameOver = true;
+            const winner = currentPlayer === BLACK ? 'Biely' : 'Cierny';
+            showMessage(`${currentPlayer === BLACK ? 'Cierny' : 'Biely'} sa vzdal. Vyhral ${winner}!`, true);
+            renderBoard();
+        }
+
+        function endGame() {
+            gameOver = true;
+
+            const territory = calculateTerritory();
+            const blackTotal = territory.black + blackCaptures;
+            const whiteTotal = territory.white + whiteCaptures + komi;
+
+            let message;
+            if (blackTotal > whiteTotal) {
+                message = `Vyhral Cierny! ${blackTotal} : ${whiteTotal}`;
+            } else if (whiteTotal > blackTotal) {
+                message = `Vyhral Biely! ${whiteTotal} : ${blackTotal}`;
+            } else {
+                message = `Remiza! ${blackTotal} : ${whiteTotal}`;
+            }
+
+            showMessage(message, true);
+            renderBoard();
+        }
+
+        function showMessage(text, isWinner = false) {
+            const msgEl = document.getElementById('message');
+            msgEl.textContent = text;
+            msgEl.classList.add('show');
+            if (isWinner) {
+                msgEl.classList.add('winner');
+            } else {
+                msgEl.classList.remove('winner');
+            }
+
+            if (!isWinner) {
+                setTimeout(() => hideMessage(), 2000);
+            }
+        }
+
+        function hideMessage() {
+            const msgEl = document.getElementById('message');
+            msgEl.classList.remove('show', 'winner');
+        }
+
+        // ==================== AI Implementation ====================
+        // Monte Carlo Tree Search (MCTS) with UCT
+
+        class MCTSNode {
+            constructor(boardState, player, move = null, parent = null) {
+                this.boardState = boardState;
+                this.player = player;
+                this.move = move;
+                this.parent = parent;
+                this.children = [];
+                this.wins = 0;
+                this.visits = 0;
+                this.untriedMoves = this.getValidMoves();
+            }
+
+            getValidMoves() {
+                const moves = [];
+                for (let row = 0; row < boardSize; row++) {
+                    for (let col = 0; col < boardSize; col++) {
+                        if (this.isValidMoveOnBoard(this.boardState, row, col, this.player)) {
+                            moves.push({ row, col });
+                        }
+                    }
+                }
+                // Add pass move
+                moves.push({ row: -1, col: -1, isPass: true });
+                return moves;
+            }
+
+            isValidMoveOnBoard(boardState, row, col, player) {
+                if (row < 0 || row >= boardSize || col < 0 || col >= boardSize) return false;
+                if (boardState[row][col] !== EMPTY) return false;
+
+                // Temporarily place stone
+                const tempBoard = boardState.map(r => [...r]);
+                tempBoard[row][col] = player;
+
+                // Check if it captures opponent stones
+                const opponent = player === BLACK ? WHITE : BLACK;
+                let captures = false;
+                for (const [dr, dc] of DIRECTIONS) {
+                    const nr = row + dr;
+                    const nc = col + dc;
+                    if (nr >= 0 && nr < boardSize && nc >= 0 && nc < boardSize && tempBoard[nr][nc] === opponent) {
+                        const group = getGroupFromBoard(tempBoard, nr, nc);
+                        if (getLibertiesFromBoard(tempBoard, group).length === 0) {
+                            captures = true;
+                            for (const pos of group) {
+                                tempBoard[pos.row][pos.col] = EMPTY;
+                            }
+                        }
+                    }
+                }
+
+                // Check suicide rule
+                const ownGroup = getGroupFromBoard(tempBoard, row, col);
+                const liberties = getLibertiesFromBoard(tempBoard, ownGroup);
+
+                if (liberties.length === 0 && !captures) {
+                    return false;
+                }
+
+                return true;
+            }
+
+            select() {
+                let node = this;
+                while (node.untriedMoves.length === 0 && node.children.length > 0) {
+                    node = node.bestChild();
+                }
+                return node;
+            }
+
+            bestChild(explorationParam = 1.41) {
+                let best = null;
+                let bestValue = -Infinity;
+
+                for (const child of this.children) {
+                    const exploitation = child.wins / child.visits;
+                    const exploration = explorationParam * Math.sqrt(Math.log(this.visits) / child.visits);
+                    const value = exploitation + exploration;
+
+                    if (value > bestValue) {
+                        bestValue = value;
+                        best = child;
+                    }
+                }
+
+                return best;
+            }
+
+            expand() {
+                if (this.untriedMoves.length === 0) return this;
+
+                const moveIndex = Math.floor(Math.random() * this.untriedMoves.length);
+                const move = this.untriedMoves.splice(moveIndex, 1)[0];
+
+                const newBoard = this.boardState.map(r => [...r]);
+                const nextPlayer = this.player === BLACK ? WHITE : BLACK;
+
+                if (!move.isPass) {
+                    // Apply move
+                    newBoard[move.row][move.col] = this.player;
+
+                    // Remove captured stones
+                    const opponent = this.player === BLACK ? WHITE : BLACK;
+                    for (const [dr, dc] of DIRECTIONS) {
+                        const nr = move.row + dr;
+                        const nc = move.col + dc;
+                        if (nr >= 0 && nr < boardSize && nc >= 0 && nc < boardSize && newBoard[nr][nc] === opponent) {
+                            const group = getGroupFromBoard(newBoard, nr, nc);
+                            if (getLibertiesFromBoard(newBoard, group).length === 0) {
+                                for (const pos of group) {
+                                    newBoard[pos.row][pos.col] = EMPTY;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                const child = new MCTSNode(newBoard, nextPlayer, move, this);
+                this.children.push(child);
+                return child;
+            }
+
+            simulate() {
+                let simBoard = this.boardState.map(r => [...r]);
+                let simPlayer = this.player;
+                let passes = 0;
+                let moves = 0;
+                const maxMoves = boardSize * boardSize;
+
+                while (passes < 2 && moves < maxMoves) {
+                    const validMoves = [];
+                    for (let row = 0; row < boardSize; row++) {
+                        for (let col = 0; col < boardSize; col++) {
+                            if (this.isValidMoveOnBoard(simBoard, row, col, simPlayer)) {
+                                validMoves.push({ row, col });
+                            }
+                        }
+                    }
+
+                    if (validMoves.length === 0 || Math.random() < 0.1) {
+                        passes++;
+                    } else {
+                        passes = 0;
+                        // Weighted random - prefer moves with more liberties
+                        const move = validMoves[Math.floor(Math.random() * validMoves.length)];
+                        simBoard[move.row][move.col] = simPlayer;
+
+                        // Remove captured stones
+                        const opponent = simPlayer === BLACK ? WHITE : BLACK;
+                        for (const [dr, dc] of DIRECTIONS) {
+                            const nr = move.row + dr;
+                            const nc = move.col + dc;
+                            if (nr >= 0 && nr < boardSize && nc >= 0 && nc < boardSize && simBoard[nr][nc] === opponent) {
+                                const group = getGroupFromBoard(simBoard, nr, nc);
+                                if (getLibertiesFromBoard(simBoard, group).length === 0) {
+                                    for (const pos of group) {
+                                        simBoard[pos.row][pos.col] = EMPTY;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    simPlayer = simPlayer === BLACK ? WHITE : BLACK;
+                    moves++;
+                }
+
+                // Evaluate final position
+                return this.evaluateBoard(simBoard);
+            }
+
+            evaluateBoard(boardState) {
+                let blackScore = 0;
+                let whiteScore = komi;
+
+                // Count stones and territory
+                const visited = new Set();
+
+                for (let row = 0; row < boardSize; row++) {
+                    for (let col = 0; col < boardSize; col++) {
+                        if (boardState[row][col] === BLACK) {
+                            blackScore++;
+                        } else if (boardState[row][col] === WHITE) {
+                            whiteScore++;
+                        } else {
+                            const key = `${row},${col}`;
+                            if (visited.has(key)) continue;
+
+                            // Find connected empty region
+                            const stack = [{ row, col }];
+                            const regionVisited = new Set();
+                            let touchesBlack = false;
+                            let touchesWhite = false;
+                            let regionSize = 0;
+
+                            while (stack.length > 0) {
+                                const pos = stack.pop();
+                                const posKey = `${pos.row},${pos.col}`;
+
+                                if (regionVisited.has(posKey)) continue;
+                                if (pos.row < 0 || pos.row >= boardSize || pos.col < 0 || pos.col >= boardSize) continue;
+
+                                const cell = boardState[pos.row][pos.col];
+
+                                if (cell === BLACK) {
+                                    touchesBlack = true;
+                                    continue;
+                                }
+                                if (cell === WHITE) {
+                                    touchesWhite = true;
+                                    continue;
+                                }
+
+                                regionVisited.add(posKey);
+                                visited.add(posKey);
+                                regionSize++;
+
+                                for (const [dr, dc] of DIRECTIONS) {
+                                    stack.push({ row: pos.row + dr, col: pos.col + dc });
+                                }
+                            }
+
+                            if (touchesBlack && !touchesWhite) {
+                                blackScore += regionSize;
+                            } else if (touchesWhite && !touchesBlack) {
+                                whiteScore += regionSize;
+                            }
+                        }
+                    }
+                }
+
+                return blackScore > whiteScore ? BLACK : WHITE;
+            }
+
+            backpropagate(winner) {
+                let node = this;
+                while (node !== null) {
+                    node.visits++;
+                    if (node.player !== winner) {
+                        node.wins++;
+                    }
+                    node = node.parent;
+                }
+            }
+        }
+
+        function mctsSearch(iterations) {
+            const root = new MCTSNode(board.map(r => [...r]), currentPlayer);
+
+            for (let i = 0; i < iterations; i++) {
+                // Selection
+                let node = root.select();
+
+                // Expansion
+                if (node.untriedMoves.length > 0) {
+                    node = node.expand();
+                }
+
+                // Simulation
+                const winner = node.simulate();
+
+                // Backpropagation
+                node.backpropagate(winner);
+            }
+
+            // Return best move
+            let bestMove = null;
+            let bestVisits = -1;
+
+            for (const child of root.children) {
+                if (child.visits > bestVisits) {
+                    bestVisits = child.visits;
+                    bestMove = child.move;
+                }
+            }
+
+            return bestMove;
+        }
+
+        function scheduleAIMove() {
+            const gameMode = document.getElementById('gameMode').value;
+            const playerColor = document.getElementById('playerColor').value;
+            const humanPlayer = playerColor === 'black' ? BLACK : WHITE;
+
+            let shouldAIPlay = false;
+
+            if (gameMode === 'pvai' && currentPlayer !== humanPlayer) {
+                shouldAIPlay = true;
+            } else if (gameMode === 'aivai') {
+                shouldAIPlay = true;
+            }
+
+            if (shouldAIPlay && !gameOver) {
+                isAIThinking = true;
+                document.getElementById('thinking').classList.add('show');
+                updateUndoButton();
+
+                setTimeout(() => {
+                    makeAIMove();
+                    isAIThinking = false;
+                    document.getElementById('thinking').classList.remove('show');
+                    updateUndoButton();
+                }, gameMode === 'aivai' ? 300 : 500);
+            }
+        }
+
+        function makeAIMove() {
+            const iterations = parseInt(document.getElementById('difficulty').value);
+            const bestMove = mctsSearch(iterations);
+
+            if (!bestMove || bestMove.isPass) {
+                // AI decides to pass
+                moveHistory.push({
+                    board: board.map(r => [...r]),
+                    player: currentPlayer,
+                    lastMove: lastMove,
+                    blackCaptures: blackCaptures,
+                    whiteCaptures: whiteCaptures,
+                    koPoint: koPoint,
+                    consecutivePasses: consecutivePasses
+                });
+
+                consecutivePasses++;
+                lastMove = null;
+                koPoint = null;
+
+                if (consecutivePasses >= 2) {
+                    endGame();
+                    return;
+                }
+
+                showMessage(currentPlayer === BLACK ? 'Cierny pasoval' : 'Biely pasoval');
+                currentPlayer = currentPlayer === BLACK ? WHITE : BLACK;
+                renderBoard();
+                updateUndoButton();
+
+                if (!gameOver) {
+                    scheduleAIMove();
+                }
+            } else {
+                makeMove(bestMove.row, bestMove.col);
+            }
+        }
+
+        function newGame() {
+            boardSize = parseInt(document.getElementById('boardSize').value);
+            komi = parseFloat(document.getElementById('komi').value);
+            initBoard();
+            currentPlayer = BLACK;
+            gameOver = false;
+            moveHistory = [];
+            lastMove = null;
+            isAIThinking = false;
+
+            document.getElementById('thinking').classList.remove('show');
+            hideMessage();
+            renderBoard();
+            updateUndoButton();
+
+            // Start AI if needed
+            setTimeout(() => scheduleAIMove(), 500);
+        }
+
+        function changeBoardSize() {
+            newGame();
+        }
+
+        function changeGameMode() {
+            newGame();
+        }
+
+        function updateKomi() {
+            komi = parseFloat(document.getElementById('komi').value);
+            updateScores();
+        }
+
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('go-theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+        }
+
+        // Load theme preference
+        if (localStorage.getItem('go-theme') === 'dark') {
+            document.body.classList.add('dark-mode');
+        }
+
+        // Initialize game
+        newGame();
+    </script>
+</body>
+</html>
