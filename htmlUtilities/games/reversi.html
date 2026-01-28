@@ -362,9 +362,6 @@
             visibility: hidden;
             transition: opacity 0.3s, visibility 0.3s;
             white-space: nowrap;
-            position: absolute;
-            left: 50%;
-            transform: translateX(-50%);
         }
 
         .message.show {
@@ -378,12 +375,11 @@
         }
 
         .status-area {
-            height: 45px;
+            height: 50px;
             display: flex;
             align-items: center;
             justify-content: center;
-            position: relative;
-            width: 100%;
+            margin-bottom: 10px;
         }
 
         .rules {
@@ -440,9 +436,6 @@
             opacity: 0;
             visibility: hidden;
             transition: opacity 0.3s, visibility 0.3s;
-            position: absolute;
-            left: 50%;
-            transform: translateX(-50%);
             white-space: nowrap;
         }
 
@@ -553,6 +546,18 @@
             <h1>Reversi</h1>
         </div>
 
+        <div class="status-area">
+            <div class="thinking" id="thinking">
+                <span>Pocitac premysla</span>
+                <div class="thinking-dots">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
+            <div class="message" id="message"></div>
+        </div>
+
         <div class="game-layout">
             <div class="side-panel">
                 <div class="panel-section">
@@ -618,17 +623,6 @@
             </div>
 
             <div class="board-section">
-                <div class="status-area">
-                    <div class="thinking" id="thinking">
-                        <span>Pocitac premysla</span>
-                        <div class="thinking-dots">
-                            <span></span>
-                            <span></span>
-                            <span></span>
-                        </div>
-                    </div>
-                    <div class="message" id="message"></div>
-                </div>
                 <div class="board-container">
                     <div class="board" id="board"></div>
                 </div>
