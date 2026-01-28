@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reversi (Othello)</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #f5f5f5;
+            --bg-secondary: #ffffff;
+            --bg-board: #2e8b57;
+            --bg-board-hover: #3da06a;
+            --text-primary: #212529;
+            --text-secondary: #6c757d;
+            --border-color: #dee2e6;
+            --accent-color: #0d6efd;
+            --cell-border: #1a5c3a;
+            --valid-move: rgba(255, 255, 0, 0.4);
+            --last-move: rgba(255, 100, 100, 0.5);
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        body.dark-mode {
+            --bg-primary: #1a1a2e;
+            --bg-secondary: #16213e;
+            --bg-board: #1f4f3d;
+            --bg-board-hover: #2a6b52;
+            --text-primary: #e0e0e0;
+            --text-secondary: #a0a0a0;
+            --border-color: #404040;
+            --accent-color: #4a9eff;
+            --cell-border: #0f3526;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 15px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 20px;
+            transition: all 0.3s;
+            z-index: 100;
+        }
+
+        .theme-toggle:hover {
+            transform: scale(1.1);
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--bg-secondary);
+            padding: 15px 25px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+        }
+
+        .score-panel {
+            display: flex;
+            align-items: center;
+            gap: 30px;
+        }
+
+        .score {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .score-disc {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .score-disc.black {
+            background: radial-gradient(circle at 30% 30%, #555, #000);
+        }
+
+        .score-disc.white {
+            background: radial-gradient(circle at 30% 30%, #fff, #ccc);
+            border: 1px solid #aaa;
+        }
+
+        .score-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            min-width: 40px;
+        }
+
+        .turn-indicator {
+            text-align: center;
+        }
+
+        .turn-indicator span {
+            display: block;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .turn-indicator strong {
+            font-size: 1.2rem;
+        }
+
+        .board-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 2px;
+            background: var(--cell-border);
+            padding: 2px;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+        }
+
+        .cell {
+            width: 50px;
+            height: 50px;
+            background: var(--bg-board);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            position: relative;
+        }
+
+        .cell:hover {
+            background: var(--bg-board-hover);
+        }
+
+        .cell.valid-move {
+            background: var(--bg-board);
+        }
+
+        .cell.valid-move::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--valid-move);
+            pointer-events: none;
+        }
+
+        .cell.last-move {
+            box-shadow: inset 0 0 0 3px var(--last-move);
+        }
+
+        .disc {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            transition: transform 0.3s ease;
+            box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.4);
+        }
+
+        .disc.black {
+            background: radial-gradient(circle at 30% 30%, #555, #000);
+        }
+
+        .disc.white {
+            background: radial-gradient(circle at 30% 30%, #fff, #ccc);
+            border: 1px solid #aaa;
+        }
+
+        .disc.flip {
+            animation: flipDisc 0.4s ease;
+        }
+
+        @keyframes flipDisc {
+            0% { transform: rotateY(0deg) scale(1); }
+            50% { transform: rotateY(90deg) scale(0.8); }
+            100% { transform: rotateY(180deg) scale(1); }
+        }
+
+        .disc.new {
+            animation: placeDisc 0.3s ease;
+        }
+
+        @keyframes placeDisc {
+            0% { transform: scale(0); }
+            70% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .controls button {
+            padding: 12px 24px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .controls button:hover {
+            background: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+
+        .controls button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .controls button:disabled:hover {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border-color: var(--border-color);
+        }
+
+        .settings {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            background: var(--bg-secondary);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+        }
+
+        .setting-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .setting-group label {
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .setting-group select {
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .message {
+            text-align: center;
+            padding: 15px;
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            margin-bottom: 20px;
+            font-size: 1.2rem;
+            font-weight: 500;
+            box-shadow: var(--shadow);
+            display: none;
+        }
+
+        .message.show {
+            display: block;
+        }
+
+        .message.winner {
+            background: linear-gradient(135deg, #ffd700, #ffed4a);
+            color: #333;
+        }
+
+        .rules {
+            background: var(--bg-secondary);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+        }
+
+        .rules h3 {
+            margin-bottom: 15px;
+            color: var(--text-primary);
+        }
+
+        .rules ul {
+            padding-left: 20px;
+            color: var(--text-secondary);
+            line-height: 1.8;
+        }
+
+        .thinking {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 10px;
+            color: var(--text-secondary);
+        }
+
+        .thinking.show {
+            display: flex;
+        }
+
+        .thinking-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .thinking-dots span {
+            width: 8px;
+            height: 8px;
+            background: var(--accent-color);
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out;
+        }
+
+        .thinking-dots span:nth-child(1) { animation-delay: -0.32s; }
+        .thinking-dots span:nth-child(2) { animation-delay: -0.16s; }
+        .thinking-dots span:nth-child(3) { animation-delay: 0s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+
+        @media (max-width: 500px) {
+            .cell {
+                width: 40px;
+                height: 40px;
+            }
+            .disc {
+                width: 32px;
+                height: 32px;
+            }
+            .cell.valid-move::after {
+                width: 16px;
+                height: 16px;
+            }
+            .game-info {
+                flex-direction: column;
+                gap: 15px;
+            }
+            .header h1 {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button class="theme-toggle" onclick="toggleTheme()" title="Prepnut temu">🌓</button>
+
+    <div class="container">
+        <div class="header">
+            <h1>Reversi</h1>
+            <p>Klasicka strategicka hra pre dvoch hracov</p>
+        </div>
+
+        <div class="settings">
+            <div class="setting-group">
+                <label for="gameMode">Rezim hry:</label>
+                <select id="gameMode" onchange="changeGameMode()">
+                    <option value="pvai">Hrac vs Pocitac</option>
+                    <option value="pvp">Hrac vs Hrac</option>
+                    <option value="aivai">Pocitac vs Pocitac</option>
+                </select>
+            </div>
+            <div class="setting-group">
+                <label for="difficulty">Obtiaznost:</label>
+                <select id="difficulty">
+                    <option value="1">Lahka</option>
+                    <option value="3" selected>Stredna</option>
+                    <option value="5">Tazka</option>
+                    <option value="7">Expert</option>
+                </select>
+            </div>
+            <div class="setting-group">
+                <label for="playerColor">Tvoja farba:</label>
+                <select id="playerColor">
+                    <option value="black">Cierny (prvy)</option>
+                    <option value="white">Biely (druhy)</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="game-info">
+            <div class="score-panel">
+                <div class="score">
+                    <div class="score-disc black"></div>
+                    <span class="score-value" id="blackScore">2</span>
+                </div>
+                <div class="score">
+                    <div class="score-disc white"></div>
+                    <span class="score-value" id="whiteScore">2</span>
+                </div>
+            </div>
+            <div class="turn-indicator">
+                <span>Na rade:</span>
+                <strong id="currentTurn">Cierny</strong>
+            </div>
+        </div>
+
+        <div class="thinking" id="thinking">
+            <span>Pocitac premysla</span>
+            <div class="thinking-dots">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+
+        <div class="message" id="message"></div>
+
+        <div class="board-container">
+            <div class="board" id="board"></div>
+        </div>
+
+        <div class="controls">
+            <button onclick="newGame()">Nova hra</button>
+            <button onclick="undoMove()" id="undoBtn" disabled>Spat</button>
+            <button onclick="passMove()" id="passBtn" disabled>Pass</button>
+            <button onclick="showHint()" id="hintBtn">Napoveda</button>
+        </div>
+
+        <div class="rules">
+            <h3>Pravidla hry Reversi</h3>
+            <ul>
+                <li><strong>Ciel:</strong> Mat na konci hry viac diskov svojej farby nez supor.</li>
+                <li><strong>Zaciatocna pozicia:</strong> 4 disky v strede - 2 cierne a 2 biele diagonalne.</li>
+                <li><strong>Tah:</strong> Poloz disk tak, aby si obklopil supove disky medzi novym a existujucim diskom.</li>
+                <li><strong>Obratanie:</strong> Vsetky obklopene supove disky sa otocla na tvoju farbu.</li>
+                <li><strong>Pass:</strong> Ak nemas ziadny platny tah, hra automaticky prejde na supera.</li>
+                <li><strong>Koniec hry:</strong> Hra konci, ked ziaden hrac nema platny tah.</li>
+                <li><strong>Strategia:</strong> Rohy su najcennejsie - nedaju sa otocit!</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Game constants
+        const EMPTY = 0;
+        const BLACK = 1;
+        const WHITE = 2;
+        const BOARD_SIZE = 8;
+
+        // Directions for checking valid moves
+        const DIRECTIONS = [
+            [-1, -1], [-1, 0], [-1, 1],
+            [0, -1],           [0, 1],
+            [1, -1],  [1, 0],  [1, 1]
+        ];
+
+        // Position weights for AI evaluation
+        const POSITION_WEIGHTS = [
+            [100, -20, 10,  5,  5, 10, -20, 100],
+            [-20, -50, -2, -2, -2, -2, -50, -20],
+            [ 10,  -2,  1,  1,  1,  1,  -2,  10],
+            [  5,  -2,  1,  0,  0,  1,  -2,   5],
+            [  5,  -2,  1,  0,  0,  1,  -2,   5],
+            [ 10,  -2,  1,  1,  1,  1,  -2,  10],
+            [-20, -50, -2, -2, -2, -2, -50, -20],
+            [100, -20, 10,  5,  5, 10, -20, 100]
+        ];
+
+        // Game state
+        let board = [];
+        let currentPlayer = BLACK;
+        let gameOver = false;
+        let moveHistory = [];
+        let lastMove = null;
+        let isAIThinking = false;
+
+        // Initialize game
+        function initBoard() {
+            board = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(EMPTY));
+            // Starting position
+            board[3][3] = WHITE;
+            board[3][4] = BLACK;
+            board[4][3] = BLACK;
+            board[4][4] = WHITE;
+        }
+
+        function renderBoard() {
+            const boardEl = document.getElementById('board');
+            boardEl.innerHTML = '';
+
+            const validMoves = getValidMoves(currentPlayer);
+
+            for (let row = 0; row < BOARD_SIZE; row++) {
+                for (let col = 0; col < BOARD_SIZE; col++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.dataset.row = row;
+                    cell.dataset.col = col;
+
+                    // Mark valid moves
+                    if (!gameOver && validMoves.some(m => m.row === row && m.col === col)) {
+                        cell.classList.add('valid-move');
+                    }
+
+                    // Mark last move
+                    if (lastMove && lastMove.row === row && lastMove.col === col) {
+                        cell.classList.add('last-move');
+                    }
+
+                    // Add disc if present
+                    if (board[row][col] !== EMPTY) {
+                        const disc = document.createElement('div');
+                        disc.className = 'disc ' + (board[row][col] === BLACK ? 'black' : 'white');
+                        cell.appendChild(disc);
+                    }
+
+                    cell.addEventListener('click', () => handleCellClick(row, col));
+                    boardEl.appendChild(cell);
+                }
+            }
+
+            updateScores();
+            updateTurnIndicator();
+        }
+
+        function handleCellClick(row, col) {
+            if (gameOver || isAIThinking) return;
+
+            const gameMode = document.getElementById('gameMode').value;
+            const playerColor = document.getElementById('playerColor').value;
+            const humanPlayer = playerColor === 'black' ? BLACK : WHITE;
+
+            // In PvAI mode, only allow human moves
+            if (gameMode === 'pvai' && currentPlayer !== humanPlayer) return;
+
+            // In AI vs AI mode, don't allow clicks
+            if (gameMode === 'aivai') return;
+
+            makeMove(row, col);
+        }
+
+        function makeMove(row, col) {
+            const flipped = getFlippedDiscs(row, col, currentPlayer);
+
+            if (flipped.length === 0) return false;
+
+            // Save state for undo
+            moveHistory.push({
+                board: board.map(r => [...r]),
+                player: currentPlayer,
+                lastMove: lastMove
+            });
+
+            // Place disc
+            board[row][col] = currentPlayer;
+            lastMove = { row, col };
+
+            // Flip discs with animation
+            flipped.forEach(pos => {
+                board[pos.row][pos.col] = currentPlayer;
+            });
+
+            // Switch player
+            currentPlayer = currentPlayer === BLACK ? WHITE : BLACK;
+
+            // Check if next player has valid moves
+            if (getValidMoves(currentPlayer).length === 0) {
+                currentPlayer = currentPlayer === BLACK ? WHITE : BLACK;
+                if (getValidMoves(currentPlayer).length === 0) {
+                    endGame();
+                } else {
+                    showMessage(currentPlayer === BLACK ? 'Biely nema tah, cierny pokracuje!' : 'Cierny nema tah, biely pokracuje!');
+                }
+            }
+
+            renderBoard();
+            updateUndoButton();
+
+            // Schedule AI move if needed
+            if (!gameOver) {
+                scheduleAIMove();
+            }
+
+            return true;
+        }
+
+        function getValidMoves(player) {
+            const moves = [];
+            for (let row = 0; row < BOARD_SIZE; row++) {
+                for (let col = 0; col < BOARD_SIZE; col++) {
+                    if (getFlippedDiscs(row, col, player).length > 0) {
+                        moves.push({ row, col });
+                    }
+                }
+            }
+            return moves;
+        }
+
+        function getFlippedDiscs(row, col, player) {
+            if (board[row][col] !== EMPTY) return [];
+
+            const opponent = player === BLACK ? WHITE : BLACK;
+            const flipped = [];
+
+            for (const [dr, dc] of DIRECTIONS) {
+                const line = [];
+                let r = row + dr;
+                let c = col + dc;
+
+                // Follow line of opponent discs
+                while (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE && board[r][c] === opponent) {
+                    line.push({ row: r, col: c });
+                    r += dr;
+                    c += dc;
+                }
+
+                // Check if line ends with player's disc
+                if (line.length > 0 && r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE && board[r][c] === player) {
+                    flipped.push(...line);
+                }
+            }
+
+            return flipped;
+        }
+
+        function updateScores() {
+            let black = 0, white = 0;
+            for (let row = 0; row < BOARD_SIZE; row++) {
+                for (let col = 0; col < BOARD_SIZE; col++) {
+                    if (board[row][col] === BLACK) black++;
+                    else if (board[row][col] === WHITE) white++;
+                }
+            }
+            document.getElementById('blackScore').textContent = black;
+            document.getElementById('whiteScore').textContent = white;
+        }
+
+        function updateTurnIndicator() {
+            const indicator = document.getElementById('currentTurn');
+            if (gameOver) {
+                indicator.textContent = 'Koniec hry';
+            } else {
+                indicator.textContent = currentPlayer === BLACK ? 'Cierny' : 'Biely';
+            }
+        }
+
+        function updateUndoButton() {
+            const undoBtn = document.getElementById('undoBtn');
+            undoBtn.disabled = moveHistory.length === 0 || isAIThinking;
+        }
+
+        function undoMove() {
+            if (moveHistory.length === 0 || isAIThinking) return;
+
+            const gameMode = document.getElementById('gameMode').value;
+
+            // In PvAI mode, undo two moves (player + AI)
+            if (gameMode === 'pvai' && moveHistory.length >= 2) {
+                moveHistory.pop(); // Remove AI move
+            }
+
+            const state = moveHistory.pop();
+            board = state.board;
+            currentPlayer = state.player;
+            lastMove = state.lastMove;
+            gameOver = false;
+
+            hideMessage();
+            renderBoard();
+            updateUndoButton();
+        }
+
+        function passMove() {
+            // This is handled automatically
+            showMessage('Automaticky pass - nemas platny tah!');
+        }
+
+        function showHint() {
+            if (gameOver || isAIThinking) return;
+
+            const validMoves = getValidMoves(currentPlayer);
+            if (validMoves.length === 0) return;
+
+            // Use AI to find best move
+            const depth = 3;
+            let bestMove = validMoves[0];
+            let bestScore = -Infinity;
+
+            for (const move of validMoves) {
+                const boardCopy = board.map(r => [...r]);
+                simulateMove(boardCopy, move.row, move.col, currentPlayer);
+                const score = -minimax(boardCopy, depth - 1, -Infinity, Infinity, currentPlayer === BLACK ? WHITE : BLACK, false);
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestMove = move;
+                }
+            }
+
+            // Highlight hint cell
+            const cells = document.querySelectorAll('.cell');
+            cells.forEach(cell => {
+                if (parseInt(cell.dataset.row) === bestMove.row && parseInt(cell.dataset.col) === bestMove.col) {
+                    cell.style.boxShadow = 'inset 0 0 20px rgba(0, 255, 0, 0.7)';
+                    setTimeout(() => {
+                        cell.style.boxShadow = '';
+                    }, 2000);
+                }
+            });
+        }
+
+        // AI Implementation using Minimax with Alpha-Beta Pruning
+        function scheduleAIMove() {
+            const gameMode = document.getElementById('gameMode').value;
+            const playerColor = document.getElementById('playerColor').value;
+            const humanPlayer = playerColor === 'black' ? BLACK : WHITE;
+
+            let shouldAIPlay = false;
+
+            if (gameMode === 'pvai' && currentPlayer !== humanPlayer) {
+                shouldAIPlay = true;
+            } else if (gameMode === 'aivai') {
+                shouldAIPlay = true;
+            }
+
+            if (shouldAIPlay && !gameOver) {
+                isAIThinking = true;
+                document.getElementById('thinking').classList.add('show');
+                updateUndoButton();
+
+                setTimeout(() => {
+                    makeAIMove();
+                    isAIThinking = false;
+                    document.getElementById('thinking').classList.remove('show');
+                    updateUndoButton();
+                }, gameMode === 'aivai' ? 500 : 800);
+            }
+        }
+
+        function makeAIMove() {
+            const depth = parseInt(document.getElementById('difficulty').value);
+            const validMoves = getValidMoves(currentPlayer);
+
+            if (validMoves.length === 0) return;
+
+            let bestMove = validMoves[0];
+            let bestScore = -Infinity;
+
+            // Sort moves to improve alpha-beta pruning
+            const scoredMoves = validMoves.map(move => ({
+                ...move,
+                score: POSITION_WEIGHTS[move.row][move.col]
+            })).sort((a, b) => b.score - a.score);
+
+            for (const move of scoredMoves) {
+                const boardCopy = board.map(r => [...r]);
+                simulateMove(boardCopy, move.row, move.col, currentPlayer);
+                const score = -minimax(boardCopy, depth - 1, -Infinity, Infinity, currentPlayer === BLACK ? WHITE : BLACK, false);
+
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestMove = move;
+                }
+            }
+
+            makeMove(bestMove.row, bestMove.col);
+        }
+
+        function minimax(boardState, depth, alpha, beta, player, maximizing) {
+            const validMoves = getValidMovesForBoard(boardState, player);
+
+            // Terminal conditions
+            if (depth === 0 || validMoves.length === 0) {
+                // Check if opponent has moves
+                const opponent = player === BLACK ? WHITE : BLACK;
+                const opponentMoves = getValidMovesForBoard(boardState, opponent);
+
+                if (validMoves.length === 0 && opponentMoves.length === 0) {
+                    // Game over - return final score
+                    return evaluateBoard(boardState, player) * 1000;
+                }
+
+                if (validMoves.length === 0) {
+                    // Player passes, opponent continues
+                    return -minimax(boardState, depth, -beta, -alpha, opponent, !maximizing);
+                }
+
+                return evaluateBoard(boardState, player);
+            }
+
+            // Sort moves for better pruning
+            const scoredMoves = validMoves.map(move => ({
+                ...move,
+                score: POSITION_WEIGHTS[move.row][move.col]
+            })).sort((a, b) => b.score - a.score);
+
+            let bestScore = -Infinity;
+            const opponent = player === BLACK ? WHITE : BLACK;
+
+            for (const move of scoredMoves) {
+                const boardCopy = boardState.map(r => [...r]);
+                simulateMove(boardCopy, move.row, move.col, player);
+                const score = -minimax(boardCopy, depth - 1, -beta, -alpha, opponent, !maximizing);
+
+                bestScore = Math.max(bestScore, score);
+                alpha = Math.max(alpha, score);
+
+                if (alpha >= beta) {
+                    break; // Alpha-beta cutoff
+                }
+            }
+
+            return bestScore;
+        }
+
+        function evaluateBoard(boardState, player) {
+            const opponent = player === BLACK ? WHITE : BLACK;
+            let score = 0;
+
+            // Position-based evaluation
+            for (let row = 0; row < BOARD_SIZE; row++) {
+                for (let col = 0; col < BOARD_SIZE; col++) {
+                    if (boardState[row][col] === player) {
+                        score += POSITION_WEIGHTS[row][col];
+                    } else if (boardState[row][col] === opponent) {
+                        score -= POSITION_WEIGHTS[row][col];
+                    }
+                }
+            }
+
+            // Mobility evaluation
+            const playerMoves = getValidMovesForBoard(boardState, player).length;
+            const opponentMoves = getValidMovesForBoard(boardState, opponent).length;
+            score += (playerMoves - opponentMoves) * 5;
+
+            // Corner control bonus
+            const corners = [[0,0], [0,7], [7,0], [7,7]];
+            for (const [r, c] of corners) {
+                if (boardState[r][c] === player) score += 25;
+                else if (boardState[r][c] === opponent) score -= 25;
+            }
+
+            // Edge stability
+            const edges = [
+                [[0,1], [0,2], [0,3], [0,4], [0,5], [0,6]],
+                [[7,1], [7,2], [7,3], [7,4], [7,5], [7,6]],
+                [[1,0], [2,0], [3,0], [4,0], [5,0], [6,0]],
+                [[1,7], [2,7], [3,7], [4,7], [5,7], [6,7]]
+            ];
+
+            for (const edge of edges) {
+                let playerCount = 0, opponentCount = 0;
+                for (const [r, c] of edge) {
+                    if (boardState[r][c] === player) playerCount++;
+                    else if (boardState[r][c] === opponent) opponentCount++;
+                }
+                score += (playerCount - opponentCount) * 2;
+            }
+
+            return score;
+        }
+
+        function getValidMovesForBoard(boardState, player) {
+            const moves = [];
+            for (let row = 0; row < BOARD_SIZE; row++) {
+                for (let col = 0; col < BOARD_SIZE; col++) {
+                    if (getFlippedDiscsForBoard(boardState, row, col, player).length > 0) {
+                        moves.push({ row, col });
+                    }
+                }
+            }
+            return moves;
+        }
+
+        function getFlippedDiscsForBoard(boardState, row, col, player) {
+            if (boardState[row][col] !== EMPTY) return [];
+
+            const opponent = player === BLACK ? WHITE : BLACK;
+            const flipped = [];
+
+            for (const [dr, dc] of DIRECTIONS) {
+                const line = [];
+                let r = row + dr;
+                let c = col + dc;
+
+                while (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE && boardState[r][c] === opponent) {
+                    line.push({ row: r, col: c });
+                    r += dr;
+                    c += dc;
+                }
+
+                if (line.length > 0 && r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE && boardState[r][c] === player) {
+                    flipped.push(...line);
+                }
+            }
+
+            return flipped;
+        }
+
+        function simulateMove(boardState, row, col, player) {
+            const flipped = getFlippedDiscsForBoard(boardState, row, col, player);
+            if (flipped.length === 0) return false;
+
+            boardState[row][col] = player;
+            for (const pos of flipped) {
+                boardState[pos.row][pos.col] = player;
+            }
+            return true;
+        }
+
+        function endGame() {
+            gameOver = true;
+            let black = 0, white = 0;
+            for (let row = 0; row < BOARD_SIZE; row++) {
+                for (let col = 0; col < BOARD_SIZE; col++) {
+                    if (board[row][col] === BLACK) black++;
+                    else if (board[row][col] === WHITE) white++;
+                }
+            }
+
+            let message;
+            if (black > white) {
+                message = `Vyhral Cierny! ${black} : ${white}`;
+            } else if (white > black) {
+                message = `Vyhral Biely! ${white} : ${black}`;
+            } else {
+                message = `Remiza! ${black} : ${white}`;
+            }
+
+            showMessage(message, true);
+            renderBoard();
+        }
+
+        function showMessage(text, isWinner = false) {
+            const msgEl = document.getElementById('message');
+            msgEl.textContent = text;
+            msgEl.classList.add('show');
+            if (isWinner) {
+                msgEl.classList.add('winner');
+            } else {
+                msgEl.classList.remove('winner');
+            }
+        }
+
+        function hideMessage() {
+            const msgEl = document.getElementById('message');
+            msgEl.classList.remove('show', 'winner');
+        }
+
+        function newGame() {
+            initBoard();
+            currentPlayer = BLACK;
+            gameOver = false;
+            moveHistory = [];
+            lastMove = null;
+            isAIThinking = false;
+
+            document.getElementById('thinking').classList.remove('show');
+            hideMessage();
+            renderBoard();
+            updateUndoButton();
+
+            // Start AI if needed
+            setTimeout(() => scheduleAIMove(), 500);
+        }
+
+        function changeGameMode() {
+            newGame();
+        }
+
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('reversi-theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+        }
+
+        // Load theme preference
+        if (localStorage.getItem('reversi-theme') === 'dark') {
+            document.body.classList.add('dark-mode');
+        }
+
+        // Initialize game
+        newGame();
+    </script>
+</body>
+</html>
