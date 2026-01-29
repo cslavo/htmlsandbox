@@ -1092,10 +1092,10 @@
             }
 
             // Shuffle pairs for randomness
-            shuffle(symmetricPairs);
+            const shuffledPairs = shuffle(symmetricPairs);
 
             let removed = 0;
-            for (const pair of symmetricPairs) {
+            for (const pair of shuffledPairs) {
                 if (removed >= cellsToRemove) break;
 
                 const [pos1, pos2] = pair;
