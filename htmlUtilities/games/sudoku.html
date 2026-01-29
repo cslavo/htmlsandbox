@@ -1062,33 +1062,77 @@
             return b;
         }
 
-        // Create puzzle by removing cells
+        // Create puzzle by removing cells with rotational (180°) symmetry
+        // This follows professional Sudoku design standards
         function createPuzzle(completedBoard, difficulty) {
             const puzzle = copyBoard(completedBoard);
             const cellsToRemove = getCellsToRemove(difficulty);
 
-            // Get all cells and shuffle
-            const cells = [];
+            // Create symmetric pairs: (r,c) pairs with (8-r, 8-c)
+            // Center cell (4,4) is its own mirror
+            const symmetricPairs = [];
+            const center = [4, 4];
+
+            // Add all pairs (only need half since each pair includes both positions)
             for (let r = 0; r < BOARD_SIZE; r++) {
                 for (let c = 0; c < BOARD_SIZE; c++) {
-                    cells.push([r, c]);
+                    const mirrorR = 8 - r;
+                    const mirrorC = 8 - c;
+
+                    // Only add if this is the "first" of the pair (to avoid duplicates)
+                    // A cell comes before its mirror if it has smaller row,
+                    // or same row but smaller column
+                    if (r < mirrorR || (r === mirrorR && c < mirrorC)) {
+                        symmetricPairs.push([[r, c], [mirrorR, mirrorC]]);
+                    } else if (r === mirrorR && c === mirrorC) {
+                        // Center cell - pair with itself
+                        symmetricPairs.push([[r, c], null]);
+                    }
                 }
             }
-            shuffle(cells);
+
+            // Shuffle pairs for randomness
+            shuffle(symmetricPairs);
 
             let removed = 0;
-            for (const [r, c] of cells) {
+            for (const pair of symmetricPairs) {
                 if (removed >= cellsToRemove) break;
 
-                const backup = puzzle[r][c];
-                puzzle[r][c] = 0;
+                const [pos1, pos2] = pair;
+                const [r1, c1] = pos1;
+                const backup1 = puzzle[r1][c1];
+
+                // If already empty, skip
+                if (backup1 === 0) continue;
+
+                puzzle[r1][c1] = 0;
+                let backup2 = null;
+
+                // Handle symmetric position (if not center)
+                if (pos2 !== null) {
+                    const [r2, c2] = pos2;
+                    backup2 = puzzle[r2][c2];
+                    if (backup2 === 0) {
+                        // Symmetric cell already empty, restore and skip
+                        puzzle[r1][c1] = backup1;
+                        continue;
+                    }
+                    puzzle[r2][c2] = 0;
+                }
 
                 // Check if puzzle still has unique solution
                 const testBoard = copyBoard(puzzle);
                 if (countSolutions(testBoard, 2) === 1) {
+                    // Success - count removed cells
                     removed++;
+                    if (pos2 !== null) removed++;
                 } else {
-                    puzzle[r][c] = backup;
+                    // Restore both cells
+                    puzzle[r1][c1] = backup1;
+                    if (pos2 !== null) {
+                        const [r2, c2] = pos2;
+                        puzzle[r2][c2] = backup2;
+                    }
                 }
             }
 
