@@ -219,22 +219,13 @@
         .difficulty-badge.medium { background: #fff9c4; color: #f57f17; }
         .difficulty-badge.hard { background: #ffccbc; color: #d84315; }
         .difficulty-badge.expert { background: #f8bbd0; color: #c2185b; }
+        .difficulty-badge.master { background: #e1bee7; color: #7b1fa2; }
 
         body.dark-mode .difficulty-badge.easy { background: #1b5e20; color: #a5d6a7; }
         body.dark-mode .difficulty-badge.medium { background: #f57f17; color: #fff8e1; }
         body.dark-mode .difficulty-badge.hard { background: #bf360c; color: #ffccbc; }
         body.dark-mode .difficulty-badge.expert { background: #880e4f; color: #f8bbd0; }
-
-        .mistakes-counter {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .mistakes-counter .hearts {
-            color: #e53935;
-            letter-spacing: 2px;
-        }
+        body.dark-mode .difficulty-badge.master { background: #4a148c; color: #e1bee7; }
 
         .board-section {
             display: flex;
@@ -618,6 +609,56 @@
             margin-top: 10px;
         }
 
+        /* Setup screen */
+        .setup-screen {
+            background: var(--bg-secondary);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .setup-screen h2 {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .setup-screen .setting-group {
+            margin-bottom: 15px;
+        }
+
+        .setup-screen .start-btn {
+            width: 100%;
+            padding: 15px;
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: all 0.2s;
+        }
+
+        .setup-screen .start-btn:hover {
+            background: #1565c0;
+            transform: translateY(-2px);
+        }
+
+        .game-container {
+            display: none;
+        }
+
+        .game-container.active {
+            display: block;
+        }
+
+        .setup-screen.hidden {
+            display: none;
+        }
+
         @media (max-width: 900px) {
             .game-layout {
                 flex-direction: column;
@@ -699,6 +740,68 @@
             <div class="message" id="message"></div>
         </div>
 
+        <!-- Setup Screen -->
+        <div class="setup-screen" id="setupScreen">
+            <h2>Nova hra Sudoku</h2>
+            <div class="settings">
+                <div class="setting-group">
+                    <label for="setupDifficulty">Obtiaznost</label>
+                    <select id="setupDifficulty">
+                        <option value="easy">Lahka (38-45 cisel) - zakladne techniky</option>
+                        <option value="medium" selected>Stredna (32-37 cisel) - pary a eliminacia</option>
+                        <option value="hard">Tazka (28-31 cisel) - komplexne vzory</option>
+                        <option value="expert">Expert (24-27 cisel) - pokrocile techniky</option>
+                        <option value="master">Master (22-23 cisel) - extremne narocne</option>
+                    </select>
+                </div>
+                <div class="toggle-group">
+                    <span>Zobrazovat casovac</span>
+                    <label class="toggle">
+                        <input type="checkbox" id="setupShowTimer" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="toggle-group">
+                    <span>Zvyraznit riadok/stlpec/blok</span>
+                    <label class="toggle">
+                        <input type="checkbox" id="setupHighlightRowCol" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="toggle-group">
+                    <span>Zvyraznit rovnake cisla</span>
+                    <label class="toggle">
+                        <input type="checkbox" id="setupHighlightSameNumbers" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="toggle-group">
+                    <span>Zvyraznovat chybne cisla</span>
+                    <label class="toggle">
+                        <input type="checkbox" id="setupAutoCheck" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="toggle-group">
+                    <span>Automaticky mazat poznamky</span>
+                    <label class="toggle">
+                        <input type="checkbox" id="setupAutoRemoveNotes" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="toggle-group">
+                    <span>Automaticke poznamky (kandidati)</span>
+                    <label class="toggle">
+                        <input type="checkbox" id="setupAutoNotes">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+            <button class="start-btn" onclick="startGame()">Spustit hru</button>
+        </div>
+
+        <!-- Game Container -->
+        <div class="game-container" id="gameContainer">
         <div class="game-layout">
             <div class="side-panel">
                 <div class="panel-section">
@@ -713,13 +816,6 @@
                             <span class="timer" id="timer">00:00</span>
                         </div>
                         <div class="info-row">
-                            <span class="info-label">Chyby:</span>
-                            <div class="mistakes-counter">
-                                <span class="hearts" id="hearts">❤❤❤</span>
-                                <span id="mistakesCount">(0/3)</span>
-                            </div>
-                        </div>
-                        <div class="info-row">
                             <span class="info-label">Postup:</span>
                             <span class="info-value" id="progressText">0%</span>
                         </div>
@@ -732,15 +828,6 @@
                 <div class="panel-section">
                     <div class="panel-title">Nastavenia</div>
                     <div class="settings">
-                        <div class="setting-group">
-                            <label for="difficulty">Obtiaznost novej hry</label>
-                            <select id="difficulty">
-                                <option value="easy">Lahka (38-45 cisel)</option>
-                                <option value="medium" selected>Stredna (30-37 cisel)</option>
-                                <option value="hard">Tazka (25-29 cisel)</option>
-                                <option value="expert">Expert (17-24 cisel)</option>
-                            </select>
-                        </div>
                         <div class="toggle-group">
                             <span>Zobrazovat casovac</span>
                             <label class="toggle">
@@ -749,7 +836,7 @@
                             </label>
                         </div>
                         <div class="toggle-group">
-                            <span>Zvyraznit riadok/stlpec</span>
+                            <span>Zvyraznit riadok/stlpec/blok</span>
                             <label class="toggle">
                                 <input type="checkbox" id="highlightRowCol" checked onchange="renderBoard()">
                                 <span class="toggle-slider"></span>
@@ -763,16 +850,9 @@
                             </label>
                         </div>
                         <div class="toggle-group">
-                            <span>Automaticka kontrola chyb</span>
+                            <span>Zvyraznovat chybne cisla</span>
                             <label class="toggle">
-                                <input type="checkbox" id="autoCheck" checked>
-                                <span class="toggle-slider"></span>
-                            </label>
-                        </div>
-                        <div class="toggle-group">
-                            <span>Limit chyb (3 zivoty)</span>
-                            <label class="toggle">
-                                <input type="checkbox" id="limitMistakes" checked onchange="updateMistakesDisplay()">
+                                <input type="checkbox" id="autoCheck" checked onchange="renderBoard()">
                                 <span class="toggle-slider"></span>
                             </label>
                         </div>
@@ -783,13 +863,20 @@
                                 <span class="toggle-slider"></span>
                             </label>
                         </div>
+                        <div class="toggle-group">
+                            <span>Automaticke poznamky</span>
+                            <label class="toggle">
+                                <input type="checkbox" id="autoNotes" onchange="handleAutoNotesChange()">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
                     </div>
                 </div>
 
                 <div class="panel-section">
                     <div class="panel-title">Ovladanie</div>
                     <div class="controls">
-                        <button onclick="newGame()">Nova hra</button>
+                        <button onclick="showSetupScreen()">Nova hra</button>
                         <button onclick="resetGame()">Resetovat</button>
                         <button onclick="solvePuzzle()" id="solveBtn">Vyriesit</button>
                     </div>
@@ -824,6 +911,7 @@
                 </div>
             </div>
         </div>
+        </div> <!-- End game-container -->
 
         <details class="rules">
             <summary><strong>Pravidla hry Sudoku</strong></summary>
@@ -852,9 +940,9 @@
         let notesMode = false;    // Whether notes mode is active
         let moveHistory = [];     // For undo
         let redoHistory = [];     // For redo
-        let mistakes = 0;         // Mistake counter
         let gameOver = false;
         let gameWon = false;
+        let gameStarted = false;
         let timerInterval = null;
         let elapsedSeconds = 0;
         let hintsUsed = 0;
@@ -1008,12 +1096,14 @@
         }
 
         // Get number of cells to remove based on difficulty
+        // Based on research: difficulty depends on clues and solving techniques required
         function getCellsToRemove(difficulty) {
             switch (difficulty) {
-                case 'easy': return 81 - (38 + Math.floor(Math.random() * 8)); // 38-45 given
-                case 'medium': return 81 - (30 + Math.floor(Math.random() * 8)); // 30-37 given
-                case 'hard': return 81 - (25 + Math.floor(Math.random() * 5)); // 25-29 given
-                case 'expert': return 81 - (17 + Math.floor(Math.random() * 8)); // 17-24 given
+                case 'easy': return 81 - (38 + Math.floor(Math.random() * 8)); // 38-45 given - basic techniques
+                case 'medium': return 81 - (32 + Math.floor(Math.random() * 6)); // 32-37 given - pairs, elimination
+                case 'hard': return 81 - (28 + Math.floor(Math.random() * 4)); // 28-31 given - complex patterns
+                case 'expert': return 81 - (24 + Math.floor(Math.random() * 4)); // 24-27 given - advanced techniques
+                case 'master': return 81 - (22 + Math.floor(Math.random() * 2)); // 22-23 given - extreme
                 default: return 45;
             }
         }
@@ -1153,14 +1243,14 @@
 
         // Select a cell
         function selectCell(row, col) {
-            if (gameOver) return;
+            if (gameOver || !gameStarted) return;
             selectedCell = { row, col };
             renderBoard();
         }
 
         // Enter a number
         function enterNumber(num) {
-            if (gameOver || !selectedCell) return;
+            if (gameOver || !gameStarted || !selectedCell) return;
 
             const { row, col } = selectedCell;
             if (given[row][col]) return;
@@ -1178,25 +1268,17 @@
                 }
             } else {
                 // Enter number
-                const previousValue = board[row][col];
                 board[row][col] = num;
                 notes[row][col].clear();
-
-                // Check if correct
-                const autoCheck = document.getElementById('autoCheck').checked;
-                if (autoCheck && num !== solution[row][col]) {
-                    mistakes++;
-                    updateMistakesDisplay();
-
-                    const limitMistakes = document.getElementById('limitMistakes').checked;
-                    if (limitMistakes && mistakes >= 3) {
-                        endGame(false);
-                    }
-                }
 
                 // Auto remove notes in same row/col/box
                 if (document.getElementById('autoRemoveNotes').checked) {
                     removeNotesForNumber(row, col, num);
+                }
+
+                // Update auto notes if enabled
+                if (document.getElementById('autoNotes').checked) {
+                    updateAllNotes();
                 }
 
                 // Check for win
@@ -1261,8 +1343,7 @@
         function saveState() {
             moveHistory.push({
                 board: copyBoard(board),
-                notes: notes.map(row => row.map(cell => new Set(cell))),
-                mistakes: mistakes
+                notes: notes.map(row => row.map(cell => new Set(cell)))
             });
         }
 
@@ -1273,16 +1354,13 @@
             // Save current state for redo
             redoHistory.push({
                 board: copyBoard(board),
-                notes: notes.map(row => row.map(cell => new Set(cell))),
-                mistakes: mistakes
+                notes: notes.map(row => row.map(cell => new Set(cell)))
             });
 
             const state = moveHistory.pop();
             board = state.board;
             notes = state.notes;
-            mistakes = state.mistakes;
 
-            updateMistakesDisplay();
             renderBoard();
             updateUndoRedoButtons();
         }
@@ -1294,16 +1372,13 @@
             // Save current state for undo
             moveHistory.push({
                 board: copyBoard(board),
-                notes: notes.map(row => row.map(cell => new Set(cell))),
-                mistakes: mistakes
+                notes: notes.map(row => row.map(cell => new Set(cell)))
             });
 
             const state = redoHistory.pop();
             board = state.board;
             notes = state.notes;
-            mistakes = state.mistakes;
 
-            updateMistakesDisplay();
             renderBoard();
             updateUndoRedoButtons();
         }
@@ -1379,21 +1454,35 @@
             document.getElementById('progressBar').style.width = `${progress}%`;
         }
 
-        // Update mistakes display
-        function updateMistakesDisplay() {
-            const limitMistakes = document.getElementById('limitMistakes').checked;
-            const heartsEl = document.getElementById('hearts');
-            const countEl = document.getElementById('mistakesCount');
+        // Auto-notes: fill all valid candidates for empty cells
+        function fillAllNotes() {
+            for (let r = 0; r < BOARD_SIZE; r++) {
+                for (let c = 0; c < BOARD_SIZE; c++) {
+                    if (board[r][c] === 0) {
+                        notes[r][c] = new Set(getValidNumbers(board, r, c));
+                    }
+                }
+            }
+        }
 
-            if (limitMistakes) {
-                const hearts = '❤'.repeat(Math.max(0, 3 - mistakes)) + '🖤'.repeat(Math.min(3, mistakes));
-                heartsEl.textContent = hearts;
-                countEl.textContent = `(${mistakes}/3)`;
-                heartsEl.parentElement.style.display = 'flex';
-            } else {
-                heartsEl.parentElement.style.display = 'flex';
-                heartsEl.textContent = '';
-                countEl.textContent = `${mistakes}`;
+        // Update all notes based on current board state
+        function updateAllNotes() {
+            for (let r = 0; r < BOARD_SIZE; r++) {
+                for (let c = 0; c < BOARD_SIZE; c++) {
+                    if (board[r][c] === 0 && notes[r][c].size > 0) {
+                        // Keep only valid candidates
+                        const validNums = new Set(getValidNumbers(board, r, c));
+                        notes[r][c] = new Set([...notes[r][c]].filter(n => validNums.has(n)));
+                    }
+                }
+            }
+        }
+
+        // Handle auto-notes toggle
+        function handleAutoNotesChange() {
+            if (document.getElementById('autoNotes').checked) {
+                fillAllNotes();
+                renderBoard();
             }
         }
 
@@ -1440,8 +1529,6 @@
                 const minutes = Math.floor(elapsedSeconds / 60);
                 const seconds = elapsedSeconds % 60;
                 showMessage(`Gratulujeme! Cas: ${minutes}:${seconds.toString().padStart(2, '0')}`, true);
-            } else {
-                showMessage('Koniec hry - prilis vela chyb!', false, true);
             }
 
             updateUndoRedoButtons();
@@ -1465,18 +1552,38 @@
             msgEl.classList.remove('show', 'winner', 'error');
         }
 
-        // New game
-        function newGame() {
-            const difficulty = document.getElementById('difficulty').value;
+        // Show setup screen
+        function showSetupScreen() {
+            stopTimer();
+            document.getElementById('setupScreen').classList.remove('hidden');
+            document.getElementById('gameContainer').classList.remove('active');
+        }
+
+        // Start game from setup screen
+        function startGame() {
+            // Copy settings from setup to game
+            const difficulty = document.getElementById('setupDifficulty').value;
+            document.getElementById('showTimer').checked = document.getElementById('setupShowTimer').checked;
+            document.getElementById('highlightRowCol').checked = document.getElementById('setupHighlightRowCol').checked;
+            document.getElementById('highlightSameNumbers').checked = document.getElementById('setupHighlightSameNumbers').checked;
+            document.getElementById('autoCheck').checked = document.getElementById('setupAutoCheck').checked;
+            document.getElementById('autoRemoveNotes').checked = document.getElementById('setupAutoRemoveNotes').checked;
+            document.getElementById('autoNotes').checked = document.getElementById('setupAutoNotes').checked;
+
+            // Hide setup, show game
+            document.getElementById('setupScreen').classList.add('hidden');
+            document.getElementById('gameContainer').classList.add('active');
+
+            // Generate puzzle
             generatePuzzle(difficulty);
 
             selectedCell = null;
             notesMode = false;
             moveHistory = [];
             redoHistory = [];
-            mistakes = 0;
             gameOver = false;
             gameWon = false;
+            gameStarted = true;
             hintsUsed = 0;
 
             document.getElementById('notesBtn').classList.remove('active');
@@ -1488,12 +1595,18 @@
                 'easy': 'Lahka',
                 'medium': 'Stredna',
                 'hard': 'Tazka',
-                'expert': 'Expert'
+                'expert': 'Expert',
+                'master': 'Master'
             };
             badge.textContent = difficultyNames[difficulty];
 
-            updateMistakesDisplay();
+            // Apply auto-notes if enabled
+            if (document.getElementById('autoNotes').checked) {
+                fillAllNotes();
+            }
+
             hideMessage();
+            toggleTimerDisplay();
             renderBoard();
             renderNumberPad();
             updateUndoRedoButtons();
@@ -1516,10 +1629,13 @@
             selectedCell = null;
             moveHistory = [];
             redoHistory = [];
-            mistakes = 0;
             gameOver = false;
 
-            updateMistakesDisplay();
+            // Apply auto-notes if enabled
+            if (document.getElementById('autoNotes').checked) {
+                fillAllNotes();
+            }
+
             hideMessage();
             renderBoard();
             updateUndoRedoButtons();
@@ -1542,7 +1658,7 @@
 
         // Keyboard support
         document.addEventListener('keydown', (e) => {
-            if (gameOver) return;
+            if (gameOver || !gameStarted) return;
 
             const key = e.key;
 
@@ -1613,27 +1729,63 @@
                 document.body.classList.add('dark-mode');
             }
 
-            // Settings
-            const settings = ['showTimer', 'highlightRowCol', 'highlightSameNumbers', 'autoCheck', 'limitMistakes', 'autoRemoveNotes'];
-            settings.forEach(setting => {
-                const saved = localStorage.getItem(`sudoku-${setting}`);
+            // Settings for setup screen
+            const setupSettings = {
+                'setupShowTimer': 'showTimer',
+                'setupHighlightRowCol': 'highlightRowCol',
+                'setupHighlightSameNumbers': 'highlightSameNumbers',
+                'setupAutoCheck': 'autoCheck',
+                'setupAutoRemoveNotes': 'autoRemoveNotes',
+                'setupAutoNotes': 'autoNotes'
+            };
+
+            // Load settings to setup screen
+            Object.entries(setupSettings).forEach(([setupId, settingKey]) => {
+                const saved = localStorage.getItem(`sudoku-${settingKey}`);
                 if (saved !== null) {
-                    document.getElementById(setting).checked = saved === 'true';
+                    document.getElementById(setupId).checked = saved === 'true';
                 }
             });
 
-            // Save settings on change
-            settings.forEach(setting => {
-                document.getElementById(setting).addEventListener('change', () => {
-                    localStorage.setItem(`sudoku-${setting}`, document.getElementById(setting).checked);
+            // Load difficulty
+            const savedDifficulty = localStorage.getItem('sudoku-difficulty');
+            if (savedDifficulty) {
+                document.getElementById('setupDifficulty').value = savedDifficulty;
+            }
+
+            // Settings for game screen
+            const gameSettings = ['showTimer', 'highlightRowCol', 'highlightSameNumbers', 'autoCheck', 'autoRemoveNotes', 'autoNotes'];
+
+            // Save settings on change (both setup and game)
+            Object.entries(setupSettings).forEach(([setupId, settingKey]) => {
+                document.getElementById(setupId).addEventListener('change', () => {
+                    localStorage.setItem(`sudoku-${settingKey}`, document.getElementById(setupId).checked);
                 });
+            });
+
+            gameSettings.forEach(setting => {
+                const el = document.getElementById(setting);
+                if (el) {
+                    el.addEventListener('change', () => {
+                        localStorage.setItem(`sudoku-${setting}`, el.checked);
+                        // Sync to setup screen
+                        const setupEl = document.getElementById('setup' + setting.charAt(0).toUpperCase() + setting.slice(1));
+                        if (setupEl) {
+                            setupEl.checked = el.checked;
+                        }
+                    });
+                }
+            });
+
+            // Save difficulty
+            document.getElementById('setupDifficulty').addEventListener('change', () => {
+                localStorage.setItem('sudoku-difficulty', document.getElementById('setupDifficulty').value);
             });
         }
 
-        // Initialize
+        // Initialize - just load settings, don't start game
         loadSettings();
-        toggleTimerDisplay();
-        newGame();
+        renderNumberPad();
     </script>
 </body>
 </html>
