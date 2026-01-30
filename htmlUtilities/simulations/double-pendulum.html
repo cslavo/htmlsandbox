@@ -308,6 +308,65 @@
             margin-top: 5px;
         }
 
+        .graph-section {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 10px;
+            padding: 10px;
+            margin-top: 10px;
+        }
+
+        .graph-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 0 5px;
+        }
+
+        .graph-header h4 {
+            color: #00d4ff;
+            font-size: 0.9em;
+            margin: 0;
+        }
+
+        .graph-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .graph-controls select {
+            padding: 4px 8px;
+            font-size: 0.8em;
+        }
+
+        .graph-controls button {
+            padding: 4px 10px;
+            font-size: 0.75em;
+            flex: none;
+        }
+
+        #graphCanvas {
+            width: 100%;
+            height: 150px;
+            background: #0a0a1a;
+            border-radius: 6px;
+        }
+
+        .graph-info {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 5px;
+            font-size: 0.75em;
+            color: #888;
+            padding: 0 5px;
+        }
+
+        .graph-value {
+            color: #ffcc00;
+            font-weight: bold;
+        }
+
         @media (max-width: 900px) {
             .main-container {
                 flex-direction: column;
@@ -350,6 +409,32 @@
                 <div class="info-row" id="energy2Row">
                     <span class="info-label">Celková energia (K2):</span>
                     <span class="info-value" id="energy2">0.00 J</span>
+                </div>
+            </div>
+            <!-- Difference Graph -->
+            <div class="graph-section" id="graphSection">
+                <div class="graph-header">
+                    <h4>Rozdiel medzi kyvadlami</h4>
+                    <div class="graph-controls">
+                        <select id="graphVariable">
+                            <option value="theta1">Uhol θ₁ (°)</option>
+                            <option value="theta2">Uhol θ₂ (°)</option>
+                            <option value="omega1">ω₁ (rad/s)</option>
+                            <option value="omega2">ω₂ (rad/s)</option>
+                            <option value="x1">X₁ pozícia (px)</option>
+                            <option value="y1">Y₁ pozícia (px)</option>
+                            <option value="x2" selected>X₂ pozícia (px)</option>
+                            <option value="y2">Y₂ pozícia (px)</option>
+                            <option value="energy">Energia (J)</option>
+                            <option value="distance">Vzdialenosť bob2 (px)</option>
+                        </select>
+                        <button id="clearGraphBtn" class="btn-secondary">Vymazať</button>
+                    </div>
+                </div>
+                <canvas id="graphCanvas"></canvas>
+                <div class="graph-info">
+                    <span>Aktuálny rozdiel: <span class="graph-value" id="currentDiff">0.00</span></span>
+                    <span>Max: <span class="graph-value" id="maxDiff">0.00</span></span>
                 </div>
             </div>
         </div>
@@ -547,6 +632,12 @@
 
         // Colors
         let colors = ['#00d4ff', '#ff6b6b'];
+
+        // Graph state
+        let graphCanvas, graphCtx;
+        let graphData = [];
+        let graphVariable = 'x2';
+        const maxGraphPoints = 500;
 
         // ==================== PENDULUM CLASS ====================
         class DoublePendulum {
@@ -840,6 +931,155 @@
             }
         }
 
+        // ==================== GRAPH FUNCTIONS ====================
+        function initGraph() {
+            graphCanvas = document.getElementById('graphCanvas');
+            graphCtx = graphCanvas.getContext('2d');
+            resizeGraph();
+        }
+
+        function resizeGraph() {
+            if (!graphCanvas) return;
+            const rect = graphCanvas.getBoundingClientRect();
+            graphCanvas.width = rect.width;
+            graphCanvas.height = rect.height;
+        }
+
+        function calculateDifference() {
+            if (pendulums.length < 2) return 0;
+
+            const p1 = pendulums[0];
+            const p2 = pendulums[1];
+            const bob1_p1 = p1.getBob1Position();
+            const bob2_p1 = p1.getBob2Position();
+            const bob1_p2 = p2.getBob1Position();
+            const bob2_p2 = p2.getBob2Position();
+
+            switch (graphVariable) {
+                case 'theta1':
+                    return (p1.theta1 - p2.theta1) * 180 / Math.PI;
+                case 'theta2':
+                    return (p1.theta2 - p2.theta2) * 180 / Math.PI;
+                case 'omega1':
+                    return p1.omega1 - p2.omega1;
+                case 'omega2':
+                    return p1.omega2 - p2.omega2;
+                case 'x1':
+                    return bob1_p1.x - bob1_p2.x;
+                case 'y1':
+                    return bob1_p1.y - bob1_p2.y;
+                case 'x2':
+                    return bob2_p1.x - bob2_p2.x;
+                case 'y2':
+                    return bob2_p1.y - bob2_p2.y;
+                case 'energy':
+                    return p1.getTotalEnergy(gravity) - p2.getTotalEnergy(gravity);
+                case 'distance':
+                    const dx = bob2_p1.x - bob2_p2.x;
+                    const dy = bob2_p1.y - bob2_p2.y;
+                    return Math.sqrt(dx * dx + dy * dy);
+                default:
+                    return 0;
+            }
+        }
+
+        function updateGraph() {
+            if (pendulumCount < 2 || !graphCanvas) return;
+
+            const diff = calculateDifference();
+            graphData.push({ time: simTime, value: diff });
+
+            // Limit data points
+            if (graphData.length > maxGraphPoints) {
+                graphData.shift();
+            }
+
+            // Update current difference display
+            document.getElementById('currentDiff').textContent = diff.toFixed(2);
+
+            // Calculate max
+            const maxVal = Math.max(...graphData.map(d => Math.abs(d.value)));
+            document.getElementById('maxDiff').textContent = maxVal.toFixed(2);
+        }
+
+        function renderGraph() {
+            if (!graphCtx || pendulumCount < 2) return;
+
+            const w = graphCanvas.width;
+            const h = graphCanvas.height;
+            const padding = 5;
+
+            // Clear
+            graphCtx.fillStyle = '#0a0a1a';
+            graphCtx.fillRect(0, 0, w, h);
+
+            if (graphData.length < 2) return;
+
+            // Find min/max values for scaling
+            const values = graphData.map(d => d.value);
+            let minVal = Math.min(...values);
+            let maxVal = Math.max(...values);
+
+            // Ensure some range
+            if (maxVal - minVal < 0.001) {
+                const mid = (maxVal + minVal) / 2;
+                minVal = mid - 0.5;
+                maxVal = mid + 0.5;
+            }
+
+            // Add padding to range
+            const range = maxVal - minVal;
+            minVal -= range * 0.1;
+            maxVal += range * 0.1;
+
+            // Draw zero line if in range
+            if (minVal < 0 && maxVal > 0) {
+                const zeroY = h - padding - ((0 - minVal) / (maxVal - minVal)) * (h - 2 * padding);
+                graphCtx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+                graphCtx.lineWidth = 1;
+                graphCtx.setLineDash([5, 5]);
+                graphCtx.beginPath();
+                graphCtx.moveTo(padding, zeroY);
+                graphCtx.lineTo(w - padding, zeroY);
+                graphCtx.stroke();
+                graphCtx.setLineDash([]);
+            }
+
+            // Draw graph line
+            graphCtx.strokeStyle = '#ffcc00';
+            graphCtx.lineWidth = 2;
+            graphCtx.beginPath();
+
+            for (let i = 0; i < graphData.length; i++) {
+                const x = padding + (i / (graphData.length - 1)) * (w - 2 * padding);
+                const y = h - padding - ((graphData[i].value - minVal) / (maxVal - minVal)) * (h - 2 * padding);
+
+                if (i === 0) {
+                    graphCtx.moveTo(x, y);
+                } else {
+                    graphCtx.lineTo(x, y);
+                }
+            }
+            graphCtx.stroke();
+
+            // Draw scale labels
+            graphCtx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+            graphCtx.font = '10px Consolas, monospace';
+            graphCtx.textAlign = 'left';
+            graphCtx.fillText(maxVal.toFixed(1), padding + 2, padding + 10);
+            graphCtx.fillText(minVal.toFixed(1), padding + 2, h - padding - 2);
+        }
+
+        function clearGraph() {
+            graphData = [];
+            if (graphCtx) {
+                graphCtx.fillStyle = '#0a0a1a';
+                graphCtx.fillRect(0, 0, graphCanvas.width, graphCanvas.height);
+            }
+            document.getElementById('currentDiff').textContent = '0.00';
+            document.getElementById('maxDiff').textContent = '0.00';
+        }
+
         // ==================== SIMULATION LOOP ====================
         function simulate(timestamp) {
             if (!lastTime) lastTime = timestamp;
@@ -869,6 +1109,12 @@
 
             // Render
             render();
+
+            // Update graph (only when running and have 2 pendulums)
+            if (isRunning && pendulumCount === 2) {
+                updateGraph();
+                renderGraph();
+            }
 
             // Update info
             document.getElementById('simTime').textContent = simTime.toFixed(2) + ' s';
@@ -920,6 +1166,7 @@
                 isRunning = false;
                 document.getElementById('startStopBtn').textContent = 'Štart';
                 simTime = 0;
+                clearGraph();
                 initPendulums();
             });
 
@@ -935,6 +1182,8 @@
                 document.getElementById('pendulumTabsSection').classList.toggle('hidden', pendulumCount === 1);
                 document.getElementById('energy2Row').classList.toggle('hidden', pendulumCount === 1);
                 document.getElementById('color2Row').classList.toggle('hidden', pendulumCount === 1);
+                document.getElementById('graphSection').classList.toggle('hidden', pendulumCount === 1);
+                clearGraph();
                 initPendulums();
             });
 
@@ -1000,6 +1249,14 @@
             canvas.addEventListener('touchstart', handleTouchStart);
             canvas.addEventListener('touchmove', handleTouchMove);
             canvas.addEventListener('touchend', handleMouseUp);
+
+            // Graph controls
+            document.getElementById('graphVariable').addEventListener('change', (e) => {
+                graphVariable = e.target.value;
+                clearGraph();
+            });
+
+            document.getElementById('clearGraphBtn').addEventListener('click', clearGraph);
         }
 
         function setupSliderNumberPair(name, param, callback) {
@@ -1208,11 +1465,13 @@
         window.addEventListener('resize', () => {
             initCanvas();
             updatePendulumPositions();
+            resizeGraph();
         });
 
         // ==================== INIT ====================
         function init() {
             initCanvas();
+            initGraph();
             setupControls();
             initPendulums();
 
@@ -1221,6 +1480,7 @@
             document.getElementById('pendulumTabsSection').classList.remove('hidden');
             document.getElementById('energy2Row').classList.remove('hidden');
             document.getElementById('color2Row').classList.remove('hidden');
+            document.getElementById('graphSection').classList.remove('hidden');
 
             // Start animation loop
             animationId = requestAnimationFrame(simulate);
