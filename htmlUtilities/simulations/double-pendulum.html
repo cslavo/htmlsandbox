@@ -336,6 +336,10 @@
                     <span class="info-value" id="simTime">0.00 s</span>
                 </div>
                 <div class="info-row">
+                    <span class="info-label">Rýchlosť času:</span>
+                    <span class="info-value" id="timeSpeedDisplay">1×</span>
+                </div>
+                <div class="info-row">
                     <span class="info-label">FPS:</span>
                     <span class="info-value" id="fps">0</span>
                 </div>
@@ -365,6 +369,13 @@
                     <input type="number" id="dtNumber" min="0.0001" max="0.05" step="0.0001" value="0.01">
                 </div>
                 <div class="trace-info">Min. krok: 0.0001s (Number.EPSILON je príliš malé)</div>
+                <div class="control-row">
+                    <label>Rýchlosť času:</label>
+                    <input type="range" id="timeSpeedSlider" min="0.25" max="10" step="0.25" value="1">
+                    <input type="number" id="timeSpeedNumber" min="0.25" max="10" step="0.25" value="1">
+                    <span style="font-size: 0.8em; color: #00d4ff;">×</span>
+                </div>
+                <div class="trace-info">Rýchlosť času nemení presnosť (dt ostáva rovnaké)</div>
                 <div class="control-row">
                     <label>Gravitácia:</label>
                     <input type="range" id="gravitySlider" min="0" max="50" step="0.1" value="9.81">
@@ -529,6 +540,7 @@
         // Simulation parameters
         let dt = 0.01;
         let gravity = 9.81;
+        let timeSpeed = 1; // Time multiplier (1x, 2x, 4x, etc.)
         let showTrace = true;
         let traceLength = 1000;
         let rodWidth = 4;
@@ -846,7 +858,9 @@
             // Update physics
             if (isRunning && !isDragging) {
                 // Multiple physics steps per frame for stability with small dt
-                const stepsPerFrame = Math.max(1, Math.floor(0.016 / dt));
+                // timeSpeed multiplies the number of steps without changing dt (preserves precision)
+                const baseStepsPerFrame = Math.max(1, Math.floor(0.016 / dt));
+                const stepsPerFrame = Math.round(baseStepsPerFrame * timeSpeed);
                 for (let i = 0; i < stepsPerFrame; i++) {
                     pendulums.forEach(p => p.update(dt, gravity));
                     simTime += dt;
@@ -858,6 +872,7 @@
 
             // Update info
             document.getElementById('simTime').textContent = simTime.toFixed(2) + ' s';
+            document.getElementById('timeSpeedDisplay').textContent = timeSpeed + '×';
             if (pendulums[0]) {
                 document.getElementById('energy1').textContent = pendulums[0].getTotalEnergy(gravity).toFixed(2) + ' J';
             }
@@ -945,6 +960,7 @@
 
             // Setup slider/number pairs
             setupSliderNumberPair('dt', 'dt', (v) => { dt = parseFloat(v); });
+            setupSliderNumberPair('timeSpeed', 'timeSpeed', (v) => { timeSpeed = parseFloat(v); });
             setupSliderNumberPair('gravity', 'gravity', (v) => { gravity = parseFloat(v); });
             setupSliderNumberPair('traceLength', 'traceLength', (v) => { traceLength = parseInt(v); });
             setupSliderNumberPair('L1', 'L1', updatePendulumParam);
