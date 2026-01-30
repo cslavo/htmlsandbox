@@ -1,0 +1,1216 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dvojité Kyvadlo - Simulácia</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px 20px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .header h1 {
+            font-size: 1.8em;
+            color: #00d4ff;
+            text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+        }
+
+        .main-container {
+            display: flex;
+            flex: 1;
+            padding: 15px;
+            gap: 15px;
+        }
+
+        .canvas-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .canvas-wrapper {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 10px;
+            padding: 10px;
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        canvas {
+            background: #0a0a1a;
+            border-radius: 8px;
+            cursor: crosshair;
+        }
+
+        .controls-panel {
+            width: 380px;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 10px;
+            padding: 15px;
+            overflow-y: auto;
+            max-height: calc(100vh - 100px);
+        }
+
+        .control-section {
+            margin-bottom: 15px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .control-section h3 {
+            color: #00d4ff;
+            margin-bottom: 10px;
+            font-size: 0.95em;
+            border-bottom: 1px solid rgba(0, 212, 255, 0.3);
+            padding-bottom: 5px;
+        }
+
+        .control-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            gap: 8px;
+        }
+
+        .control-row label {
+            min-width: 80px;
+            font-size: 0.85em;
+            color: #b0b0b0;
+        }
+
+        .control-row input[type="range"] {
+            flex: 1;
+            height: 6px;
+            -webkit-appearance: none;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            outline: none;
+        }
+
+        .control-row input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #00d4ff;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 5px rgba(0, 212, 255, 0.5);
+        }
+
+        .control-row input[type="number"] {
+            width: 70px;
+            padding: 4px 6px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            color: #fff;
+            font-size: 0.85em;
+            text-align: right;
+        }
+
+        .control-row input[type="number"]:focus {
+            outline: none;
+            border-color: #00d4ff;
+        }
+
+        select {
+            padding: 6px 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            color: #fff;
+            font-size: 0.9em;
+            cursor: pointer;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #00d4ff;
+        }
+
+        .checkbox-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 10px 0;
+        }
+
+        .checkbox-row input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: #00d4ff;
+        }
+
+        .checkbox-row label {
+            font-size: 0.9em;
+            cursor: pointer;
+        }
+
+        .button-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        button {
+            flex: 1;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #00d4ff, #0099cc);
+            color: #000;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #00e5ff, #00aadd);
+            box-shadow: 0 0 15px rgba(0, 212, 255, 0.5);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ff4757, #cc3344);
+            color: #fff;
+        }
+
+        .btn-danger:hover {
+            background: linear-gradient(135deg, #ff5a68, #dd4455);
+        }
+
+        .pendulum-tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+
+        .pendulum-tab {
+            flex: 1;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            cursor: pointer;
+            text-align: center;
+            font-size: 0.85em;
+            transition: all 0.2s;
+        }
+
+        .pendulum-tab.active {
+            background: rgba(0, 212, 255, 0.2);
+            border-color: #00d4ff;
+            color: #00d4ff;
+        }
+
+        .pendulum-tab:hover:not(.active) {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .info-panel {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 10px 15px;
+            font-family: 'Consolas', monospace;
+            font-size: 0.8em;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 3px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            color: #888;
+        }
+
+        .info-value {
+            color: #00d4ff;
+            font-weight: bold;
+        }
+
+        .color-picker-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        input[type="color"] {
+            width: 40px;
+            height: 30px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            background: none;
+        }
+
+        .linked-indicator {
+            display: inline-block;
+            padding: 2px 8px;
+            background: rgba(0, 212, 255, 0.2);
+            border-radius: 4px;
+            font-size: 0.75em;
+            color: #00d4ff;
+            margin-left: 10px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .trace-info {
+            font-size: 0.8em;
+            color: #888;
+            margin-top: 5px;
+        }
+
+        @media (max-width: 900px) {
+            .main-container {
+                flex-direction: column;
+            }
+
+            .controls-panel {
+                width: 100%;
+                max-height: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Dvojité Kyvadlo - Interaktívna Simulácia</h1>
+    </div>
+
+    <div class="main-container">
+        <div class="canvas-container">
+            <div class="canvas-wrapper">
+                <canvas id="canvas"></canvas>
+            </div>
+            <div class="info-panel">
+                <div class="info-row">
+                    <span class="info-label">Čas simulácie:</span>
+                    <span class="info-value" id="simTime">0.00 s</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">FPS:</span>
+                    <span class="info-value" id="fps">0</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Celková energia (K1):</span>
+                    <span class="info-value" id="energy1">0.00 J</span>
+                </div>
+                <div class="info-row" id="energy2Row">
+                    <span class="info-label">Celková energia (K2):</span>
+                    <span class="info-value" id="energy2">0.00 J</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls-panel">
+            <!-- Simulation Controls -->
+            <div class="control-section">
+                <h3>Ovládanie Simulácie</h3>
+                <div class="button-row">
+                    <button id="startStopBtn" class="btn-primary">Štart</button>
+                    <button id="resetBtn" class="btn-secondary">Reset</button>
+                    <button id="clearTraceBtn" class="btn-danger">Vymazať stopu</button>
+                </div>
+                <div class="control-row" style="margin-top: 15px;">
+                    <label>Krok (dt):</label>
+                    <input type="range" id="dtSlider" min="0.0001" max="0.05" step="0.0001" value="0.01">
+                    <input type="number" id="dtNumber" min="0.0001" max="0.05" step="0.0001" value="0.01">
+                </div>
+                <div class="trace-info">Min. krok: 0.0001s (Number.EPSILON je príliš malé)</div>
+                <div class="control-row">
+                    <label>Gravitácia:</label>
+                    <input type="range" id="gravitySlider" min="0" max="50" step="0.1" value="9.81">
+                    <input type="number" id="gravityNumber" min="0" max="50" step="0.1" value="9.81">
+                </div>
+                <div class="checkbox-row">
+                    <input type="checkbox" id="showTrace" checked>
+                    <label for="showTrace">Zobraziť stopu</label>
+                </div>
+                <div class="control-row">
+                    <label>Dĺžka stopy:</label>
+                    <input type="range" id="traceLengthSlider" min="100" max="5000" step="100" value="1000">
+                    <input type="number" id="traceLengthNumber" min="100" max="5000" step="100" value="1000">
+                </div>
+            </div>
+
+            <!-- Pendulum Count -->
+            <div class="control-section">
+                <h3>Počet Kyvadiel</h3>
+                <div class="control-row">
+                    <label>Kyvadlá:</label>
+                    <select id="pendulumCount">
+                        <option value="1">1 kyvadlo</option>
+                        <option value="2" selected>2 kyvadlá</option>
+                    </select>
+                </div>
+                <div class="checkbox-row" id="linkedRow">
+                    <input type="checkbox" id="linkedPendulums">
+                    <label for="linkedPendulums">Zviazať kyvadlá (rovnaké parametre)</label>
+                </div>
+            </div>
+
+            <!-- Pendulum Selection Tabs -->
+            <div class="control-section" id="pendulumTabsSection">
+                <div class="pendulum-tabs">
+                    <div class="pendulum-tab active" data-pendulum="0">Kyvadlo 1</div>
+                    <div class="pendulum-tab" data-pendulum="1">Kyvadlo 2</div>
+                </div>
+                <span class="linked-indicator hidden" id="linkedIndicator">Zviazané</span>
+            </div>
+
+            <!-- Rod 1 Settings -->
+            <div class="control-section">
+                <h3>Tyč 1 (horná)</h3>
+                <div class="control-row">
+                    <label>Dĺžka L₁:</label>
+                    <input type="range" id="L1Slider" min="20" max="200" step="1" value="100">
+                    <input type="number" id="L1Number" min="20" max="200" step="1" value="100">
+                </div>
+                <div class="control-row">
+                    <label>Hmotnosť m₁:</label>
+                    <input type="range" id="m1Slider" min="1" max="50" step="0.5" value="10">
+                    <input type="number" id="m1Number" min="1" max="50" step="0.5" value="10">
+                </div>
+                <div class="control-row">
+                    <label>Uhol θ₁ (°):</label>
+                    <input type="range" id="theta1Slider" min="-180" max="180" step="1" value="90">
+                    <input type="number" id="theta1Number" min="-180" max="180" step="1" value="90">
+                </div>
+                <div class="control-row">
+                    <label>ω₁ (rad/s):</label>
+                    <input type="range" id="omega1Slider" min="-10" max="10" step="0.1" value="0">
+                    <input type="number" id="omega1Number" min="-10" max="10" step="0.1" value="0">
+                </div>
+            </div>
+
+            <!-- Rod 2 Settings -->
+            <div class="control-section">
+                <h3>Tyč 2 (dolná)</h3>
+                <div class="control-row">
+                    <label>Dĺžka L₂:</label>
+                    <input type="range" id="L2Slider" min="20" max="200" step="1" value="100">
+                    <input type="number" id="L2Number" min="20" max="200" step="1" value="100">
+                </div>
+                <div class="control-row">
+                    <label>Hmotnosť m₂:</label>
+                    <input type="range" id="m2Slider" min="1" max="50" step="0.5" value="10">
+                    <input type="number" id="m2Number" min="1" max="50" step="0.5" value="10">
+                </div>
+                <div class="control-row">
+                    <label>Uhol θ₂ (°):</label>
+                    <input type="range" id="theta2Slider" min="-180" max="180" step="1" value="90">
+                    <input type="number" id="theta2Number" min="-180" max="180" step="1" value="90">
+                </div>
+                <div class="control-row">
+                    <label>ω₂ (rad/s):</label>
+                    <input type="range" id="omega2Slider" min="-10" max="10" step="0.1" value="0">
+                    <input type="number" id="omega2Number" min="-10" max="10" step="0.1" value="0">
+                </div>
+            </div>
+
+            <!-- Pivot Position -->
+            <div class="control-section">
+                <h3>Pozícia Závesu</h3>
+                <div class="control-row">
+                    <label>X (%):</label>
+                    <input type="range" id="pivotXSlider" min="10" max="90" step="1" value="50">
+                    <input type="number" id="pivotXNumber" min="10" max="90" step="1" value="50">
+                </div>
+                <div class="control-row">
+                    <label>Y (%):</label>
+                    <input type="range" id="pivotYSlider" min="10" max="50" step="1" value="25">
+                    <input type="number" id="pivotYNumber" min="10" max="50" step="1" value="25">
+                </div>
+            </div>
+
+            <!-- Visual Settings -->
+            <div class="control-section">
+                <h3>Vizuálne Nastavenia</h3>
+                <div class="color-picker-row">
+                    <label>Farba kyvadla 1:</label>
+                    <input type="color" id="color1" value="#00d4ff">
+                </div>
+                <div class="color-picker-row" id="color2Row">
+                    <label>Farba kyvadla 2:</label>
+                    <input type="color" id="color2" value="#ff6b6b">
+                </div>
+                <div class="control-row">
+                    <label>Hrúbka tyče:</label>
+                    <input type="range" id="rodWidthSlider" min="2" max="10" step="1" value="4">
+                    <input type="number" id="rodWidthNumber" min="2" max="10" step="1" value="4">
+                </div>
+            </div>
+
+            <!-- Instructions -->
+            <div class="control-section">
+                <h3>Návod</h3>
+                <p style="font-size: 0.8em; line-height: 1.5; color: #aaa;">
+                    • Kliknutím a ťahaním na guľôčku meníte uhol<br>
+                    • Počas simulácie možno meniť gravitáciu a dt<br>
+                    • Pri zviazaných kyvadlách sa menia parametre oboch<br>
+                    • Dvojité kyvadlo je chaotický systém - malá zmena = veľký rozdiel
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== CONSTANTS & STATE ====================
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        let isRunning = false;
+        let animationId = null;
+        let lastTime = 0;
+        let simTime = 0;
+        let frameCount = 0;
+        let lastFpsTime = 0;
+        let currentFps = 0;
+
+        // Pendulum state
+        let pendulums = [];
+        let activePendulum = 0;
+        let pendulumCount = 2;
+        let linkedPendulums = false;
+
+        // Dragging state
+        let isDragging = false;
+        let dragTarget = null; // 'bob1' or 'bob2'
+        let dragPendulumIndex = -1;
+
+        // Simulation parameters
+        let dt = 0.01;
+        let gravity = 9.81;
+        let showTrace = true;
+        let traceLength = 1000;
+        let rodWidth = 4;
+
+        // Colors
+        let colors = ['#00d4ff', '#ff6b6b'];
+
+        // ==================== PENDULUM CLASS ====================
+        class DoublePendulum {
+            constructor(pivotX, pivotY, L1, L2, m1, m2, theta1, theta2, omega1, omega2, color) {
+                this.pivotX = pivotX;
+                this.pivotY = pivotY;
+                this.L1 = L1;
+                this.L2 = L2;
+                this.m1 = m1;
+                this.m2 = m2;
+                this.theta1 = theta1;
+                this.theta2 = theta2;
+                this.omega1 = omega1;
+                this.omega2 = omega2;
+                this.color = color;
+                this.trace = [];
+
+                // Store initial values for reset
+                this.initialTheta1 = theta1;
+                this.initialTheta2 = theta2;
+                this.initialOmega1 = omega1;
+                this.initialOmega2 = omega2;
+            }
+
+            // Get bob positions
+            getBob1Position() {
+                return {
+                    x: this.pivotX + this.L1 * Math.sin(this.theta1),
+                    y: this.pivotY + this.L1 * Math.cos(this.theta1)
+                };
+            }
+
+            getBob2Position() {
+                const bob1 = this.getBob1Position();
+                return {
+                    x: bob1.x + this.L2 * Math.sin(this.theta2),
+                    y: bob1.y + this.L2 * Math.cos(this.theta2)
+                };
+            }
+
+            // Equations of motion for double pendulum (Lagrangian mechanics)
+            getAccelerations(theta1, theta2, omega1, omega2, g) {
+                const m1 = this.m1;
+                const m2 = this.m2;
+                const L1 = this.L1;
+                const L2 = this.L2;
+
+                const delta = theta1 - theta2;
+                const sinDelta = Math.sin(delta);
+                const cosDelta = Math.cos(delta);
+
+                const den1 = L1 * (2 * m1 + m2 - m2 * Math.cos(2 * delta));
+                const den2 = L2 * (2 * m1 + m2 - m2 * Math.cos(2 * delta));
+
+                const alpha1 = (-g * (2 * m1 + m2) * Math.sin(theta1)
+                              - m2 * g * Math.sin(theta1 - 2 * theta2)
+                              - 2 * sinDelta * m2 * (omega2 * omega2 * L2 + omega1 * omega1 * L1 * cosDelta)) / den1;
+
+                const alpha2 = (2 * sinDelta * (omega1 * omega1 * L1 * (m1 + m2)
+                              + g * (m1 + m2) * Math.cos(theta1)
+                              + omega2 * omega2 * L2 * m2 * cosDelta)) / den2;
+
+                return { alpha1, alpha2 };
+            }
+
+            // Runge-Kutta 4th order integration
+            update(dt, g) {
+                const state = {
+                    theta1: this.theta1,
+                    theta2: this.theta2,
+                    omega1: this.omega1,
+                    omega2: this.omega2
+                };
+
+                // RK4 integration
+                const k1 = this.derivatives(state, g);
+                const k2 = this.derivatives(this.addStates(state, k1, dt / 2), g);
+                const k3 = this.derivatives(this.addStates(state, k2, dt / 2), g);
+                const k4 = this.derivatives(this.addStates(state, k3, dt), g);
+
+                this.theta1 += dt * (k1.dTheta1 + 2 * k2.dTheta1 + 2 * k3.dTheta1 + k4.dTheta1) / 6;
+                this.theta2 += dt * (k1.dTheta2 + 2 * k2.dTheta2 + 2 * k3.dTheta2 + k4.dTheta2) / 6;
+                this.omega1 += dt * (k1.dOmega1 + 2 * k2.dOmega1 + 2 * k3.dOmega1 + k4.dOmega1) / 6;
+                this.omega2 += dt * (k1.dOmega2 + 2 * k2.dOmega2 + 2 * k3.dOmega2 + k4.dOmega2) / 6;
+
+                // Normalize angles to [-π, π]
+                this.theta1 = this.normalizeAngle(this.theta1);
+                this.theta2 = this.normalizeAngle(this.theta2);
+
+                // Add to trace
+                if (showTrace) {
+                    const bob2 = this.getBob2Position();
+                    this.trace.push({ x: bob2.x, y: bob2.y });
+                    if (this.trace.length > traceLength) {
+                        this.trace.shift();
+                    }
+                }
+            }
+
+            derivatives(state, g) {
+                const acc = this.getAccelerations(state.theta1, state.theta2, state.omega1, state.omega2, g);
+                return {
+                    dTheta1: state.omega1,
+                    dTheta2: state.omega2,
+                    dOmega1: acc.alpha1,
+                    dOmega2: acc.alpha2
+                };
+            }
+
+            addStates(state, derivatives, dt) {
+                return {
+                    theta1: state.theta1 + derivatives.dTheta1 * dt,
+                    theta2: state.theta2 + derivatives.dTheta2 * dt,
+                    omega1: state.omega1 + derivatives.dOmega1 * dt,
+                    omega2: state.omega2 + derivatives.dOmega2 * dt
+                };
+            }
+
+            normalizeAngle(angle) {
+                while (angle > Math.PI) angle -= 2 * Math.PI;
+                while (angle < -Math.PI) angle += 2 * Math.PI;
+                return angle;
+            }
+
+            // Calculate total energy (kinetic + potential)
+            getTotalEnergy(g) {
+                const m1 = this.m1;
+                const m2 = this.m2;
+                const L1 = this.L1;
+                const L2 = this.L2;
+                const theta1 = this.theta1;
+                const theta2 = this.theta2;
+                const omega1 = this.omega1;
+                const omega2 = this.omega2;
+
+                // Kinetic energy
+                const KE = 0.5 * m1 * L1 * L1 * omega1 * omega1
+                         + 0.5 * m2 * (L1 * L1 * omega1 * omega1
+                                     + L2 * L2 * omega2 * omega2
+                                     + 2 * L1 * L2 * omega1 * omega2 * Math.cos(theta1 - theta2));
+
+                // Potential energy (reference: pivot point)
+                const PE = -(m1 + m2) * g * L1 * Math.cos(theta1)
+                          - m2 * g * L2 * Math.cos(theta2);
+
+                return KE + PE;
+            }
+
+            draw(ctx) {
+                const bob1 = this.getBob1Position();
+                const bob2 = this.getBob2Position();
+
+                // Draw trace
+                if (showTrace && this.trace.length > 1) {
+                    ctx.beginPath();
+                    ctx.moveTo(this.trace[0].x, this.trace[0].y);
+                    for (let i = 1; i < this.trace.length; i++) {
+                        const alpha = i / this.trace.length;
+                        ctx.strokeStyle = this.hexToRgba(this.color, alpha * 0.8);
+                        ctx.lineWidth = 2;
+                        ctx.lineTo(this.trace[i].x, this.trace[i].y);
+                    }
+                    ctx.stroke();
+                }
+
+                // Draw rods
+                ctx.strokeStyle = this.color;
+                ctx.lineWidth = rodWidth;
+                ctx.lineCap = 'round';
+
+                // Rod 1
+                ctx.beginPath();
+                ctx.moveTo(this.pivotX, this.pivotY);
+                ctx.lineTo(bob1.x, bob1.y);
+                ctx.stroke();
+
+                // Rod 2
+                ctx.beginPath();
+                ctx.moveTo(bob1.x, bob1.y);
+                ctx.lineTo(bob2.x, bob2.y);
+                ctx.stroke();
+
+                // Draw pivot
+                ctx.fillStyle = '#888';
+                ctx.beginPath();
+                ctx.arc(this.pivotX, this.pivotY, 8, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Draw bob 1
+                const bob1Radius = Math.sqrt(this.m1) * 3 + 5;
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(bob1.x, bob1.y, bob1Radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Draw bob 2
+                const bob2Radius = Math.sqrt(this.m2) * 3 + 5;
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(bob2.x, bob2.y, bob2Radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+
+            hexToRgba(hex, alpha) {
+                const r = parseInt(hex.slice(1, 3), 16);
+                const g = parseInt(hex.slice(3, 5), 16);
+                const b = parseInt(hex.slice(5, 7), 16);
+                return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+            }
+
+            clearTrace() {
+                this.trace = [];
+            }
+
+            reset() {
+                this.theta1 = this.initialTheta1;
+                this.theta2 = this.initialTheta2;
+                this.omega1 = this.initialOmega1;
+                this.omega2 = this.initialOmega2;
+                this.trace = [];
+            }
+        }
+
+        // ==================== INITIALIZATION ====================
+        function initCanvas() {
+            const wrapper = canvas.parentElement;
+            canvas.width = wrapper.clientWidth - 20;
+            canvas.height = wrapper.clientHeight - 20;
+        }
+
+        function initPendulums() {
+            pendulums = [];
+
+            const L1 = parseFloat(document.getElementById('L1Number').value);
+            const L2 = parseFloat(document.getElementById('L2Number').value);
+            const m1 = parseFloat(document.getElementById('m1Number').value);
+            const m2 = parseFloat(document.getElementById('m2Number').value);
+            const theta1 = parseFloat(document.getElementById('theta1Number').value) * Math.PI / 180;
+            const theta2 = parseFloat(document.getElementById('theta2Number').value) * Math.PI / 180;
+            const omega1 = parseFloat(document.getElementById('omega1Number').value);
+            const omega2 = parseFloat(document.getElementById('omega2Number').value);
+            const pivotXPercent = parseFloat(document.getElementById('pivotXNumber').value);
+            const pivotYPercent = parseFloat(document.getElementById('pivotYNumber').value);
+
+            if (pendulumCount === 1) {
+                const pivotX = canvas.width * pivotXPercent / 100;
+                const pivotY = canvas.height * pivotYPercent / 100;
+                pendulums.push(new DoublePendulum(pivotX, pivotY, L1, L2, m1, m2, theta1, theta2, omega1, omega2, colors[0]));
+            } else {
+                // Two pendulums side by side
+                const pivotX1 = canvas.width * 0.3;
+                const pivotX2 = canvas.width * 0.7;
+                const pivotY = canvas.height * pivotYPercent / 100;
+
+                pendulums.push(new DoublePendulum(pivotX1, pivotY, L1, L2, m1, m2, theta1, theta2, omega1, omega2, colors[0]));
+
+                // Second pendulum - slightly different initial angle if not linked
+                let theta1_2 = theta1;
+                let theta2_2 = theta2;
+                if (!linkedPendulums) {
+                    theta1_2 = theta1 + 0.001; // Tiny difference for chaos demonstration
+                }
+                pendulums.push(new DoublePendulum(pivotX2, pivotY, L1, L2, m1, m2, theta1_2, theta2_2, omega1, omega2, colors[1]));
+            }
+        }
+
+        function updatePendulumPositions() {
+            const pivotXPercent = parseFloat(document.getElementById('pivotXNumber').value);
+            const pivotYPercent = parseFloat(document.getElementById('pivotYNumber').value);
+
+            if (pendulumCount === 1) {
+                if (pendulums[0]) {
+                    pendulums[0].pivotX = canvas.width * pivotXPercent / 100;
+                    pendulums[0].pivotY = canvas.height * pivotYPercent / 100;
+                }
+            } else {
+                if (pendulums[0]) {
+                    pendulums[0].pivotX = canvas.width * 0.3;
+                    pendulums[0].pivotY = canvas.height * pivotYPercent / 100;
+                }
+                if (pendulums[1]) {
+                    pendulums[1].pivotX = canvas.width * 0.7;
+                    pendulums[1].pivotY = canvas.height * pivotYPercent / 100;
+                }
+            }
+        }
+
+        // ==================== SIMULATION LOOP ====================
+        function simulate(timestamp) {
+            if (!lastTime) lastTime = timestamp;
+            const deltaTime = (timestamp - lastTime) / 1000;
+            lastTime = timestamp;
+
+            // FPS calculation
+            frameCount++;
+            if (timestamp - lastFpsTime >= 1000) {
+                currentFps = frameCount;
+                frameCount = 0;
+                lastFpsTime = timestamp;
+                document.getElementById('fps').textContent = currentFps;
+            }
+
+            // Update physics
+            if (isRunning && !isDragging) {
+                // Multiple physics steps per frame for stability with small dt
+                const stepsPerFrame = Math.max(1, Math.floor(0.016 / dt));
+                for (let i = 0; i < stepsPerFrame; i++) {
+                    pendulums.forEach(p => p.update(dt, gravity));
+                    simTime += dt;
+                }
+            }
+
+            // Render
+            render();
+
+            // Update info
+            document.getElementById('simTime').textContent = simTime.toFixed(2) + ' s';
+            if (pendulums[0]) {
+                document.getElementById('energy1').textContent = pendulums[0].getTotalEnergy(gravity).toFixed(2) + ' J';
+            }
+            if (pendulums[1]) {
+                document.getElementById('energy2').textContent = pendulums[1].getTotalEnergy(gravity).toFixed(2) + ' J';
+            }
+
+            animationId = requestAnimationFrame(simulate);
+        }
+
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw grid
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            ctx.lineWidth = 1;
+            const gridSize = 50;
+            for (let x = 0; x < canvas.width; x += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+            for (let y = 0; y < canvas.height; y += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+
+            // Draw pendulums
+            pendulums.forEach(p => p.draw(ctx));
+        }
+
+        // ==================== EVENT HANDLERS ====================
+        function setupControls() {
+            // Start/Stop button
+            document.getElementById('startStopBtn').addEventListener('click', () => {
+                isRunning = !isRunning;
+                document.getElementById('startStopBtn').textContent = isRunning ? 'Stop' : 'Štart';
+            });
+
+            // Reset button
+            document.getElementById('resetBtn').addEventListener('click', () => {
+                isRunning = false;
+                document.getElementById('startStopBtn').textContent = 'Štart';
+                simTime = 0;
+                initPendulums();
+            });
+
+            // Clear trace button
+            document.getElementById('clearTraceBtn').addEventListener('click', () => {
+                pendulums.forEach(p => p.clearTrace());
+            });
+
+            // Pendulum count
+            document.getElementById('pendulumCount').addEventListener('change', (e) => {
+                pendulumCount = parseInt(e.target.value);
+                document.getElementById('linkedRow').classList.toggle('hidden', pendulumCount === 1);
+                document.getElementById('pendulumTabsSection').classList.toggle('hidden', pendulumCount === 1);
+                document.getElementById('energy2Row').classList.toggle('hidden', pendulumCount === 1);
+                document.getElementById('color2Row').classList.toggle('hidden', pendulumCount === 1);
+                initPendulums();
+            });
+
+            // Linked pendulums
+            document.getElementById('linkedPendulums').addEventListener('change', (e) => {
+                linkedPendulums = e.target.checked;
+                document.getElementById('linkedIndicator').classList.toggle('hidden', !linkedPendulums);
+                if (linkedPendulums) {
+                    // Sync second pendulum to first
+                    syncPendulums();
+                }
+            });
+
+            // Pendulum tabs
+            document.querySelectorAll('.pendulum-tab').forEach(tab => {
+                tab.addEventListener('click', (e) => {
+                    document.querySelectorAll('.pendulum-tab').forEach(t => t.classList.remove('active'));
+                    e.target.classList.add('active');
+                    activePendulum = parseInt(e.target.dataset.pendulum);
+                    loadPendulumSettings(activePendulum);
+                });
+            });
+
+            // Setup slider/number pairs
+            setupSliderNumberPair('dt', 'dt', (v) => { dt = parseFloat(v); });
+            setupSliderNumberPair('gravity', 'gravity', (v) => { gravity = parseFloat(v); });
+            setupSliderNumberPair('traceLength', 'traceLength', (v) => { traceLength = parseInt(v); });
+            setupSliderNumberPair('L1', 'L1', updatePendulumParam);
+            setupSliderNumberPair('L2', 'L2', updatePendulumParam);
+            setupSliderNumberPair('m1', 'm1', updatePendulumParam);
+            setupSliderNumberPair('m2', 'm2', updatePendulumParam);
+            setupSliderNumberPair('theta1', 'theta1', updatePendulumParam);
+            setupSliderNumberPair('theta2', 'theta2', updatePendulumParam);
+            setupSliderNumberPair('omega1', 'omega1', updatePendulumParam);
+            setupSliderNumberPair('omega2', 'omega2', updatePendulumParam);
+            setupSliderNumberPair('pivotX', 'pivotX', () => { updatePendulumPositions(); });
+            setupSliderNumberPair('pivotY', 'pivotY', () => { updatePendulumPositions(); });
+            setupSliderNumberPair('rodWidth', 'rodWidth', (v) => { rodWidth = parseInt(v); });
+
+            // Show trace checkbox
+            document.getElementById('showTrace').addEventListener('change', (e) => {
+                showTrace = e.target.checked;
+            });
+
+            // Colors
+            document.getElementById('color1').addEventListener('input', (e) => {
+                colors[0] = e.target.value;
+                if (pendulums[0]) pendulums[0].color = colors[0];
+            });
+            document.getElementById('color2').addEventListener('input', (e) => {
+                colors[1] = e.target.value;
+                if (pendulums[1]) pendulums[1].color = colors[1];
+            });
+
+            // Mouse events for dragging
+            canvas.addEventListener('mousedown', handleMouseDown);
+            canvas.addEventListener('mousemove', handleMouseMove);
+            canvas.addEventListener('mouseup', handleMouseUp);
+            canvas.addEventListener('mouseleave', handleMouseUp);
+
+            // Touch events
+            canvas.addEventListener('touchstart', handleTouchStart);
+            canvas.addEventListener('touchmove', handleTouchMove);
+            canvas.addEventListener('touchend', handleMouseUp);
+        }
+
+        function setupSliderNumberPair(name, param, callback) {
+            const slider = document.getElementById(name + 'Slider');
+            const number = document.getElementById(name + 'Number');
+
+            slider.addEventListener('input', (e) => {
+                number.value = e.target.value;
+                callback(e.target.value, param);
+            });
+
+            number.addEventListener('input', (e) => {
+                slider.value = e.target.value;
+                callback(e.target.value, param);
+            });
+        }
+
+        function updatePendulumParam(value, param) {
+            if (!pendulums.length) return;
+
+            const indices = linkedPendulums ? [0, 1] : [activePendulum];
+
+            indices.forEach(idx => {
+                if (!pendulums[idx]) return;
+
+                const p = pendulums[idx];
+                const v = parseFloat(value);
+
+                switch (param) {
+                    case 'L1': p.L1 = v; break;
+                    case 'L2': p.L2 = v; break;
+                    case 'm1': p.m1 = v; break;
+                    case 'm2': p.m2 = v; break;
+                    case 'theta1':
+                        p.theta1 = v * Math.PI / 180;
+                        p.initialTheta1 = p.theta1;
+                        break;
+                    case 'theta2':
+                        p.theta2 = v * Math.PI / 180;
+                        p.initialTheta2 = p.theta2;
+                        break;
+                    case 'omega1':
+                        p.omega1 = v;
+                        p.initialOmega1 = v;
+                        break;
+                    case 'omega2':
+                        p.omega2 = v;
+                        p.initialOmega2 = v;
+                        break;
+                }
+            });
+        }
+
+        function loadPendulumSettings(index) {
+            if (!pendulums[index]) return;
+            const p = pendulums[index];
+
+            document.getElementById('L1Slider').value = p.L1;
+            document.getElementById('L1Number').value = p.L1;
+            document.getElementById('L2Slider').value = p.L2;
+            document.getElementById('L2Number').value = p.L2;
+            document.getElementById('m1Slider').value = p.m1;
+            document.getElementById('m1Number').value = p.m1;
+            document.getElementById('m2Slider').value = p.m2;
+            document.getElementById('m2Number').value = p.m2;
+            document.getElementById('theta1Slider').value = Math.round(p.theta1 * 180 / Math.PI);
+            document.getElementById('theta1Number').value = Math.round(p.theta1 * 180 / Math.PI);
+            document.getElementById('theta2Slider').value = Math.round(p.theta2 * 180 / Math.PI);
+            document.getElementById('theta2Number').value = Math.round(p.theta2 * 180 / Math.PI);
+            document.getElementById('omega1Slider').value = p.omega1;
+            document.getElementById('omega1Number').value = p.omega1;
+            document.getElementById('omega2Slider').value = p.omega2;
+            document.getElementById('omega2Number').value = p.omega2;
+        }
+
+        function syncPendulums() {
+            if (pendulums.length < 2) return;
+
+            const p0 = pendulums[0];
+            const p1 = pendulums[1];
+
+            p1.L1 = p0.L1;
+            p1.L2 = p0.L2;
+            p1.m1 = p0.m1;
+            p1.m2 = p0.m2;
+            p1.theta1 = p0.theta1;
+            p1.theta2 = p0.theta2;
+            p1.omega1 = p0.omega1;
+            p1.omega2 = p0.omega2;
+            p1.initialTheta1 = p0.initialTheta1;
+            p1.initialTheta2 = p0.initialTheta2;
+            p1.initialOmega1 = p0.initialOmega1;
+            p1.initialOmega2 = p0.initialOmega2;
+        }
+
+        // ==================== MOUSE/TOUCH HANDLING ====================
+        function handleMouseDown(e) {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            checkDragStart(x, y);
+        }
+
+        function handleTouchStart(e) {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const touch = e.touches[0];
+            const x = touch.clientX - rect.left;
+            const y = touch.clientY - rect.top;
+
+            checkDragStart(x, y);
+        }
+
+        function checkDragStart(x, y) {
+            for (let i = 0; i < pendulums.length; i++) {
+                const p = pendulums[i];
+                const bob1 = p.getBob1Position();
+                const bob2 = p.getBob2Position();
+
+                const bob1Radius = Math.sqrt(p.m1) * 3 + 5;
+                const bob2Radius = Math.sqrt(p.m2) * 3 + 5;
+
+                // Check bob 2 first (on top)
+                const dist2 = Math.sqrt((x - bob2.x) ** 2 + (y - bob2.y) ** 2);
+                if (dist2 < bob2Radius + 10) {
+                    isDragging = true;
+                    dragTarget = 'bob2';
+                    dragPendulumIndex = i;
+                    return;
+                }
+
+                // Check bob 1
+                const dist1 = Math.sqrt((x - bob1.x) ** 2 + (y - bob1.y) ** 2);
+                if (dist1 < bob1Radius + 10) {
+                    isDragging = true;
+                    dragTarget = 'bob1';
+                    dragPendulumIndex = i;
+                    return;
+                }
+            }
+        }
+
+        function handleMouseMove(e) {
+            if (!isDragging) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            updateDragAngle(x, y);
+        }
+
+        function handleTouchMove(e) {
+            if (!isDragging) return;
+            e.preventDefault();
+
+            const rect = canvas.getBoundingClientRect();
+            const touch = e.touches[0];
+            const x = touch.clientX - rect.left;
+            const y = touch.clientY - rect.top;
+
+            updateDragAngle(x, y);
+        }
+
+        function updateDragAngle(x, y) {
+            const indices = linkedPendulums ? [0, 1] : [dragPendulumIndex];
+
+            indices.forEach(idx => {
+                if (!pendulums[idx]) return;
+                const p = pendulums[idx];
+
+                if (dragTarget === 'bob1') {
+                    // Calculate angle from pivot to mouse
+                    const dx = x - p.pivotX;
+                    const dy = y - p.pivotY;
+                    p.theta1 = Math.atan2(dx, dy);
+                    p.omega1 = 0;
+                    p.initialTheta1 = p.theta1;
+                    p.initialOmega1 = 0;
+                } else if (dragTarget === 'bob2') {
+                    // Calculate angle from bob1 to mouse
+                    const bob1 = p.getBob1Position();
+                    const dx = x - bob1.x;
+                    const dy = y - bob1.y;
+                    p.theta2 = Math.atan2(dx, dy);
+                    p.omega2 = 0;
+                    p.initialTheta2 = p.theta2;
+                    p.initialOmega2 = 0;
+                }
+            });
+
+            // Update UI
+            if (pendulums[activePendulum]) {
+                loadPendulumSettings(activePendulum);
+            }
+        }
+
+        function handleMouseUp() {
+            isDragging = false;
+            dragTarget = null;
+            dragPendulumIndex = -1;
+        }
+
+        // ==================== WINDOW RESIZE ====================
+        window.addEventListener('resize', () => {
+            initCanvas();
+            updatePendulumPositions();
+        });
+
+        // ==================== INIT ====================
+        function init() {
+            initCanvas();
+            setupControls();
+            initPendulums();
+
+            // Initial UI state
+            document.getElementById('linkedRow').classList.remove('hidden');
+            document.getElementById('pendulumTabsSection').classList.remove('hidden');
+            document.getElementById('energy2Row').classList.remove('hidden');
+            document.getElementById('color2Row').classList.remove('hidden');
+
+            // Start animation loop
+            animationId = requestAnimationFrame(simulate);
+        }
+
+        init();
+    </script>
+</body>
+</html>
