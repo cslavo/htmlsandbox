@@ -129,12 +129,62 @@
   .option-row input[type="range"] { width: 140px; }
   .value-display { color: var(--accent); font-weight: 500; min-width: 40px; text-align: right; }
 
-  .buttons {
+  .mode-selector {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 12px;
     margin-bottom: 16px;
   }
+  .mode-card {
+    background: var(--panel);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+  }
+  .mode-card:hover { border-color: #3a4050; background: #1f242e; }
+  .mode-card input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .mode-card.selected {
+    border-color: var(--accent);
+    background: #1e2a3d;
+  }
+  .mode-card-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--text);
+  }
+  .mode-card-desc {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.45;
+  }
+
+  .info-box {
+    background: #16202e;
+    border: 1px solid #243245;
+    border-left: 4px solid var(--accent);
+    border-radius: 10px;
+    padding: 14px 18px;
+    margin-bottom: 14px;
+  }
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 0;
+    font-size: 14px;
+    gap: 12px;
+  }
+  .info-row .label { color: var(--muted); flex-shrink: 0; }
+  .info-row .value { color: var(--text); font-weight: 500; text-align: right; word-break: break-word; }
+
   button {
     background: var(--accent);
     color: white;
@@ -148,8 +198,14 @@
   }
   button:hover:not(:disabled) { background: var(--accent-hover); }
   button:disabled { background: #2a3040; color: #555; cursor: not-allowed; }
-  button .title { display: block; font-size: 15px; margin-bottom: 4px; }
-  button .sub { display: block; font-size: 12px; opacity: 0.85; font-weight: 400; }
+  .btn-export {
+    width: 100%;
+    padding: 18px;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: 12px;
+    margin-bottom: 8px;
+  }
 
   .progress {
     background: var(--panel);
@@ -180,14 +236,14 @@
 </head>
 <body>
 <div class="container">
-  <h1>PDF → JPG konvertor</h1>
-  <p class="subtitle">Konvertuje PDF na JPG obrázky. Všetko prebieha lokálne v prehliadači.</p>
+  <h1>PDF → obrázky</h1>
+  <p class="subtitle">Konvertuje PDF na JPG alebo PNG. Všetko prebieha lokálne v prehliadači.</p>
 
   <input type="file" id="fileInput" accept="application/pdf,.pdf" class="hidden-input">
   <label class="drop-zone" id="dropZone" for="fileInput">
     <div class="drop-zone-icon">📄</div>
     <div class="drop-zone-main">Klikni alebo presuň sem PDF súbor</div>
-    <div class="drop-zone-text">max ~200 strán pre režim „celé PDF = 1 JPG"</div>
+    <div class="drop-zone-text">konverzia prebieha celá v prehliadači, žiadne dáta sa neposielajú</div>
   </label>
 
   <div class="file-info" id="fileInfo">
@@ -196,39 +252,67 @@
     <div class="meta" id="fileMeta"></div>
   </div>
 
+  <div class="mode-selector" id="modeSelector">
+    <label class="mode-card selected" data-mode="single">
+      <input type="radio" name="mode" value="single" checked>
+      <div class="mode-card-title">📄 Do jedného obrázku</div>
+      <div class="mode-card-desc">Všetky strany pod sebou v jednom dlhom súbore. <b>PNG bez limitu</b> (streaming), JPG s limitom prehliadača.</div>
+    </label>
+    <label class="mode-card" data-mode="per-page">
+      <input type="radio" name="mode" value="per-page">
+      <div class="mode-card-title">📑 Po stranách (ZIP)</div>
+      <div class="mode-card-desc">Každá strana ako samostatný súbor v ZIP archíve. Vždy plné DPI bez obmedzení.</div>
+    </label>
+  </div>
+
   <div class="options">
+    <div class="option-row">
+      <div>
+        <label>Formát výstupu</label>
+        <div class="desc">PNG = bezstratový (väčší súbor), JPG = menší súbor</div>
+      </div>
+      <div style="display: flex; gap: 6px;">
+        <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
+          <input type="radio" name="format" value="png" checked> PNG
+        </label>
+        <label style="display: flex; align-items: center; gap: 4px; cursor: pointer; margin-left: 12px;">
+          <input type="radio" name="format" value="jpeg"> JPG
+        </label>
+      </div>
+    </div>
     <div class="option-row">
       <div>
         <label for="dpi">Rozlíšenie (DPI)</label>
         <div class="desc">vyššie = ostrejšie, ale pomalšie a väčší súbor</div>
       </div>
       <div style="display: flex; align-items: center; gap: 10px;">
-        <input type="range" id="dpiRange" min="72" max="300" value="150" step="6">
-        <span class="value-display" id="dpiValue">150</span>
+        <input type="range" id="dpiRange" min="72" max="600" value="300" step="6">
+        <span class="value-display" id="dpiValue">300</span>
       </div>
     </div>
-    <div class="option-row">
+    <div class="option-row" id="qualityRow">
       <div>
         <label for="quality">Kvalita JPG</label>
         <div class="desc">0.5 = menší súbor, 1.0 = najlepšia kvalita</div>
       </div>
       <div style="display: flex; align-items: center; gap: 10px;">
-        <input type="range" id="qualityRange" min="0.5" max="1.0" value="0.92" step="0.01">
-        <span class="value-display" id="qualityValue">0.92</span>
+        <input type="range" id="qualityRange" min="0.5" max="1.0" value="0.95" step="0.01">
+        <span class="value-display" id="qualityValue">0.95</span>
       </div>
     </div>
   </div>
 
-  <div class="buttons">
-    <button id="btnPerPage" disabled>
-      <span class="title">Strana = JPG</span>
-      <span class="sub">každá strana ako samostatný súbor (ZIP)</span>
-    </button>
-    <button id="btnSingle" disabled>
-      <span class="title">Celé PDF = 1 JPG</span>
-      <span class="sub">všetky strany v jednom vysokom obrázku</span>
-    </button>
+  <div class="info-box" id="infoBox">
+    <div class="info-row"><span class="label">Výstup:</span><span class="value" id="infoOutput">—</span></div>
+    <div class="info-row"><span class="label">Rozmer:</span><span class="value" id="infoSize">—</span></div>
+    <div class="info-row"><span class="label">Odhadovaná veľkosť:</span><span class="value" id="infoEstSize">—</span></div>
   </div>
+
+  <div id="dpiWarning" style="display:none; background:#3a2820; border:1px solid #8b4513; border-left:4px solid #e67e22; border-radius:8px; padding:12px 16px; margin-bottom:12px; font-size:14px; color:#f5b97a;">
+    <strong>⚠ Upozornenie:</strong> <span id="dpiWarningText"></span>
+  </div>
+
+  <button class="btn-export" id="btnExport" disabled>Najprv vyber PDF súbor</button>
 
   <div class="progress" id="progress">
     <div class="progress-text" id="progressText">Pripravujem...</div>
@@ -238,6 +322,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.mjs" type="module"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
 <script type="module">
   import * as pdfjsLib from "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.mjs";
   pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.mjs";
@@ -247,8 +332,7 @@
   const fileInfo = document.getElementById("fileInfo");
   const fileName = document.getElementById("fileName");
   const fileMeta = document.getElementById("fileMeta");
-  const btnPerPage = document.getElementById("btnPerPage");
-  const btnSingle = document.getElementById("btnSingle");
+  const btnExport = document.getElementById("btnExport");
   const progress = document.getElementById("progress");
   const progressText = document.getElementById("progressText");
   const progressFill = document.getElementById("progressFill");
@@ -256,12 +340,134 @@
   const dpiValue = document.getElementById("dpiValue");
   const qualityRange = document.getElementById("qualityRange");
   const qualityValue = document.getElementById("qualityValue");
+  const qualityRow = document.getElementById("qualityRow");
+  const modeSelector = document.getElementById("modeSelector");
+  const infoOutput = document.getElementById("infoOutput");
+  const infoSize = document.getElementById("infoSize");
+  const infoEstSize = document.getElementById("infoEstSize");
 
   let pdfDoc = null;
   let currentFileName = "";
+  let pdfBaseMaxWidth = 0;
+  let pdfBaseTotalHeight = 0;
 
-  dpiRange.addEventListener("input", () => dpiValue.textContent = dpiRange.value);
-  qualityRange.addEventListener("input", () => qualityValue.textContent = qualityRange.value);
+  const MAX_DIM = 32767;
+  const MAX_AREA = 268435456;
+
+  function getMode() {
+    return document.querySelector('input[name="mode"]:checked').value;
+  }
+
+  function formatBytes(bytes) {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} kB`;
+    if (bytes < 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+    return `${(bytes / 1024 / 1024 / 1024).toFixed(2)} GB`;
+  }
+
+  function estimatePixelBytes(format, quality, totalPixels) {
+    if (format === "png") {
+      return { low: totalPixels * 0.25, high: totalPixels * 0.8 };
+    }
+    const q = quality;
+    const lowFactor = 0.04 + q * 0.08;
+    const highFactor = 0.10 + q * 0.25;
+    return { low: totalPixels * lowFactor, high: totalPixels * highFactor };
+  }
+
+  function refreshUI() {
+    qualityRow.style.display = (getFormat() === "jpeg") ? "" : "none";
+
+    document.querySelectorAll(".mode-card").forEach(card => {
+      const r = card.querySelector('input[type="radio"]');
+      card.classList.toggle("selected", r.checked);
+    });
+
+    const warn = document.getElementById("dpiWarning");
+    const warnTxt = document.getElementById("dpiWarningText");
+    warn.style.display = "none";
+
+    if (!pdfDoc || !pdfBaseMaxWidth) {
+      infoOutput.textContent = "—";
+      infoSize.textContent = "—";
+      infoEstSize.textContent = "—";
+      btnExport.disabled = true;
+      btnExport.textContent = "Najprv vyber PDF súbor";
+      return;
+    }
+
+    const mode = getMode();
+    const format = getFormat();
+    const ext = format === "png" ? "PNG" : "JPG";
+    const dpi = parseInt(dpiRange.value);
+    const scale = dpi / 72;
+    const quality = parseFloat(qualityRange.value);
+    const numPages = pdfDoc.numPages;
+
+    if (mode === "per-page") {
+      const pageW = Math.floor(pdfBaseMaxWidth * scale);
+      const avgPageH = Math.floor((pdfBaseTotalHeight / numPages) * scale);
+      const totalPixels = pdfBaseMaxWidth * pdfBaseTotalHeight * scale * scale;
+      const est = estimatePixelBytes(format, quality, totalPixels);
+
+      infoOutput.innerHTML = `ZIP s <b>${numPages}</b> ${ext} súbormi`;
+      infoSize.textContent = `${pageW} × ~${avgPageH} px / strana @ ${dpi} DPI`;
+      infoEstSize.textContent = `~${formatBytes(est.low)} – ${formatBytes(est.high)}`;
+      btnExport.disabled = false;
+      btnExport.textContent = `Exportovať ZIP (${numPages} × ${ext})`;
+      return;
+    }
+
+    const outW = Math.floor(pdfBaseMaxWidth * scale);
+    const outH = Math.floor(pdfBaseTotalHeight * scale);
+    const totalPixels = outW * outH;
+    const est = estimatePixelBytes(format, quality, totalPixels);
+    const fitsCanvas = outW <= MAX_DIM && outH <= MAX_DIM && totalPixels <= MAX_AREA;
+    const rgbaMB = (totalPixels * 4) / 1024 / 1024;
+
+    let outputLabel = `1 ${ext} súbor`;
+    if (format === "jpeg" && !fitsCanvas) outputLabel += ` <span style="color:var(--muted); font-weight:400;">(JS enkóder)</span>`;
+    infoOutput.innerHTML = outputLabel;
+    infoSize.textContent = `${outW} × ${outH} px @ ${dpi} DPI`;
+    infoEstSize.textContent = `~${formatBytes(est.low)} – ${formatBytes(est.high)}`;
+
+    if (format === "jpeg" && !fitsCanvas) {
+      if (rgbaMB > 1500) {
+        warnTxt.innerHTML = `JPG cez JS enkóder potrebuje <b>~${rgbaMB.toFixed(0)} MB RAM</b> — môže zlyhať. ` +
+          `Bezpečnejšie je <b>PNG</b> (streaming, nižšia pamäť) alebo režim <b>„Po stranách (ZIP)"</b>.`;
+        warn.style.display = "block";
+      } else if (rgbaMB > 500) {
+        warnTxt.innerHTML = `JPG ide cez JS enkóder (canvas je príliš malý). Potrebuje ~${rgbaMB.toFixed(0)} MB RAM a kódovanie potrvá <b>desiatky sekúnd</b>. ` +
+          `Pre rýchlejší výstup prepni na <b>PNG</b>.`;
+        warn.style.display = "block";
+      }
+    } else if (format === "png") {
+      const pngRawMB = (totalPixels * 3) / 1024 / 1024;
+      if (pngRawMB > 1500) {
+        warnTxt.innerHTML = `Veľmi veľký výstup (~${pngRawMB.toFixed(0)} MB raw). Môže byť pomalé alebo zlyhať. ` +
+          `Pri zlyhaní zníž DPI alebo prepni na <b>„Po stranách (ZIP)"</b>.`;
+        warn.style.display = "block";
+      }
+    }
+
+    btnExport.disabled = false;
+    btnExport.textContent = `Exportovať 1 ${ext}`;
+  }
+
+  dpiRange.addEventListener("input", () => {
+    dpiValue.textContent = dpiRange.value;
+    refreshUI();
+  });
+  qualityRange.addEventListener("input", () => {
+    qualityValue.textContent = qualityRange.value;
+    refreshUI();
+  });
+  document.querySelectorAll('input[name="format"]').forEach(r => {
+    r.addEventListener("change", refreshUI);
+  });
+  document.querySelectorAll('input[name="mode"]').forEach(r => {
+    r.addEventListener("change", refreshUI);
+  });
 
   ["dragover", "dragenter"].forEach(ev => {
     dropZone.addEventListener(ev, e => { e.preventDefault(); dropZone.classList.add("dragover"); });
@@ -289,11 +495,19 @@
     try {
       const buffer = await file.arrayBuffer();
       pdfDoc = await pdfjsLib.getDocument({ data: buffer }).promise;
+      showStatus("Meriam strany...", "");
+      pdfBaseMaxWidth = 0;
+      pdfBaseTotalHeight = 0;
+      for (let i = 1; i <= pdfDoc.numPages; i++) {
+        const page = await pdfDoc.getPage(i);
+        const vp = page.getViewport({ scale: 1 });
+        if (vp.width > pdfBaseMaxWidth) pdfBaseMaxWidth = vp.width;
+        pdfBaseTotalHeight += vp.height;
+      }
       fileName.textContent = file.name;
       fileMeta.textContent = `${pdfDoc.numPages} strán · ${(file.size / 1024 / 1024).toFixed(2)} MB`;
       fileInfo.classList.add("visible");
-      btnPerPage.disabled = false;
-      btnSingle.disabled = false;
+      refreshUI();
       showStatus(`Pripravené. ${pdfDoc.numPages} strán načítaných.`, "success");
     } catch (err) {
       showStatus("Chyba pri čítaní PDF: " + err.message, "error");
@@ -310,6 +524,175 @@
 
   function dpiToScale(dpi) { return dpi / 72; }
 
+  const CRC_TABLE = (() => {
+    const t = new Uint32Array(256);
+    for (let i = 0; i < 256; i++) {
+      let c = i;
+      for (let j = 0; j < 8; j++) c = (c & 1) ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+      t[i] = c;
+    }
+    return t;
+  })();
+  function crc32Range(buf, start, end) {
+    let c = 0xffffffff;
+    for (let i = start; i < end; i++) c = (c >>> 8) ^ CRC_TABLE[(c ^ buf[i]) & 0xff];
+    return (c ^ 0xffffffff) >>> 0;
+  }
+  function pngChunk(type, data) {
+    const len = data.length;
+    const buf = new Uint8Array(12 + len);
+    const dv = new DataView(buf.buffer);
+    dv.setUint32(0, len);
+    for (let i = 0; i < 4; i++) buf[4 + i] = type.charCodeAt(i);
+    buf.set(data, 8);
+    dv.setUint32(8 + len, crc32Range(buf, 4, 8 + len));
+    return buf;
+  }
+
+  async function streamingPdfToPng(scale, outW, totalH, onProgress) {
+    const total = pdfDoc.numPages;
+    const ihdr = new Uint8Array(13);
+    const ihdrDv = new DataView(ihdr.buffer);
+    ihdrDv.setUint32(0, outW);
+    ihdrDv.setUint32(4, totalH);
+    ihdr[8] = 8; ihdr[9] = 2; ihdr[10] = 0; ihdr[11] = 0; ihdr[12] = 0;
+
+    const def = new pako.Deflate({ level: 6 });
+    const deflateChunks = [];
+    let deflateSize = 0;
+    def.onData = data => { deflateChunks.push(data); deflateSize += data.length; };
+
+    const rgbStride = outW * 3;
+    const rowBuf = new Uint8Array(rgbStride + 1);
+    let rowsDone = 0;
+
+    for (let pi = 1; pi <= total; pi++) {
+      onProgress && onProgress({ phase: "render", page: pi, total });
+      const page = await pdfDoc.getPage(pi);
+      const viewport = page.getViewport({ scale });
+      const pageW = Math.floor(viewport.width);
+      const pageH = Math.floor(viewport.height);
+
+      const pageCanvas = document.createElement("canvas");
+      pageCanvas.width = pageW;
+      pageCanvas.height = pageH;
+      const pageCtx = pageCanvas.getContext("2d");
+      pageCtx.fillStyle = "white";
+      pageCtx.fillRect(0, 0, pageW, pageH);
+      await page.render({
+        canvasContext: pageCtx,
+        viewport,
+        background: "white",
+        intent: "print"
+      }).promise;
+
+      const imgData = pageCtx.getImageData(0, 0, pageW, pageH);
+      const xOff = Math.floor((outW - pageW) / 2);
+      pageCanvas.width = 0; pageCanvas.height = 0;
+
+      const isLastPage = pi === total;
+      for (let r = 0; r < pageH; r++) {
+        rowBuf[0] = 0;
+        rowBuf.fill(255, 1);
+        const srcBase = r * pageW * 4;
+        for (let x = 0; x < pageW; x++) {
+          const s = srcBase + x * 4;
+          const d = 1 + (xOff + x) * 3;
+          rowBuf[d] = imgData.data[s];
+          rowBuf[d + 1] = imgData.data[s + 1];
+          rowBuf[d + 2] = imgData.data[s + 2];
+        }
+        const isLastRow = isLastPage && r === pageH - 1;
+        def.push(rowBuf, isLastRow);
+        rowsDone++;
+        if (rowsDone % 256 === 0) {
+          onProgress && onProgress({ phase: "encode", rows: rowsDone, totalRows: totalH });
+          await new Promise(res => setTimeout(res, 0));
+        }
+      }
+    }
+
+    onProgress && onProgress({ phase: "finalize" });
+    const idatData = new Uint8Array(deflateSize);
+    let off = 0;
+    for (const c of deflateChunks) { idatData.set(c, off); off += c.length; }
+    deflateChunks.length = 0;
+
+    const sig = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
+    const ihdrChunk = pngChunk("IHDR", ihdr);
+    const idatChunk = pngChunk("IDAT", idatData);
+    const iendChunk = pngChunk("IEND", new Uint8Array(0));
+
+    return new Blob([sig, ihdrChunk, idatChunk, iendChunk], { type: "image/png" });
+  }
+
+  let jpegModulePromise = null;
+  function loadJpegEncoder() {
+    if (!jpegModulePromise) {
+      jpegModulePromise = import("https://cdn.jsdelivr.net/npm/jpeg-js@0.4.4/+esm");
+    }
+    return jpegModulePromise;
+  }
+
+  async function streamingPdfToJpg(scale, outW, totalH, quality, onProgress) {
+    const total = pdfDoc.numPages;
+    onProgress && onProgress({ phase: "init" });
+
+    let rgba;
+    try {
+      rgba = new Uint8Array(outW * totalH * 4);
+    } catch (e) {
+      throw new Error(`Nedostatok pamäte (${((outW * totalH * 4) / 1024 / 1024 / 1024).toFixed(2)} GB pre RGBA buffer). Zníž DPI alebo použi PNG/režim Po stranách.`);
+    }
+    rgba.fill(255);
+
+    let y = 0;
+    for (let pi = 1; pi <= total; pi++) {
+      onProgress && onProgress({ phase: "render", page: pi, total });
+      const page = await pdfDoc.getPage(pi);
+      const viewport = page.getViewport({ scale });
+      const pageW = Math.floor(viewport.width);
+      const pageH = Math.floor(viewport.height);
+
+      const pageCanvas = document.createElement("canvas");
+      pageCanvas.width = pageW;
+      pageCanvas.height = pageH;
+      const pageCtx = pageCanvas.getContext("2d");
+      pageCtx.fillStyle = "white";
+      pageCtx.fillRect(0, 0, pageW, pageH);
+      await page.render({
+        canvasContext: pageCtx,
+        viewport,
+        background: "white",
+        intent: "print"
+      }).promise;
+
+      const imgData = pageCtx.getImageData(0, 0, pageW, pageH);
+      const xOff = Math.floor((outW - pageW) / 2);
+      const rowBytes = pageW * 4;
+      for (let r = 0; r < pageH; r++) {
+        const srcStart = r * rowBytes;
+        const dstStart = (y + r) * outW * 4 + xOff * 4;
+        rgba.set(imgData.data.subarray(srcStart, srcStart + rowBytes), dstStart);
+      }
+
+      pageCanvas.width = 0; pageCanvas.height = 0;
+      y += pageH;
+      await new Promise(res => setTimeout(res, 0));
+    }
+
+    onProgress && onProgress({ phase: "loadEncoder" });
+    const jpeg = await loadJpegEncoder();
+
+    onProgress && onProgress({ phase: "encode" });
+    await new Promise(res => setTimeout(res, 0));
+    const q = Math.max(1, Math.min(100, Math.round(quality * 100)));
+    const result = jpeg.encode({ data: rgba, width: outW, height: totalH }, q);
+    rgba = null;
+
+    return new Blob([result.data], { type: "image/jpeg" });
+  }
+
   async function renderPageToCanvas(pageNum, scale) {
     const page = await pdfDoc.getPage(pageNum);
     const viewport = page.getViewport({ scale });
@@ -323,8 +706,13 @@
     return canvas;
   }
 
-  function canvasToBlob(canvas, quality) {
-    return new Promise(resolve => canvas.toBlob(resolve, "image/jpeg", quality));
+  function canvasToBlob(canvas, format, quality) {
+    const mime = format === "png" ? "image/png" : "image/jpeg";
+    return new Promise(resolve => canvas.toBlob(resolve, mime, quality));
+  }
+
+  function getFormat() {
+    return document.querySelector('input[name="format"]:checked').value;
   }
 
   function downloadBlob(blob, filename) {
@@ -338,98 +726,161 @@
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
-  btnPerPage.addEventListener("click", async () => {
-    if (!pdfDoc) return;
+  async function exportPerPage() {
     const scale = dpiToScale(parseInt(dpiRange.value));
     const quality = parseFloat(qualityRange.value);
+    const format = getFormat();
+    const ext = format === "png" ? "png" : "jpg";
     const total = pdfDoc.numPages;
-    btnPerPage.disabled = true; btnSingle.disabled = true;
-    setProgressPct(0);
-    try {
-      const zip = new JSZip();
-      const padLen = String(total).length;
-      for (let i = 1; i <= total; i++) {
-        showStatus(`Renderujem stranu ${i}/${total}...`, "");
-        const canvas = await renderPageToCanvas(i, scale);
-        const blob = await canvasToBlob(canvas, quality);
-        const name = `${currentFileName}_strana_${String(i).padStart(padLen, "0")}.jpg`;
-        zip.file(name, blob);
-        setProgressPct((i / total) * 90);
-      }
-      showStatus("Vytváram ZIP...", "");
-      const zipBlob = await zip.generateAsync({ type: "blob" }, meta => {
-        setProgressPct(90 + meta.percent * 0.1);
-      });
-      downloadBlob(zipBlob, `${currentFileName}_strany.zip`);
-      setProgressPct(100);
-      showStatus(`Hotovo. ${total} JPG súborov v ZIP archíve.`, "success");
-    } catch (err) {
-      showStatus("Chyba: " + err.message, "error");
-      console.error(err);
-    } finally {
-      btnPerPage.disabled = false; btnSingle.disabled = false;
+
+    const zip = new JSZip();
+    const padLen = String(total).length;
+    for (let i = 1; i <= total; i++) {
+      showStatus(`Renderujem stranu ${i}/${total} @ ${dpiRange.value} DPI...`, "");
+      const canvas = await renderPageToCanvas(i, scale);
+      const blob = await canvasToBlob(canvas, format, quality);
+      const name = `${currentFileName}_strana_${String(i).padStart(padLen, "0")}.${ext}`;
+      zip.file(name, blob);
+      canvas.width = 0; canvas.height = 0;
+      setProgressPct((i / total) * 90);
     }
-  });
+    showStatus("Vytváram ZIP...", "");
+    const zipBlob = await zip.generateAsync({ type: "blob" }, meta => {
+      setProgressPct(90 + meta.percent * 0.1);
+    });
+    downloadBlob(zipBlob, `${currentFileName}_strany.zip`);
+    setProgressPct(100);
+    const sizeMB = (zipBlob.size / 1024 / 1024).toFixed(2);
+    showStatus(`Hotovo. ZIP s ${total} ${ext.toUpperCase()} súbormi · ${sizeMB} MB.`, "success");
+  }
 
-  btnSingle.addEventListener("click", async () => {
-    if (!pdfDoc) return;
-    const scale = dpiToScale(parseInt(dpiRange.value));
+  async function exportSinglePng() {
+    const requestedDpi = parseInt(dpiRange.value);
+    const scale = dpiToScale(requestedDpi);
+    const outW = Math.floor(pdfBaseMaxWidth * scale);
+    const totalH = Math.floor(pdfBaseTotalHeight * scale);
+
+    showStatus(`Streaming PNG @ ${requestedDpi} DPI · ${outW}×${totalH} px...`, "");
+    const blob = await streamingPdfToPng(scale, outW, totalH, info => {
+      if (info.phase === "render") {
+        showStatus(`Renderujem stranu ${info.page}/${info.total} @ ${requestedDpi} DPI...`, "");
+        setProgressPct((info.page - 1) / info.total * 90);
+      } else if (info.phase === "encode") {
+        setProgressPct((info.rows / info.totalRows) * 90);
+      } else if (info.phase === "finalize") {
+        showStatus("Skladám PNG súbor...", "");
+        setProgressPct(95);
+      }
+    });
+    downloadBlob(blob, `${currentFileName}_cele.png`);
+    setProgressPct(100);
+    const sizeMB = (blob.size / 1024 / 1024).toFixed(2);
+    showStatus(`Hotovo. ${outW}×${totalH} px @ ${requestedDpi} DPI · ${sizeMB} MB · PNG.`, "success");
+  }
+
+  function canvasFits(outW, outH) {
+    return outW <= MAX_DIM && outH <= MAX_DIM && (outW * outH) <= MAX_AREA;
+  }
+
+  async function exportSingleJpg() {
+    const requestedDpi = parseInt(dpiRange.value);
+    const scale = dpiToScale(requestedDpi);
     const quality = parseFloat(qualityRange.value);
     const total = pdfDoc.numPages;
-    btnPerPage.disabled = true; btnSingle.disabled = true;
-    setProgressPct(0);
-    try {
-      showStatus("Meriam strany...", "");
-      const pageCanvases = [];
-      let maxWidth = 0;
-      let totalHeight = 0;
-      for (let i = 1; i <= total; i++) {
-        showStatus(`Renderujem stranu ${i}/${total}...`, "");
-        const canvas = await renderPageToCanvas(i, scale);
-        pageCanvases.push(canvas);
-        if (canvas.width > maxWidth) maxWidth = canvas.width;
-        totalHeight += canvas.height;
-        setProgressPct((i / total) * 80);
-      }
+    const outW = Math.floor(pdfBaseMaxWidth * scale);
+    const outH = Math.floor(pdfBaseTotalHeight * scale);
 
-      const MAX_DIM = 16384;
-      let finalScale = 1;
-      if (maxWidth > MAX_DIM || totalHeight > MAX_DIM) {
-        finalScale = Math.min(MAX_DIM / maxWidth, MAX_DIM / totalHeight);
-        showStatus(`Veľký obrázok — zmenšujem na ${Math.round(finalScale * 100)}%...`, "");
-      }
-
-      const finalW = Math.floor(maxWidth * finalScale);
-      const finalH = Math.floor(totalHeight * finalScale);
+    if (canvasFits(outW, outH)) {
       const finalCanvas = document.createElement("canvas");
-      finalCanvas.width = finalW;
-      finalCanvas.height = finalH;
+      finalCanvas.width = outW;
+      finalCanvas.height = outH;
       const ctx = finalCanvas.getContext("2d");
+      if (!ctx) throw new Error("Canvas alokácia zlyhala. Skús opäť alebo zníž DPI.");
       ctx.fillStyle = "white";
-      ctx.fillRect(0, 0, finalW, finalH);
+      ctx.fillRect(0, 0, outW, outH);
 
       let y = 0;
-      for (let i = 0; i < pageCanvases.length; i++) {
-        const c = pageCanvases[i];
-        const w = Math.floor(c.width * finalScale);
-        const h = Math.floor(c.height * finalScale);
-        const x = Math.floor((finalW - w) / 2);
-        ctx.drawImage(c, x, y, w, h);
-        y += h;
-        setProgressPct(80 + ((i + 1) / pageCanvases.length) * 15);
+      for (let i = 1; i <= total; i++) {
+        showStatus(`Renderujem stranu ${i}/${total} @ ${requestedDpi} DPI (canvas)...`, "");
+        const page = await pdfDoc.getPage(i);
+        const viewport = page.getViewport({ scale });
+        const pageW = Math.floor(viewport.width);
+        const pageH = Math.floor(viewport.height);
+
+        const pageCanvas = document.createElement("canvas");
+        pageCanvas.width = pageW;
+        pageCanvas.height = pageH;
+        const pageCtx = pageCanvas.getContext("2d");
+        pageCtx.fillStyle = "white";
+        pageCtx.fillRect(0, 0, pageW, pageH);
+        await page.render({
+          canvasContext: pageCtx,
+          viewport,
+          background: "white",
+          intent: "print"
+        }).promise;
+
+        const x = Math.floor((outW - pageW) / 2);
+        ctx.drawImage(pageCanvas, x, y);
+        pageCanvas.width = 0; pageCanvas.height = 0;
+
+        y += pageH;
+        setProgressPct((i / total) * 90);
       }
 
       showStatus("Exportujem JPG...", "");
-      const blob = await canvasToBlob(finalCanvas, quality);
-      if (!blob) throw new Error("Obrázok je príliš veľký pre prehliadač. Skús nižšie DPI.");
+      const blob = await canvasToBlob(finalCanvas, "jpeg", quality);
+      finalCanvas.width = 0; finalCanvas.height = 0;
+      if (!blob) throw new Error("Export JPG zlyhal.");
       downloadBlob(blob, `${currentFileName}_cele.jpg`);
       setProgressPct(100);
-      showStatus(`Hotovo. Rozmer ${finalW}×${finalH} px, ${(blob.size / 1024 / 1024).toFixed(2)} MB.`, "success");
+      const sizeMB = (blob.size / 1024 / 1024).toFixed(2);
+      showStatus(`Hotovo. ${outW}×${outH} px @ ${requestedDpi} DPI · ${sizeMB} MB · JPG.`, "success");
+      return;
+    }
+
+    showStatus(`${outW}×${outH} presahuje canvas limit — použijem JS JPEG enkóder (pomalšie)...`, "");
+    const blob = await streamingPdfToJpg(scale, outW, outH, quality, info => {
+      if (info.phase === "render") {
+        showStatus(`Renderujem stranu ${info.page}/${info.total} @ ${requestedDpi} DPI...`, "");
+        setProgressPct((info.page - 1) / info.total * 70);
+      } else if (info.phase === "loadEncoder") {
+        showStatus("Načítavam JPEG enkóder...", "");
+        setProgressPct(72);
+      } else if (info.phase === "encode") {
+        showStatus(`Kódujem JPEG @ ${requestedDpi} DPI · ${outW}×${outH} px (môže to chvíľu trvať)...`, "");
+        setProgressPct(80);
+      }
+    });
+    setProgressPct(100);
+    downloadBlob(blob, `${currentFileName}_cele.jpg`);
+    const sizeMB = (blob.size / 1024 / 1024).toFixed(2);
+    showStatus(`Hotovo. ${outW}×${outH} px @ ${requestedDpi} DPI · ${sizeMB} MB · JPG (JS enkóder).`, "success");
+  }
+
+  btnExport.addEventListener("click", async () => {
+    if (!pdfDoc) return;
+    const mode = getMode();
+    const format = getFormat();
+    btnExport.disabled = true;
+    const origText = btnExport.textContent;
+    btnExport.textContent = "Spracovávam...";
+    setProgressPct(0);
+    try {
+      if (mode === "per-page") {
+        await exportPerPage();
+      } else if (format === "png") {
+        await exportSinglePng();
+      } else {
+        await exportSingleJpg();
+      }
     } catch (err) {
       showStatus("Chyba: " + err.message, "error");
       console.error(err);
     } finally {
-      btnPerPage.disabled = false; btnSingle.disabled = false;
+      btnExport.disabled = false;
+      btnExport.textContent = origText;
+      refreshUI();
     }
   });
 </script>
